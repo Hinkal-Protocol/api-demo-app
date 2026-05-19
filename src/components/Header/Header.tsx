@@ -1,0 +1,50 @@
+import { useState } from "react";
+import HinkalLogo from "../../assets/HinkalLogo.png";
+import { ChooseWallet } from "../ChooseWallet";
+import { HinkalInfo } from "./HinkalInfo";
+import { Spinner } from "../Spinner";
+import { useAppContext } from "../../AppContext";
+
+export const Header = () => {
+  // local states
+  const [chooseWalletShown, setChooseWalletShown] = useState<boolean>(false);
+  const [isConnecting, setIsConnecting] = useState<boolean>(false);
+
+  const { walletAddress } = useAppContext();
+
+  return (
+    <header className="md:bg-[#1A1D1F] pt-4 md:pt-0 pb-4 relative z-20">
+      <ChooseWallet
+        isOpen={chooseWalletShown}
+        onHide={() => setChooseWalletShown(false)}
+        setShieldedAddress={() => {}}
+        setIsConnecting={setIsConnecting}
+      />
+      <div
+        className={`flex ${
+          walletAddress ? "flex-col" : ""
+        } md:flex-row justify-between w-[87%] md:w-[81.5%] mx-auto pt-[1%] relative md:static`}
+      >
+        <div className="flex items-center justify-between gap-2.5">
+          <img src={HinkalLogo} alt="" className="w-9 h-9 md:w-10 md:h-10" />
+          <p className="text-[20px] md:text-2xl font-bold text-white font-libFranklin">
+            HINKAL
+          </p>
+        </div>
+
+        {walletAddress ? (
+          <HinkalInfo shieldedAddress={walletAddress} />
+        ) : (
+          <button
+            type="button"
+            onClick={() => setChooseWalletShown(true)}
+            disabled={isConnecting}
+            className="text-white font-[700] md:font-[500] text-[16px] rounded-[12px] px-4 py-3 border-[2px] bg-primary md:bg-transparent border-primary font-pubsans flex items-center justify-center gap-2 w-[160px] h-12"
+          >
+            {isConnecting ? <Spinner /> : "Connect"}
+          </button>
+        )}
+      </div>
+    </header>
+  );
+};
