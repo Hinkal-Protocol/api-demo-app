@@ -2,7 +2,7 @@ import { http, createConfig } from "wagmi";
 import { metaMask, walletConnect } from "wagmi/connectors";
 import { SUPPORTED_CHAINS } from "./constants/supported-chain-ids.constants";
 
-export const getWagmiConfig = () => {
+const createWagmiConfig = () => {
   const transports = SUPPORTED_CHAINS.reduce((acc, chain) => {
     acc[chain.id] = http();
     return acc;
@@ -17,3 +17,7 @@ export const getWagmiConfig = () => {
     transports,
   });
 };
+
+export const wagmiConfig = createWagmiConfig();
+
+export const getWagmiConfig = () => wagmiConfig;

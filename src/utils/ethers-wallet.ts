@@ -1,22 +1,27 @@
 import { ethers } from "ethers";
+import type { Account, Chain, Client, Transport } from "viem";
+import { getConnectorClient } from "wagmi/actions";
 import { ERC20_ABI } from "../constants/erc20.constants";
 import { networkRegistry } from "../constants/chain.constants";
+import { wagmiConfig } from "../wagmi.config";
 
-declare global {
-  interface Window {
-    ethereum?: ethers.Eip1193Provider;
-  }
-}
-
-export const getBrowserProvider = (): ethers.BrowserProvider => {
-  if (!window.ethereum) {
-    throw new Error("No wallet found. Please install a Web3 wallet.");
-  }
-  return new ethers.BrowserProvider(window.ethereum);
+const clientToSigner = (
+  client: Client<Transport, Chain, Account>,
+): ethers.JsonRpcSigner => {
+  const { account, chain, transport } = client;
+  const network = {
+    chainId: chain.id,
+    name: chain.name,
+    ensAddress: chain.contracts?.ensRegistry?.address,
+  };
+  const provider = new ethers.BrowserProvider(transport, network);
+  return new ethers.JsonRpcSigner(provider, account.address);
 };
 
-export const getEthersSigner = async (): Promise<ethers.JsonRpcSigner> =>
-  getBrowserProvider().getSigner();
+export const getEthersSigner = async (): Promise<ethers.JsonRpcSigner> => {
+  const client = await getConnectorClient(wagmiConfig);
+  return clientToSigner(client);
+};
 
 export const getJsonRpcProvider = (chainId: number): ethers.JsonRpcProvider => {
   const rpcUrl = networkRegistry[chainId]?.fetchRpcUrl;

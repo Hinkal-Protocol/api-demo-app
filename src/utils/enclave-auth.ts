@@ -112,15 +112,20 @@ export const buildDepositAndWithdrawAuthFields = (
     amount: string;
   },
 ) =>
-  signEnclaveTypedData(signer, "DepositAndWithdraw", params.chainId, (nonce) => ({
-    transaction: ENCLAVE_TRANSACTION_NAMES.depositAndWithdraw,
-    nonce,
-    chainId: BigInt(params.chainId),
-    tokenAddress: params.tokenAddress,
-    recipients: [
-      {
-        recipient: params.recipientAddress,
-        amount: BigInt(params.amount),
-      },
-    ],
-  }));
+  signEnclaveTypedData(
+    signer,
+    "DepositAndWithdraw",
+    params.chainId,
+    (nonce) => ({
+      transaction: ENCLAVE_TRANSACTION_NAMES.depositAndWithdraw,
+      nonce,
+      chainId: BigInt(params.chainId),
+      tokenAddress: params.tokenAddress,
+      recipients: [
+        {
+          recipient: params.recipientAddress,
+          amount: BigInt(params.amount),
+        },
+      ],
+    }),
+  );
