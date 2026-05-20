@@ -1,10 +1,11 @@
 import { Listbox } from "@headlessui/react";
-import { SetStateAction, useEffect } from "react";
-import { useBalance, useReadContract } from "wagmi";
-import { erc20Abi, formatUnits, zeroAddress } from "viem";
+import { SetStateAction, useEffect, useState } from "react";
+import { ethers } from "ethers";
 import VectorDown from "../assets/VectorDown.svg";
 import { useAppContext } from "../AppContext";
+import { zeroAddress } from "../constants";
 import { ERC20Token } from "../types";
+import { getErc20Balance, getNativeBalance } from "../utils/ethers-wallet";
 
 interface TokenAmountInputInterface {
   buttonWrapperStyles?: string;
@@ -22,6 +23,9 @@ export const TokenAmountInput = ({
   setSelectedToken,
 }: TokenAmountInputInterface) => {
   const { erc20List, walletAddress, chainId } = useAppContext();
+  const [walletBalanceDisplay, setWalletBalanceDisplay] = useState<
+    string | null
+  >(null);
 
   useEffect(() => {
     if (erc20List.length > 0) setSelectedToken(erc20List[0]);
@@ -30,41 +34,40 @@ export const TokenAmountInput = ({
   const isNative =
     selectedToken?.erc20TokenAddress.toLowerCase() === zeroAddress;
 
-  const nativeBalance = useBalance({
-    address: walletAddress as `0x${string}` | undefined,
-    chainId,
-    query: { enabled: !!walletAddress && !!chainId && isNative },
-  });
+  useEffect(() => {
+    let cancelled = false;
 
-  const erc20Balance = useReadContract({
-    abi: erc20Abi,
-    address: selectedToken?.erc20TokenAddress as `0x${string}` | undefined,
-    functionName: "balanceOf",
-    args: walletAddress ? [walletAddress as `0x${string}`] : undefined,
-    chainId,
-    query: {
-      enabled: !!walletAddress && !!selectedToken && !!chainId && !isNative,
-    },
-  });
+    const loadBalance = async () => {
+      if (!walletAddress || !selectedToken || !chainId) {
+        setWalletBalanceDisplay(null);
+        return;
+      }
 
-  const walletBalanceDisplay = (() => {
-    if (!walletAddress || !selectedToken) return null;
-    if (isNative) {
-      if (!nativeBalance.data) return null;
-      return `${Number(
-        formatUnits(nativeBalance.data.value, selectedToken.decimals),
-      ).toFixed(4)} ${selectedToken.symbol}`;
-    }
-    if (erc20Balance.data === undefined) return null;
-    return `${Number(
-      formatUnits(erc20Balance.data as bigint, selectedToken.decimals),
-    ).toFixed(4)} ${selectedToken.symbol}`;
-  })();
+      try {
+        const balance = isNative
+          ? await getNativeBalance(chainId, walletAddress)
+          : await getErc20Balance(
+              chainId,
+              selectedToken.erc20TokenAddress,
+              walletAddress,
+            );
 
-  /**
-   * deposit amount onChange handler
-   * @param event onChange event instance
-   */
+        if (!cancelled) {
+          setWalletBalanceDisplay(
+            `${Number(ethers.formatUnits(balance, selectedToken.decimals)).toFixed(4)} ${selectedToken.symbol}`,
+          );
+        }
+      } catch {
+        if (!cancelled) setWalletBalanceDisplay(null);
+      }
+    };
+
+    loadBalance();
+    return () => {
+      cancelled = true;
+    };
+  }, [walletAddress, selectedToken, chainId, isNative]);
+
   const setTokenAmountHandler = (
     event: React.ChangeEvent<HTMLInputElement>,
   ) => {
@@ -73,6 +76,7 @@ export const TokenAmountInput = ({
       setTokenAmount(event.target.value);
     }
   };
+
   return (
     <div className="flex flex-col item-center justify-center">
       <div className="flex justify-between items-center pl-[5%] pr-[5%]">

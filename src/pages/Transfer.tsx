@@ -7,11 +7,11 @@ import { ERC20Token } from "../types";
 import { getAmountInWei } from "../utils/amount.utils";
 import { ExternalActionId, getFeeStructure } from "../utils/fees";
 import { transfer } from "../utils/transfer";
+import { getEthersSigner } from "../utils/ethers-wallet";
 
 export const Transfer = () => {
   const { walletAddress, refreshBalances, chainId, signature, nonce } =
     useAppContext();
-
   const [selectedToken, setSelectedToken] = useState<ERC20Token | undefined>(
     undefined,
   );
@@ -36,8 +36,11 @@ export const Transfer = () => {
         ExternalActionId.Transact,
       );
 
+      const signer = await getEthersSigner();
       await transfer(
-        auth,
+        signer,
+        walletAddress,
+        chainId,
         [tokenAddress],
         [amountInWei.toString()],
         transferAddress,

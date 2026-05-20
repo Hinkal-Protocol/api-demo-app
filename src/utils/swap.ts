@@ -1,7 +1,9 @@
-import { Auth } from "./types";
-import { ExternalActionId, getFeeStructure } from "./fees";
+import { ethers } from "ethers";
 import { API_BASE_URL } from "../constants/server.constants";
 import { ERC20Token } from "../types";
+import { buildTokenSwapAuthFields } from "./enclave-auth";
+import { ExternalActionId, getFeeStructure } from "./fees";
+import { Auth } from "./types";
 
 export const HINKAL_SWAP_VARIABLE_RATE = 35n;
 
@@ -54,7 +56,9 @@ export const getSwapData = async (
 };
 
 export const executeSwap = async (
-  auth: Auth,
+  signer: ethers.Signer,
+  account: string,
+  getterAuth: Auth,
   inToken: ERC20Token,
   outToken: ERC20Token,
   inAmount: string,
@@ -67,21 +71,35 @@ export const executeSwap = async (
   const outAdjusted =
     (outAmountWei * (10000n - HINKAL_SWAP_VARIABLE_RATE)) / 10000n;
 
-  const feeStructure = await getFeeStructure(
-    auth,
+  const tokenAddresses = [
     inToken.erc20TokenAddress,
-    [inToken.erc20TokenAddress, outToken.erc20TokenAddress],
+    outToken.erc20TokenAddress,
+  ];
+  const amounts = [(-inAmountWei).toString(), outAdjusted.toString()];
+
+  const feeStructure = await getFeeStructure(
+    getterAuth,
+    inToken.erc20TokenAddress,
+    tokenAddresses,
     quotedData.externalActionId,
     HINKAL_SWAP_VARIABLE_RATE.toString(),
   );
+
+  const authFields = await buildTokenSwapAuthFields(signer, {
+    chainId: getterAuth.chainId,
+    tokenAddresses,
+    amounts,
+  });
 
   const res = await fetch(`${API_BASE_URL}/swap`, {
     method: "POST",
     headers: { "Content-Type": "application/json" },
     body: JSON.stringify({
-      ...auth,
-      tokenAddresses: [inToken.erc20TokenAddress, outToken.erc20TokenAddress],
-      amounts: [(-inAmountWei).toString(), outAdjusted.toString()],
+      ...authFields,
+      address: account,
+      chainId: getterAuth.chainId,
+      tokenAddresses,
+      amounts,
       externalActionId: quotedData.externalActionId,
       swapData: quotedData.swapData,
       feeToken: inToken.erc20TokenAddress,

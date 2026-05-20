@@ -15,11 +15,11 @@ import { useAppContext } from "../AppContext";
 import { getAmountInToken } from "../utils/amount.utils";
 import { ERC20Token } from "../types";
 import { getSwapData, executeSwap, type SwapData } from "../utils/swap";
+import { getEthersSigner } from "../utils/ethers-wallet";
 
 export const Swap = () => {
   const { walletAddress, refreshBalances, chainId, signature, nonce } =
     useAppContext();
-
   const [inSwapAmount, setInSwapAmount] = useState("");
   const [inSwapToken, setInSwapToken] = useState<ERC20Token | undefined>();
   const [outSwapToken, setOutSwapToken] = useState<ERC20Token | undefined>();
@@ -120,9 +120,12 @@ export const Swap = () => {
 
     try {
       setIsProcessing(true);
-      const auth = { signature, nonce, address: walletAddress, chainId };
+      const getterAuth = { signature, nonce, address: walletAddress, chainId };
+      const signer = await getEthersSigner();
       await executeSwap(
-        auth,
+        signer,
+        walletAddress,
+        getterAuth,
         inSwapToken,
         outSwapToken,
         inSwapAmount,

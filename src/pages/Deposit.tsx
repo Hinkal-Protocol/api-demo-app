@@ -1,23 +1,16 @@
 import { SyntheticEvent, useCallback, useState, useMemo } from "react";
 import { toast } from "react-hot-toast";
-import { useConfig } from "wagmi";
-import {
-  sendTransaction,
-  waitForTransactionReceipt,
-  writeContract,
-} from "wagmi/actions";
-import { erc20Abi } from "viem";
 import { Spinner } from "../components/Spinner";
 import { TokenAmountInput } from "../components/TokenAmountInput";
 import { useAppContext } from "../AppContext";
+import { zeroAddress } from "../constants";
 import { ERC20Token } from "../types";
 import { getAmountInWei } from "../utils/amount.utils";
 import { deposit } from "../utils/deposit";
+import { approveErc20, getEthersSigner, sendTx } from "../utils/ethers-wallet";
 
 export const Deposit = () => {
-  const { walletAddress, refreshBalances, chainId, signature, nonce } =
-    useAppContext();
-  const config = useConfig();
+  const { walletAddress, refreshBalances, chainId } = useAppContext();
 
   const [selectedToken, setSelectedToken] = useState<ERC20Token | undefined>(
     undefined,
@@ -27,34 +20,34 @@ export const Deposit = () => {
 
   const handleDeposit = useCallback(async () => {
     try {
-      if (!chainId || !selectedToken || !walletAddress || !signature || !nonce)
-        return;
+      if (!chainId || !selectedToken || !walletAddress) return;
       setIsProcessing(true);
 
+      const signer = await getEthersSigner();
       const amountInWei = getAmountInWei(selectedToken, depositAmount);
 
       const txData = await deposit(
-        { signature, nonce, address: walletAddress, chainId },
+        signer,
+        walletAddress,
+        chainId,
         [selectedToken.erc20TokenAddress],
         [amountInWei.toString()],
       );
 
-      const approveHash = await writeContract(config, {
-        abi: erc20Abi,
-        address: selectedToken.erc20TokenAddress as `0x${string}`,
-        functionName: "approve",
-        args: [txData.to as `0x${string}`, amountInWei],
-        chainId,
-      });
-      await waitForTransactionReceipt(config, { hash: approveHash });
+      if (selectedToken.erc20TokenAddress !== zeroAddress) {
+        await approveErc20(
+          signer,
+          selectedToken.erc20TokenAddress,
+          txData.to,
+          amountInWei,
+        );
+      }
 
-      const depositHash = await sendTransaction(config, {
-        to: txData.to as `0x${string}`,
-        data: txData.data as `0x${string}`,
+      await sendTx(signer, {
+        to: txData.to,
+        data: txData.data,
         value: txData.value ? BigInt(txData.value) : undefined,
-        chainId,
       });
-      await waitForTransactionReceipt(config, { hash: depositHash });
       await refreshBalances();
     } catch (err) {
       const errorMessage =
@@ -64,14 +57,11 @@ export const Deposit = () => {
       setIsProcessing(false);
     }
   }, [
-    config,
     depositAmount,
     selectedToken,
     refreshBalances,
     chainId,
     walletAddress,
-    signature,
-    nonce,
   ]);
 
   const handleSubmit = (event: SyntheticEvent) => {

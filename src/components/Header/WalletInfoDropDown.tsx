@@ -7,7 +7,7 @@ import { copyToClipboard } from "../../utils/copyToClipboard";
 import { WalletInfoBalance } from "./WalletInfoBalance";
 import { useAppContext } from "../../AppContext";
 import { TokenBalance } from "../../types";
-import { zeroAddress } from "viem";
+import { zeroAddress } from "../../constants";
 
 const filterTokenBalances = (tokenBalances: TokenBalance[]) => {
   const nonZeroBalances = [...tokenBalances]

@@ -1,7 +1,7 @@
 import { Dispatch, SetStateAction, useCallback, useState } from "react";
 import { isMobile } from "react-device-detect";
 import { useConfig, useConnectors } from "wagmi";
-import { connect, signMessage } from "wagmi/actions";
+import { connect } from "wagmi/actions";
 import type { Connector } from "wagmi";
 import coinbaseLogo from "../assets/coinbaseWalletLogo.png";
 import metamaskLogo from "../assets/metamaskWalletLogo.png";
@@ -9,7 +9,8 @@ import walletconnectLogo from "../assets/walletconnectWalletLogo.png";
 import { Modal } from "./Modal";
 import { Spinner } from "./Spinner";
 import { useAppContext } from "../AppContext";
-import { generateNonce, buildSignMessage } from "../utils/auth";
+import { buildEnclaveAuthFields } from "../utils/auth";
+import { getEthersSigner } from "../utils/ethers-wallet";
 import toast from "react-hot-toast";
 
 interface ChooseWalletProps {
@@ -55,18 +56,13 @@ export const ChooseWallet = ({
         const account = accounts?.[0];
         if (!account) throw new Error("No account returned");
 
-        const newNonce = generateNonce();
-        const message = buildSignMessage(newNonce);
-        const signature = await signMessage(config, {
-          account,
-          connector,
-          message,
-        });
+        const signer = await getEthersSigner();
+        const { signature, nonce } = await buildEnclaveAuthFields(signer);
 
         setHinkal(null);
         setWalletAddress(account);
         setSignature(signature);
-        setNonce(newNonce);
+        setNonce(nonce);
         setShieldedAddress(undefined);
         setChainId(chainId);
         setDataLoaded(true);

@@ -7,16 +7,10 @@ import {
 } from "react";
 import toast from "react-hot-toast";
 import { ethers } from "ethers";
-import { erc20Abi, zeroAddress } from "viem";
-import { useConfig } from "wagmi";
-import {
-  sendTransaction,
-  waitForTransactionReceipt,
-  writeContract,
-} from "wagmi/actions";
 import { Spinner } from "../components/Spinner";
 import { SelectToken } from "../components/swap/SelectToken";
 import { useAppContext } from "../AppContext";
+import { zeroAddress } from "../constants";
 import { ERC20Token } from "../types";
 import { getAmountInWei } from "../utils/amount.utils";
 import { getERC20Token, getERC20TokenBySymbol } from "../utils/tokens.utils";
@@ -26,7 +20,12 @@ import {
 } from "../constants/schedule.constants";
 import { ButtonGroupWithLabel } from "../utils/buttonGroupWithLabel";
 import { RecipientInputRow } from "../utils/recipientInfoRow";
-import { depositAndWithdraw, OrderStatus, getOrderStatus } from "../utils/multiSend";
+import {
+  depositAndWithdraw,
+  OrderStatus,
+  getOrderStatus,
+} from "../utils/multiSend";
+import { approveErc20, getEthersSigner, sendTx } from "../utils/ethers-wallet";
 
 const NON_NATIVE_GAS_TOKENS = ["USDC", "USDT", "DAI"];
 const POLL_INTERVAL_MS = 5000;
@@ -54,9 +53,7 @@ const waitForOrderTerminal = async (
 };
 
 export const MultiSend = () => {
-  const { walletAddress, refreshBalances, chainId, signature, nonce } =
-    useAppContext();
-  const config = useConfig();
+  const { walletAddress, refreshBalances, chainId } = useAppContext();
 
   const allowedTokens = useMemo<ERC20Token[]>(() => {
     if (!chainId) return [];
@@ -109,19 +106,19 @@ export const MultiSend = () => {
         !chainId ||
         !selectedToken ||
         !walletAddress ||
-        !signature ||
-        !nonce ||
         !recipientAddress ||
         !recipientAmount
       )
         return;
       setIsProcessing(true);
 
-      const auth = { signature, nonce, address: walletAddress, chainId };
+      const signer = await getEthersSigner();
       const amountWei = getAmountInWei(selectedToken, recipientAmount);
 
       const order = await depositAndWithdraw(
-        auth,
+        signer,
+        walletAddress,
+        chainId,
         selectedToken.erc20TokenAddress,
         amountWei.toString(),
         recipientAddress,
@@ -138,26 +135,22 @@ export const MultiSend = () => {
         selectedToken.erc20TokenAddress.toLowerCase() === zeroAddress;
 
       if (!isNative) {
-        const approveHash = await writeContract(config, {
-          abi: erc20Abi,
-          address: selectedToken.erc20TokenAddress as `0x${string}`,
-          functionName: "approve",
-          args: [parsedTx.to as `0x${string}`, amountIn],
-          chainId,
-        });
-        await waitForTransactionReceipt(config, { hash: approveHash });
+        await approveErc20(
+          signer,
+          selectedToken.erc20TokenAddress,
+          parsedTx.to,
+          amountIn,
+        );
       }
 
-      const depositHash = await sendTransaction(config, {
-        to: parsedTx.to as `0x${string}`,
-        data: (parsedTx.data ?? "0x") as `0x${string}`,
+      await sendTx(signer, {
+        to: parsedTx.to,
+        data: parsedTx.data ?? "0x",
         value:
           parsedTx.value !== undefined && parsedTx.value !== null
             ? BigInt(parsedTx.value)
             : undefined,
-        chainId,
       });
-      await waitForTransactionReceipt(config, { hash: depositHash });
 
       await waitForOrderTerminal(order.orderId);
 
@@ -175,11 +168,8 @@ export const MultiSend = () => {
     chainId,
     selectedToken,
     walletAddress,
-    signature,
-    nonce,
     recipientAddress,
     recipientAmount,
-    config,
     refreshBalances,
   ]);
 

@@ -7,11 +7,11 @@ import { ERC20Token } from "../types";
 import { getAmountInWei } from "../utils/amount.utils";
 import { ExternalActionId, getFeeStructure } from "../utils/fees";
 import { withdraw } from "../utils/withdraw";
+import { getEthersSigner } from "../utils/ethers-wallet";
 
 export const Withdraw = () => {
   const { walletAddress, refreshBalances, chainId, signature, nonce } =
     useAppContext();
-
   const [selectedToken, setSelectedToken] = useState<ERC20Token | undefined>(
     undefined,
   );
@@ -39,12 +39,15 @@ export const Withdraw = () => {
             ExternalActionId.Transact,
           );
 
+      const signer = await getEthersSigner();
       await withdraw(
-        auth,
+        signer,
+        walletAddress,
+        chainId,
         [tokenAddress],
         [amountInWei.toString()],
         recipientAddress,
-        undefined, // isRelayerOff,
+        isRelayerOff,
         tokenAddress,
         feeStructure,
       );
@@ -65,6 +68,7 @@ export const Withdraw = () => {
     nonce,
     withdrawAmount,
     recipientAddress,
+    isRelayerOff,
     refreshBalances,
   ]);
 
