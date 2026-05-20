@@ -1,3 +1,4 @@
 export { generateNonce, buildEnclaveAuthFields } from "./enclave-auth";
 
-export const buildSignMessage = (nonce: string): string => `Hinkal - ${nonce}`;
+export const buildEnclaveSignMessage = (sessionId: string): string =>
+  `Authorize Hinkal session\nSession ID: ${sessionId}`;

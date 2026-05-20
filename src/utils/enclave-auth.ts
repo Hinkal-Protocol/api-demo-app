@@ -6,7 +6,7 @@ import {
   getEnclaveTypedDataDomain,
   getTypesForPrimary,
 } from "../constants/enclave.constants";
-import { buildSignMessage } from "./auth";
+import { buildEnclaveSignMessage } from "./auth";
 import type { EnclaveAuthFields } from "./types";
 
 export const generateNonce = (): string => crypto.randomUUID();
@@ -37,7 +37,7 @@ export const buildEnclaveAuthFields = async (
   signer: ethers.Signer,
 ): Promise<EnclaveAuthFields> => {
   const nonce = generateNonce();
-  const signature = await signer.signMessage(buildSignMessage(nonce));
+  const signature = await signer.signMessage(buildEnclaveSignMessage(nonce));
   return { signature, nonce };
 };
 
