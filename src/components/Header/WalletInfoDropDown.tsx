@@ -30,7 +30,6 @@ export const WalletInfoDropDown = () => {
     setSignature,
     setNonce,
     setChainId,
-    setHinkal,
     setDataLoaded,
   } = useAppContext();
   const config = useConfig();
@@ -44,7 +43,6 @@ export const WalletInfoDropDown = () => {
     setWalletAddress(null);
     setSignature(null);
     setNonce(null);
-    setHinkal(null);
     setDataLoaded(false);
     setChainId(undefined as any);
   };

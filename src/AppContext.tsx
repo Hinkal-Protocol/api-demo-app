@@ -11,14 +11,15 @@ import {
   useRef,
   useState,
 } from "react";
+import toast from "react-hot-toast";
 import { networkRegistry } from "./constants/chain.constants";
 import { fetchBalances } from "./utils/balance";
+import { buildEnclaveAuthFields } from "./utils/auth";
 import { getERC20Registry } from "./constants/token-data";
+import { getEthersSigner } from "./utils/ethers-wallet";
 import { ERC20Token } from "./types";
 
 type AppContextArgumnets = {
-  hinkal: any;
-  setHinkal: Dispatch<SetStateAction<any>>;
   signature: string | null;
   setSignature: Dispatch<SetStateAction<string | null>>;
   nonce: string | null;
@@ -27,11 +28,10 @@ type AppContextArgumnets = {
   setWalletAddress: Dispatch<SetStateAction<string | null>>;
   chainId?: number;
   setChainId: (num: number) => void;
-  selectedNetwork: any;
-  setSelectedNetwork: (net: any) => void;
+  selectedNetwork: (typeof networkRegistry)[number] | undefined;
   dataLoaded: boolean;
   setDataLoaded: (val: boolean) => void;
-  erc20List: any[];
+  erc20List: ERC20Token[];
   balances: any[];
   refreshBalances: () => Promise<void>;
 };
@@ -39,8 +39,6 @@ type AppContextArgumnets = {
 const BALANCE_REFRESH_INTERVAL = 100000;
 
 const AppContext = createContext<AppContextArgumnets>({
-  hinkal: null,
-  setHinkal: () => {},
   signature: null,
   setSignature: () => {},
   nonce: null,
@@ -50,7 +48,6 @@ const AppContext = createContext<AppContextArgumnets>({
   chainId: undefined,
   setChainId: () => {},
   selectedNetwork: undefined,
-  setSelectedNetwork: () => {},
   dataLoaded: false,
   setDataLoaded: () => {},
   erc20List: [],
@@ -63,28 +60,64 @@ type AppContextProps = { children: ReactNode };
 export const AppContextProvider: FC<AppContextProps> = ({
   children,
 }: AppContextProps) => {
-  const [hinkal, setHinkal] = useState<any>(null);
   const [signature, setSignature] = useState<string | null>(null);
   const [nonce, setNonce] = useState<string | null>(null);
   const [walletAddress, setWalletAddress] = useState<string | null>(null);
   const [chainId, setChainId] = useState<number | undefined>();
   const [dataLoaded, setDataLoaded] = useState<boolean>(false);
-  const [selectedNetwork, setSelectedNetwork] = useState<any>(undefined);
   const [balances, setBalances] = useState<any[]>([]);
   const abortControllerRef = useRef<AbortController | null>(null);
+  const prevChainIdRef = useRef<number | undefined>();
 
   const erc20List = useMemo<ERC20Token[]>(
     () => (chainId ? getERC20Registry(chainId) : []),
     [chainId],
   );
 
+  const selectedNetwork = useMemo(
+    () => (chainId ? networkRegistry[chainId] : undefined),
+    [chainId],
+  );
+
   useEffect(() => {
     if (!chainId) {
-      setSelectedNetwork(undefined);
+      prevChainIdRef.current = undefined;
       return;
     }
-    setSelectedNetwork(networkRegistry[chainId]);
-  }, [chainId]);
+
+    const prevChainId = prevChainIdRef.current;
+    prevChainIdRef.current = chainId;
+
+    if (!walletAddress || !dataLoaded) return;
+    if (prevChainId === undefined || prevChainId === chainId) return;
+
+    let cancelled = false;
+    setSignature(null);
+    setNonce(null);
+
+    const refreshAuth = async () => {
+      try {
+        const signer = await getEthersSigner();
+        const auth = await buildEnclaveAuthFields(signer);
+        if (!cancelled) {
+          setSignature(auth.signature);
+          setNonce(auth.nonce);
+        }
+      } catch (error) {
+        if (!cancelled) {
+          console.error("Failed to refresh enclave auth after chain switch:", error);
+          toast.error(
+            `Failed to authorize on new network: ${error || "Unknown error"}`,
+          );
+        }
+      }
+    };
+
+    void refreshAuth();
+    return () => {
+      cancelled = true;
+    };
+  }, [chainId, walletAddress, dataLoaded]);
 
   const refreshBalances = useCallback(async () => {
     if (!dataLoaded || !chainId || !walletAddress || !signature || !nonce)
@@ -121,8 +154,6 @@ export const AppContextProvider: FC<AppContextProps> = ({
   return (
     <AppContext.Provider
       value={{
-        hinkal,
-        setHinkal,
         signature,
         setSignature,
         nonce,
@@ -132,7 +163,6 @@ export const AppContextProvider: FC<AppContextProps> = ({
         chainId,
         setChainId,
         selectedNetwork,
-        setSelectedNetwork,
         dataLoaded,
         setDataLoaded,
         erc20List,

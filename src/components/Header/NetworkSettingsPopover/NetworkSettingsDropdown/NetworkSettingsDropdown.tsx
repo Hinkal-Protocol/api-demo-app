@@ -13,7 +13,7 @@ interface NetworkSettingsDropdownProps {
 export const NetworkSettingsDropdown = ({
   close,
 }: NetworkSettingsDropdownProps) => {
-  const { setChainId, refreshBalances } = useAppContext();
+  const { setChainId } = useAppContext();
   const config = useConfig();
 
   const networkList = useMemo(
@@ -36,9 +36,8 @@ export const NetworkSettingsDropdown = ({
       }
       setChainId(network.chainId);
       close();
-      await refreshBalances();
     },
-    [networkList, config, setChainId, close, refreshBalances],
+    [networkList, config, setChainId, close],
   );
 
   return (

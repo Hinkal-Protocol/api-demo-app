@@ -30,7 +30,6 @@ export const ChooseWallet = ({
   const config = useConfig();
 
   const {
-    setHinkal,
     setChainId,
     setDataLoaded,
     setSignature,
@@ -59,7 +58,6 @@ export const ChooseWallet = ({
         const signer = await getEthersSigner();
         const { signature, nonce } = await buildEnclaveAuthFields(signer);
 
-        setHinkal(null);
         setWalletAddress(account);
         setSignature(signature);
         setNonce(nonce);
@@ -77,7 +75,6 @@ export const ChooseWallet = ({
     [
       setIsConnecting,
       config,
-      setHinkal,
       setShieldedAddress,
       setChainId,
       setDataLoaded,
