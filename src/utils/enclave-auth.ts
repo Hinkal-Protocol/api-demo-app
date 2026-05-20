@@ -1,7 +1,5 @@
 import { ethers } from "ethers";
 import {
-  ENCLAVE_TRANSACTION_NAMES,
-  type EnclaveTransactionName,
   type EnclaveTypedDataPrimaryType,
   getEnclaveTypedDataDomain,
   getTypesForPrimary,
@@ -56,13 +54,12 @@ const signEnclaveTypedData = async (
   return { signature, nonce };
 };
 
-export const buildTokenDepositAuthFields = (
+export const buildDepositAuthFields = (
   signer: ethers.Signer,
-  transactionName: EnclaveTransactionName,
+  primaryType: "Deposit" | "ProoflessDeposit",
   params: { chainId: number; tokenAddresses: string[]; amounts: string[] },
 ) =>
-  signEnclaveTypedData(signer, "TokenDeposit", params.chainId, (nonce) => ({
-    transaction: transactionName,
+  signEnclaveTypedData(signer, primaryType, params.chainId, (nonce) => ({
     nonce,
     chainId: BigInt(params.chainId),
     tokenAmounts: toTokenAmountValues(
@@ -70,9 +67,8 @@ export const buildTokenDepositAuthFields = (
     ),
   }));
 
-export const buildTokenTransferAuthFields = (
+export const buildTransferAuthFields = (
   signer: ethers.Signer,
-  transactionName: EnclaveTransactionName,
   params: {
     chainId: number;
     tokenAddresses: string[];
@@ -80,8 +76,7 @@ export const buildTokenTransferAuthFields = (
     recipient: string;
   },
 ) =>
-  signEnclaveTypedData(signer, "TokenTransfer", params.chainId, (nonce) => ({
-    transaction: transactionName,
+  signEnclaveTypedData(signer, "Transfer", params.chainId, (nonce) => ({
     nonce,
     chainId: BigInt(params.chainId),
     tokenAmounts: toTokenAmountValues(
@@ -90,12 +85,29 @@ export const buildTokenTransferAuthFields = (
     recipient: params.recipient,
   }));
 
-export const buildTokenSwapAuthFields = (
+export const buildWithdrawAuthFields = (
+  signer: ethers.Signer,
+  params: {
+    chainId: number;
+    tokenAddresses: string[];
+    amounts: string[];
+    recipient: string;
+  },
+) =>
+  signEnclaveTypedData(signer, "Withdraw", params.chainId, (nonce) => ({
+    nonce,
+    chainId: BigInt(params.chainId),
+    tokenAmounts: toTokenAmountValues(
+      normalizeTokenAmountPairs(params.tokenAddresses, params.amounts),
+    ),
+    recipient: params.recipient,
+  }));
+
+export const buildSwapAuthFields = (
   signer: ethers.Signer,
   params: { chainId: number; tokenAddresses: string[]; amounts: string[] },
 ) =>
-  signEnclaveTypedData(signer, "TokenSwap", params.chainId, (nonce) => ({
-    transaction: ENCLAVE_TRANSACTION_NAMES.swap,
+  signEnclaveTypedData(signer, "Swap", params.chainId, (nonce) => ({
     nonce,
     chainId: BigInt(params.chainId),
     tokenAmounts: toTokenAmountValues(
@@ -117,7 +129,6 @@ export const buildDepositAndWithdrawAuthFields = (
     "DepositAndWithdraw",
     params.chainId,
     (nonce) => ({
-      transaction: ENCLAVE_TRANSACTION_NAMES.depositAndWithdraw,
       nonce,
       chainId: BigInt(params.chainId),
       tokenAddress: params.tokenAddress,

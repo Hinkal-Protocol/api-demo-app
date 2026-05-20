@@ -1,7 +1,6 @@
 import { ethers } from "ethers";
-import { ENCLAVE_TRANSACTION_NAMES } from "../constants/enclave.constants";
 import { API_BASE_URL } from "../constants/server.constants";
-import { buildTokenTransferAuthFields } from "./enclave-auth";
+import { buildTransferAuthFields } from "./enclave-auth";
 import { FeeStructure } from "./fees";
 
 export const transfer = async (
@@ -14,16 +13,12 @@ export const transfer = async (
   feeToken?: string,
   feeStructure?: FeeStructure,
 ): Promise<string> => {
-  const authFields = await buildTokenTransferAuthFields(
-    signer,
-    ENCLAVE_TRANSACTION_NAMES.transfer,
-    {
-      chainId,
-      tokenAddresses,
-      amounts,
-      recipient: recipientAddress,
-    },
-  );
+  const authFields = await buildTransferAuthFields(signer, {
+    chainId,
+    tokenAddresses,
+    amounts,
+    recipient: recipientAddress,
+  });
   const body = {
     ...authFields,
     address: account,

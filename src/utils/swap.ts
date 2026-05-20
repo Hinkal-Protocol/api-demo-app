@@ -1,7 +1,7 @@
 import { ethers } from "ethers";
 import { API_BASE_URL } from "../constants/server.constants";
 import { ERC20Token } from "../types";
-import { buildTokenSwapAuthFields } from "./enclave-auth";
+import { buildSwapAuthFields } from "./enclave-auth";
 import { ExternalActionId, getFeeStructure } from "./fees";
 import { Auth } from "./types";
 
@@ -85,7 +85,7 @@ export const executeSwap = async (
     HINKAL_SWAP_VARIABLE_RATE.toString(),
   );
 
-  const authFields = await buildTokenSwapAuthFields(signer, {
+  const authFields = await buildSwapAuthFields(signer, {
     chainId: getterAuth.chainId,
     tokenAddresses,
     amounts,
