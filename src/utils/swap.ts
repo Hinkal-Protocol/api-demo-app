@@ -21,22 +21,20 @@ export const getSwapData = async (
   slippagePercentage?: number,
 ): Promise<SwapData> => {
   const { signature, nonce, address, chainId } = auth;
-  const body = {
+  const params = new URLSearchParams({
     signature,
     nonce,
     address,
-    chainId,
+    chainId: String(chainId),
     inputTokenAddress,
     outputTokenAddress,
     amount,
-    slippagePercentage,
-  };
-
-  const res = await fetch(`${API_BASE_URL}/get-swap-data`, {
-    method: "POST",
-    headers: { "Content-Type": "application/json" },
-    body: JSON.stringify(body),
   });
+  if (slippagePercentage !== undefined) {
+    params.append("slippagePercentage", String(slippagePercentage));
+  }
+
+  const res = await fetch(`${API_BASE_URL}/get-swap-data?${params}`);
 
   const data = (await res.json()) as
     | (SwapData & { success: true })

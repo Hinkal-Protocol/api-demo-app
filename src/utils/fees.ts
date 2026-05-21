@@ -26,22 +26,22 @@ export const getFeeStructure = async (
   variableRate?: string,
 ): Promise<FeeStructure> => {
   const { signature, nonce, address, chainId } = auth;
-  const body = {
+  const params = new URLSearchParams({
     signature,
     nonce,
     address,
-    chainId,
+    chainId: String(chainId),
     feeToken,
-    tokenAddresses,
     externalActionId,
-    variableRate,
-  };
-
-  const res = await fetch(`${API_BASE_URL}/get-fee-structure`, {
-    method: "POST",
-    headers: { "Content-Type": "application/json" },
-    body: JSON.stringify(body),
   });
+  for (const tokenAddress of tokenAddresses) {
+    params.append("tokenAddresses", tokenAddress);
+  }
+  if (variableRate !== undefined) {
+    params.append("variableRate", variableRate);
+  }
+
+  const res = await fetch(`${API_BASE_URL}/get-fee-structure?${params}`);
 
   const data = (await res.json()) as
     | { success: true; feeStructure: FeeStructure }
