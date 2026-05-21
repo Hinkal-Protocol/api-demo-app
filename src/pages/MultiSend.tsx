@@ -18,10 +18,14 @@ import {
   depositAndWithdraw,
   OrderStatus,
   TERMINAL_ORDER_STATUSES,
+  TX_COMPLETION_TIME_OPTIONS,
+  TxCompletionTimeLabel,
   getOrderStatus,
   Recipient,
+  resolveTxCompletionTime,
 } from "../utils/multiSend";
 import { approveErc20, broadcastDepositTx, getEthersSigner } from "../utils/ethers-wallet";
+import { ButtonGroupWithLabel } from "../utils/buttonGroupWithLabel";
 
 const NON_NATIVE_GAS_TOKENS = ["USDC", "USDT", "DAI"];
 const POLL_INTERVAL_MS = 5000;
@@ -46,6 +50,12 @@ const waitForOrderTerminal = async (
 
 const emptyRecipient = (): Recipient => ({ address: "", amount: "" });
 
+const TX_COMPLETION_TIME_LABELS = TX_COMPLETION_TIME_OPTIONS.map(
+  (o) => o.label,
+);
+
+const DEFAULT_TX_COMPLETION_TIME_LABEL: TxCompletionTimeLabel = "30 min";
+
 export const MultiSend = () => {
   const { walletAddress, refreshBalances, chainId, signature, nonce, hasWriteAccess } =
     useAppContext();
@@ -63,6 +73,8 @@ export const MultiSend = () => {
     undefined,
   );
   const [recipients, setRecipients] = useState<Recipient[]>([emptyRecipient()]);
+  const [txCompletionTimeLabel, setTxCompletionTimeLabel] =
+    useState<TxCompletionTimeLabel>(DEFAULT_TX_COMPLETION_TIME_LABEL);
   const [isProcessing, setIsProcessing] = useState(false);
 
   useEffect(() => {
@@ -126,6 +138,11 @@ export const MultiSend = () => {
         amount: getAmountInWei(selectedToken, r.amount).toString(),
       }));
 
+      const delaySeconds = TX_COMPLETION_TIME_OPTIONS.find(
+        (o) => o.label === txCompletionTimeLabel,
+      )!.delaySeconds;
+      const txCompletionTime = resolveTxCompletionTime(delaySeconds);
+
       const order = await depositAndWithdraw(
         signer,
         { signature, nonce, hasWriteAccess },
@@ -133,6 +150,8 @@ export const MultiSend = () => {
         chainId,
         selectedToken.erc20TokenAddress,
         recipientsWei,
+        undefined,
+        txCompletionTime,
       );
 
       const isNative =
@@ -169,6 +188,7 @@ export const MultiSend = () => {
     signature,
     nonce,
     hasWriteAccess,
+    txCompletionTimeLabel,
   ]);
 
   const handleSubmit = (event: SyntheticEvent) => {
@@ -228,6 +248,17 @@ export const MultiSend = () => {
             + Add recipient
           </button>
         </div>
+
+        <ButtonGroupWithLabel
+          label="Completion time"
+          options={TX_COMPLETION_TIME_LABELS}
+          selected={txCompletionTimeLabel}
+          onSelect={(option) =>
+            setTxCompletionTimeLabel(option as TxCompletionTimeLabel)
+          }
+          disabled={isProcessing}
+          showInfo={false}
+        />
 
         <div className="border-solid">
           <button

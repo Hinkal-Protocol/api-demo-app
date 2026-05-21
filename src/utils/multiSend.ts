@@ -25,6 +25,20 @@ export type ScheduledTransactionItem = {
 
 export type Recipient = { address: string; amount: string };
 
+export const TX_COMPLETION_TIME_OPTIONS = [
+  { label: "15 min", delaySeconds: 15 * 60 },
+  { label: "30 min", delaySeconds: 30 * 60 },
+  { label: "60 min", delaySeconds: 60 * 60 },
+] as const;
+
+export type TxCompletionTimeLabel =
+  (typeof TX_COMPLETION_TIME_OPTIONS)[number]["label"];
+
+export const getCurrentTimeInSeconds = () => Math.floor(Date.now() / 1000);
+
+export const resolveTxCompletionTime = (delaySeconds: number): number =>
+  getCurrentTimeInSeconds() + delaySeconds;
+
 export type DepositAndWithdrawOrder = {
   orderId: string;
   serializedTx: string;
@@ -42,6 +56,7 @@ export const depositAndWithdraw = async (
   tokenAddress: string,
   recipients: Recipient[],
   feeToken?: string,
+  txCompletionTime?: number,
 ): Promise<DepositAndWithdrawOrder> => {
   const authFields = await resolveTxAuthFields(session, () =>
     buildDepositAndWithdrawAuthFields(signer, {
@@ -57,6 +72,7 @@ export const depositAndWithdraw = async (
     tokenAddress,
     recipients,
     feeToken,
+    ...(txCompletionTime !== undefined && { txCompletionTime }),
   };
 
   const res = await fetch(`${API_BASE_URL}/deposit-and-withdraw`, {
