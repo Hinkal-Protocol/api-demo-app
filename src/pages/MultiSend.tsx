@@ -53,7 +53,8 @@ const waitForOrderTerminal = async (
 };
 
 export const MultiSend = () => {
-  const { walletAddress, refreshBalances, chainId } = useAppContext();
+  const { walletAddress, refreshBalances, chainId, signature, nonce, hasWriteAccess } =
+    useAppContext();
 
   const allowedTokens = useMemo<ERC20Token[]>(() => {
     if (!chainId) return [];
@@ -106,6 +107,8 @@ export const MultiSend = () => {
         !chainId ||
         !selectedToken ||
         !walletAddress ||
+        !signature ||
+        !nonce ||
         !recipientAddress ||
         !recipientAmount
       )
@@ -117,6 +120,7 @@ export const MultiSend = () => {
 
       const order = await depositAndWithdraw(
         signer,
+        { signature, nonce, hasWriteAccess },
         walletAddress,
         chainId,
         selectedToken.erc20TokenAddress,
@@ -168,6 +172,9 @@ export const MultiSend = () => {
     chainId,
     selectedToken,
     walletAddress,
+    signature,
+    nonce,
+    hasWriteAccess,
     recipientAddress,
     recipientAmount,
     refreshBalances,

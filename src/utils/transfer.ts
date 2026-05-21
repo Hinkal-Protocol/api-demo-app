@@ -1,10 +1,12 @@
 import { ethers } from "ethers";
 import { API_BASE_URL } from "../constants/server.constants";
-import { buildTransferAuthFields } from "./enclave-auth";
+import { buildTransferAuthFields, resolveTxAuthFields } from "./enclave-auth";
+import type { TxSessionAuth } from "./types";
 import { FeeStructure } from "./fees";
 
 export const transfer = async (
   signer: ethers.Signer,
+  session: TxSessionAuth,
   account: string,
   chainId: number,
   tokenAddresses: string[],
@@ -13,12 +15,14 @@ export const transfer = async (
   feeToken?: string,
   feeStructure?: FeeStructure,
 ): Promise<string> => {
-  const authFields = await buildTransferAuthFields(signer, {
-    chainId,
-    tokenAddresses,
-    amounts,
-    recipient: recipientAddress,
-  });
+  const authFields = await resolveTxAuthFields(session, () =>
+    buildTransferAuthFields(signer, {
+      chainId,
+      tokenAddresses,
+      amounts,
+      recipient: recipientAddress,
+    }),
+  );
   const body = {
     ...authFields,
     address: account,

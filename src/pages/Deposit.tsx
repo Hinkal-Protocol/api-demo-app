@@ -10,7 +10,8 @@ import { deposit } from "../utils/deposit";
 import { approveErc20, getEthersSigner, sendTx } from "../utils/ethers-wallet";
 
 export const Deposit = () => {
-  const { walletAddress, refreshBalances, chainId } = useAppContext();
+  const { walletAddress, refreshBalances, chainId, signature, nonce, hasWriteAccess } =
+    useAppContext();
 
   const [selectedToken, setSelectedToken] = useState<ERC20Token | undefined>(
     undefined,
@@ -20,7 +21,8 @@ export const Deposit = () => {
 
   const handleDeposit = useCallback(async () => {
     try {
-      if (!chainId || !selectedToken || !walletAddress) return;
+      if (!chainId || !selectedToken || !walletAddress || !signature || !nonce)
+        return;
       setIsProcessing(true);
 
       const signer = await getEthersSigner();
@@ -28,6 +30,7 @@ export const Deposit = () => {
 
       const txData = await deposit(
         signer,
+        { signature, nonce, hasWriteAccess },
         walletAddress,
         chainId,
         [selectedToken.erc20TokenAddress],
@@ -62,6 +65,9 @@ export const Deposit = () => {
     refreshBalances,
     chainId,
     walletAddress,
+    signature,
+    nonce,
+    hasWriteAccess,
   ]);
 
   const handleSubmit = (event: SyntheticEvent) => {

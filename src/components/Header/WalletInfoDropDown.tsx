@@ -27,10 +27,10 @@ export const WalletInfoDropDown = () => {
     balances,
     walletAddress,
     setWalletAddress,
-    setSignature,
-    setNonce,
+    clearEnclaveSession,
     setChainId,
     setDataLoaded,
+    setRequestedWriteAccess,
   } = useAppContext();
   const config = useConfig();
 
@@ -41,8 +41,8 @@ export const WalletInfoDropDown = () => {
       console.error("disconnect failed", err);
     }
     setWalletAddress(null);
-    setSignature(null);
-    setNonce(null);
+    clearEnclaveSession();
+    setRequestedWriteAccess(false);
     setDataLoaded(false);
     setChainId(undefined as any);
   };

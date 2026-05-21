@@ -4,8 +4,8 @@ import {
   getEnclaveTypedDataDomain,
   getTypesForPrimary,
 } from "../constants/enclave.constants";
-import { buildEnclaveSignMessage } from "./auth";
-import type { EnclaveAuthFields } from "./types";
+import { buildEnclaveSignMessage, EnclaveSessionAccess } from "./auth";
+import type { EnclaveAuthFields, TxSessionAuth } from "./types";
 
 export const generateNonce = (): string => crypto.randomUUID();
 
@@ -30,12 +30,24 @@ const toTokenAmountValues = (pairs: TokenAmountPair[]) =>
     amount: BigInt(amount),
   }));
 
+export const resolveTxAuthFields = async (
+  session: TxSessionAuth,
+  buildTypedAuth: () => Promise<EnclaveAuthFields>,
+): Promise<EnclaveAuthFields> => {
+  if (session.hasWriteAccess) {
+    return { signature: session.signature, nonce: session.nonce };
+  }
+  return buildTypedAuth();
+};
+
 /** Personal message signature for getter routes (balance, fees, swap quote, etc.). */
 export const buildEnclaveAuthFields = async (
   signer: ethers.Signer,
 ): Promise<EnclaveAuthFields> => {
   const nonce = generateNonce();
-  const signature = await signer.signMessage(buildEnclaveSignMessage(nonce));
+  const signature = await signer.signMessage(
+    buildEnclaveSignMessage(nonce, EnclaveSessionAccess.Read),
+  );
   return { signature, nonce };
 };
 

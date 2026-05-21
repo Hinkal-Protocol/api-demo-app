@@ -1,9 +1,9 @@
 import { ethers } from "ethers";
 import { API_BASE_URL } from "../constants/server.constants";
 import { ERC20Token } from "../types";
-import { buildSwapAuthFields } from "./enclave-auth";
+import { buildSwapAuthFields, resolveTxAuthFields } from "./enclave-auth";
 import { ExternalActionId, getFeeStructure } from "./fees";
-import { Auth } from "./types";
+import { Auth, TxSessionAuth } from "./types";
 
 export const HINKAL_SWAP_VARIABLE_RATE = 35n;
 
@@ -57,6 +57,7 @@ export const getSwapData = async (
 
 export const executeSwap = async (
   signer: ethers.Signer,
+  session: TxSessionAuth,
   account: string,
   getterAuth: Auth,
   inToken: ERC20Token,
@@ -85,11 +86,13 @@ export const executeSwap = async (
     HINKAL_SWAP_VARIABLE_RATE.toString(),
   );
 
-  const authFields = await buildSwapAuthFields(signer, {
-    chainId: getterAuth.chainId,
-    tokenAddresses,
-    amounts,
-  });
+  const authFields = await resolveTxAuthFields(session, () =>
+    buildSwapAuthFields(signer, {
+      chainId: getterAuth.chainId,
+      tokenAddresses,
+      amounts,
+    }),
+  );
 
   const res = await fetch(`${API_BASE_URL}/swap`, {
     method: "POST",

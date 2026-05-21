@@ -1,6 +1,7 @@
 import { ethers } from "ethers";
 import { API_BASE_URL } from "../constants/server.constants";
-import { buildDepositAuthFields } from "./enclave-auth";
+import { buildDepositAuthFields, resolveTxAuthFields } from "./enclave-auth";
+import type { TxSessionAuth } from "./types";
 
 export type TxData = {
   to: string;
@@ -12,16 +13,19 @@ export type TxData = {
 
 export const deposit = async (
   signer: ethers.Signer,
+  session: TxSessionAuth,
   account: string,
   chainId: number,
   tokenAddresses: string[],
   amounts: string[],
 ): Promise<TxData> => {
-  const authFields = await buildDepositAuthFields(signer, "Deposit", {
-    chainId,
-    tokenAddresses,
-    amounts,
-  });
+  const authFields = await resolveTxAuthFields(session, () =>
+    buildDepositAuthFields(signer, "Deposit", {
+      chainId,
+      tokenAddresses,
+      amounts,
+    }),
+  );
   const body = {
     ...authFields,
     address: account,

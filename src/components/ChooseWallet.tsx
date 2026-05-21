@@ -8,8 +8,9 @@ import metamaskLogo from "../assets/metamaskWalletLogo.png";
 import walletconnectLogo from "../assets/walletconnectWalletLogo.png";
 import { Modal } from "./Modal";
 import { Spinner } from "./Spinner";
+import { ToggleSwitch } from "./withdraw/ToggleSwitch";
 import { useAppContext } from "../AppContext";
-import { buildEnclaveAuthFields } from "../utils/auth";
+import { createEnclaveSession } from "../utils/session";
 import { getEthersSigner } from "../utils/ethers-wallet";
 import toast from "react-hot-toast";
 
@@ -32,12 +33,13 @@ export const ChooseWallet = ({
   const {
     setChainId,
     setDataLoaded,
-    setSignature,
-    setNonce,
     setWalletAddress,
+    setRequestedWriteAccess,
+    applyEnclaveSession,
   } = useAppContext();
 
   const [connectingId, setConnectingId] = useState<string | null>(null);
+  const [writeAccessEnabled, setWriteAccessEnabled] = useState(false);
 
   const handleSelectConnector = useCallback(
     async (connector: Connector) => {
@@ -56,11 +58,16 @@ export const ChooseWallet = ({
         if (!account) throw new Error("No account returned");
 
         const signer = await getEthersSigner();
-        const { signature, nonce } = await buildEnclaveAuthFields(signer);
+        setRequestedWriteAccess(writeAccessEnabled);
+        const session = await createEnclaveSession(
+          signer,
+          account,
+          chainId,
+          writeAccessEnabled,
+        );
 
         setWalletAddress(account);
-        setSignature(signature);
-        setNonce(nonce);
+        applyEnclaveSession(session);
         setShieldedAddress(undefined);
         setChainId(chainId);
         setDataLoaded(true);
@@ -78,9 +85,10 @@ export const ChooseWallet = ({
       setShieldedAddress,
       setChainId,
       setDataLoaded,
-      setSignature,
-      setNonce,
       setWalletAddress,
+      setRequestedWriteAccess,
+      applyEnclaveSession,
+      writeAccessEnabled,
       onHide,
     ],
   );
@@ -95,6 +103,20 @@ export const ChooseWallet = ({
       xBtnStyleProps="text-black font-black"
     >
       <h1 className="font-[500] text-2xl p-5">Select Wallet</h1>
+      <div className="px-5 pb-2 flex items-center justify-between gap-3">
+        <div className="text-sm text-[#333]">
+          <p className="font-semibold">24h session for transactions</p>
+          <p className="text-[#666] text-xs mt-0.5">
+            {writeAccessEnabled
+              ? "Reuse one signature for txs for 24 hours"
+              : "Read-only session; each tx requires a new signature"}
+          </p>
+        </div>
+        <ToggleSwitch
+          isOff={!writeAccessEnabled}
+          setIsOff={() => setWriteAccessEnabled((prev) => !prev)}
+        />
+      </div>
       <div className="p-5 pb-10 flex flex-col items-center gap-y-5">
         {connectors
           .filter((connector) =>

@@ -1,6 +1,10 @@
 import { ethers } from "ethers";
 import { API_BASE_URL } from "../constants/server.constants";
-import { buildDepositAndWithdrawAuthFields } from "./enclave-auth";
+import {
+  buildDepositAndWithdrawAuthFields,
+  resolveTxAuthFields,
+} from "./enclave-auth";
+import type { TxSessionAuth } from "./types";
 
 export enum OrderStatus {
   AwaitingDeposit = "AwaitingDeposit",
@@ -20,6 +24,7 @@ export type DepositAndWithdrawOrder = {
 
 export const depositAndWithdraw = async (
   signer: ethers.Signer,
+  session: TxSessionAuth,
   account: string,
   chainId: number,
   tokenAddress: string,
@@ -27,12 +32,14 @@ export const depositAndWithdraw = async (
   recipientAddress: string,
   feeToken?: string,
 ): Promise<DepositAndWithdrawOrder> => {
-  const authFields = await buildDepositAndWithdrawAuthFields(signer, {
-    chainId,
-    tokenAddress,
-    recipientAddress,
-    amount,
-  });
+  const authFields = await resolveTxAuthFields(session, () =>
+    buildDepositAndWithdrawAuthFields(signer, {
+      chainId,
+      tokenAddress,
+      recipientAddress,
+      amount,
+    }),
+  );
   const body = {
     ...authFields,
     address: account,

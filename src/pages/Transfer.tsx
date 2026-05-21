@@ -10,7 +10,7 @@ import { transfer } from "../utils/transfer";
 import { getEthersSigner } from "../utils/ethers-wallet";
 
 export const Transfer = () => {
-  const { walletAddress, refreshBalances, chainId, signature, nonce } =
+  const { walletAddress, refreshBalances, chainId, signature, nonce, hasWriteAccess } =
     useAppContext();
   const [selectedToken, setSelectedToken] = useState<ERC20Token | undefined>(
     undefined,
@@ -39,6 +39,7 @@ export const Transfer = () => {
       const signer = await getEthersSigner();
       await transfer(
         signer,
+        { signature, nonce, hasWriteAccess },
         walletAddress,
         chainId,
         [tokenAddress],
@@ -64,6 +65,7 @@ export const Transfer = () => {
     transferAmount,
     transferAddress,
     refreshBalances,
+    hasWriteAccess,
   ]);
 
   const setTransferAddressHandler = (

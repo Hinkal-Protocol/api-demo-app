@@ -14,7 +14,8 @@ import {
 import toast from "react-hot-toast";
 import { networkRegistry } from "./constants/chain.constants";
 import { fetchBalances } from "./utils/balance";
-import { buildEnclaveAuthFields } from "./utils/auth";
+import { createEnclaveSession } from "./utils/session";
+import type { EnclaveSession } from "./utils/types";
 import { getERC20Registry } from "./constants/token-data";
 import { getEthersSigner } from "./utils/ethers-wallet";
 import { ERC20Token } from "./types";
@@ -24,6 +25,12 @@ type AppContextArgumnets = {
   setSignature: Dispatch<SetStateAction<string | null>>;
   nonce: string | null;
   setNonce: Dispatch<SetStateAction<string | null>>;
+  hasWriteAccess: boolean;
+  sessionExpiresAt: string | null;
+  requestedWriteAccess: boolean;
+  setRequestedWriteAccess: Dispatch<SetStateAction<boolean>>;
+  applyEnclaveSession: (session: EnclaveSession) => void;
+  clearEnclaveSession: () => void;
   walletAddress: string | null;
   setWalletAddress: Dispatch<SetStateAction<string | null>>;
   chainId?: number;
@@ -43,6 +50,12 @@ const AppContext = createContext<AppContextArgumnets>({
   setSignature: () => {},
   nonce: null,
   setNonce: () => {},
+  hasWriteAccess: false,
+  sessionExpiresAt: null,
+  requestedWriteAccess: false,
+  setRequestedWriteAccess: () => {},
+  applyEnclaveSession: () => {},
+  clearEnclaveSession: () => {},
   walletAddress: null,
   setWalletAddress: () => {},
   chainId: undefined,
@@ -62,6 +75,9 @@ export const AppContextProvider: FC<AppContextProps> = ({
 }: AppContextProps) => {
   const [signature, setSignature] = useState<string | null>(null);
   const [nonce, setNonce] = useState<string | null>(null);
+  const [hasWriteAccess, setHasWriteAccess] = useState(false);
+  const [sessionExpiresAt, setSessionExpiresAt] = useState<string | null>(null);
+  const [requestedWriteAccess, setRequestedWriteAccess] = useState(false);
   const [walletAddress, setWalletAddress] = useState<string | null>(null);
   const [chainId, setChainId] = useState<number | undefined>();
   const [dataLoaded, setDataLoaded] = useState<boolean>(false);
@@ -79,6 +95,20 @@ export const AppContextProvider: FC<AppContextProps> = ({
     [chainId],
   );
 
+  const applyEnclaveSession = useCallback((session: EnclaveSession) => {
+    setSignature(session.signature);
+    setNonce(session.nonce);
+    setHasWriteAccess(session.hasWriteAccess);
+    setSessionExpiresAt(session.expiresAt);
+  }, []);
+
+  const clearEnclaveSession = useCallback(() => {
+    setSignature(null);
+    setNonce(null);
+    setHasWriteAccess(false);
+    setSessionExpiresAt(null);
+  }, []);
+
   useEffect(() => {
     if (!chainId) {
       prevChainIdRef.current = undefined;
@@ -94,14 +124,20 @@ export const AppContextProvider: FC<AppContextProps> = ({
     let cancelled = false;
     setSignature(null);
     setNonce(null);
+    setHasWriteAccess(false);
+    setSessionExpiresAt(null);
 
     const refreshAuth = async () => {
       try {
         const signer = await getEthersSigner();
-        const auth = await buildEnclaveAuthFields(signer);
+        const session = await createEnclaveSession(
+          signer,
+          walletAddress,
+          chainId,
+          requestedWriteAccess,
+        );
         if (!cancelled) {
-          setSignature(auth.signature);
-          setNonce(auth.nonce);
+          applyEnclaveSession(session);
         }
       } catch (error) {
         if (!cancelled) {
@@ -117,7 +153,7 @@ export const AppContextProvider: FC<AppContextProps> = ({
     return () => {
       cancelled = true;
     };
-  }, [chainId, walletAddress, dataLoaded]);
+  }, [chainId, walletAddress, dataLoaded, requestedWriteAccess, applyEnclaveSession]);
 
   const refreshBalances = useCallback(async () => {
     if (!dataLoaded || !chainId || !walletAddress || !signature || !nonce)
@@ -158,6 +194,12 @@ export const AppContextProvider: FC<AppContextProps> = ({
         setSignature,
         nonce,
         setNonce,
+        hasWriteAccess,
+        sessionExpiresAt,
+        requestedWriteAccess,
+        setRequestedWriteAccess,
+        applyEnclaveSession,
+        clearEnclaveSession,
         walletAddress,
         setWalletAddress,
         chainId,
