@@ -7,12 +7,21 @@ import {
 import type { TxSessionAuth } from "./types";
 
 export enum OrderStatus {
-  AwaitingDeposit = "awaiting-deposit",
-  DepositConfirmed = "deposit-confirmed",
-  WithdrawScheduled = "withdraw-scheduled",
+  Processing = "processing",
   Failed = "failed",
-  Expired = "expired",
+  Scheduled = "scheduled",
 }
+
+export const TERMINAL_ORDER_STATUSES = new Set<OrderStatus>([
+  OrderStatus.Failed,
+  OrderStatus.Scheduled,
+]);
+
+export type ScheduledTransactionItem = {
+  status: string;
+  scheduledTime: string;
+  txHash: string | null;
+};
 
 export type Recipient = { address: string; amount: string };
 
@@ -79,9 +88,7 @@ export const depositAndWithdraw = async (
 export type OrderStatusResponse = {
   success: boolean;
   status: OrderStatus;
-  txHash: string | null;
-  scheduleId: string | null;
-  failureReason: string | null;
+  scheduledTransactions?: ScheduledTransactionItem[];
 };
 
 export const getOrderStatus = async (

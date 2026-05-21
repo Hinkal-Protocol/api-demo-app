@@ -17,6 +17,7 @@ import { RecipientInputRow } from "../utils/recipientInfoRow";
 import {
   depositAndWithdraw,
   OrderStatus,
+  TERMINAL_ORDER_STATUSES,
   getOrderStatus,
   Recipient,
 } from "../utils/multiSend";
@@ -32,13 +33,9 @@ const waitForOrderTerminal = async (
   const deadline = Date.now() + POLL_TIMEOUT_MS;
   while (Date.now() < deadline) {
     const data = await getOrderStatus(orderId);
-    if (
-      data.status === OrderStatus.WithdrawScheduled ||
-      data.status === OrderStatus.Failed ||
-      data.status === OrderStatus.Expired
-    ) {
+    if (TERMINAL_ORDER_STATUSES.has(data.status)) {
       if (data.status === OrderStatus.Failed) {
-        throw new Error(data.failureReason ?? "Order failed");
+        throw new Error("Order failed");
       }
       return data.status;
     }
