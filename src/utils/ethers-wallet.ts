@@ -31,14 +31,6 @@ export const getJsonRpcProvider = (chainId: number): ethers.JsonRpcProvider => {
   return new ethers.JsonRpcProvider(rpcUrl);
 };
 
-export const waitForTx = async (
-  tx: ethers.TransactionResponse,
-): Promise<ethers.TransactionReceipt> => {
-  const receipt = await tx.wait();
-  if (!receipt) throw new Error("Transaction failed");
-  return receipt;
-};
-
 export const getNativeBalance = async (
   chainId: number,
   address: string,
@@ -57,24 +49,54 @@ export const getErc20Balance = async (
   return contract.balanceOf(walletAddress);
 };
 
+const sendViaWallet = async (
+  signer: ethers.JsonRpcSigner,
+  tx: { to: string; data?: string; value?: bigint },
+): Promise<ethers.TransactionReceipt> => {
+  const hash = await signer.sendUncheckedTransaction({
+    to: tx.to,
+    data: tx.data ?? "0x",
+    ...(tx.value && tx.value > 0n ? { value: tx.value } : {}),
+  });
+  const { chainId } = await signer.provider.getNetwork();
+  const receipt = await getJsonRpcProvider(Number(chainId)).waitForTransaction(
+    hash,
+    1,
+    180_000,
+  );
+  if (!receipt) throw new Error("Transaction failed");
+  if (receipt.status === 0) throw new Error(`Transaction reverted: ${hash}`);
+  return receipt;
+};
+
 export const approveErc20 = async (
-  signer: ethers.Signer,
+  signer: ethers.JsonRpcSigner,
   tokenAddress: string,
   spender: string,
   amount: bigint,
-): Promise<ethers.TransactionReceipt> => {
-  const contract = new ethers.Contract(tokenAddress, ERC20_ABI, signer);
-  return waitForTx(await contract.approve(spender, amount));
-};
+): Promise<ethers.TransactionReceipt> =>
+  sendViaWallet(signer, {
+    to: tokenAddress,
+    data: new ethers.Interface(ERC20_ABI).encodeFunctionData("approve", [
+      spender,
+      amount,
+    ]),
+  });
 
 export const sendTx = async (
-  signer: ethers.Signer,
+  signer: ethers.JsonRpcSigner,
   tx: { to: string; data?: string; value?: bigint },
-): Promise<ethers.TransactionReceipt> =>
-  waitForTx(
-    await signer.sendTransaction({
-      to: tx.to,
-      data: tx.data ?? "0x",
-      value: tx.value ?? 0n,
-    }),
-  );
+): Promise<ethers.TransactionReceipt> => sendViaWallet(signer, tx);
+
+export const broadcastDepositTx = async (
+  signer: ethers.JsonRpcSigner,
+  serializedTxBase64: string,
+): Promise<ethers.TransactionReceipt> => {
+  const rlpHex = ethers.hexlify(ethers.decodeBase64(serializedTxBase64));
+  const parsedTx = ethers.Transaction.from(rlpHex);
+  return sendViaWallet(signer, {
+    to: parsedTx.to!,
+    data: parsedTx.data,
+    value: parsedTx.value ?? undefined,
+  });
+};

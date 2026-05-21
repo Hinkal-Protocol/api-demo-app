@@ -6,6 +6,7 @@ import {
 } from "../constants/enclave.constants";
 import { buildEnclaveSignMessage, EnclaveSessionAccess } from "./auth";
 import type { EnclaveAuthFields, TxSessionAuth } from "./types";
+import { Recipient } from "./multiSend";
 
 export const generateNonce = (): string => crypto.randomUUID();
 
@@ -132,8 +133,7 @@ export const buildDepositAndWithdrawAuthFields = (
   params: {
     chainId: number;
     tokenAddress: string;
-    recipientAddress: string;
-    amount: string;
+    recipients: Recipient[];
   },
 ) =>
   signEnclaveTypedData(
@@ -144,11 +144,13 @@ export const buildDepositAndWithdrawAuthFields = (
       nonce,
       chainId: BigInt(params.chainId),
       tokenAddress: params.tokenAddress,
-      recipients: [
-        {
-          recipient: params.recipientAddress,
-          amount: BigInt(params.amount),
-        },
-      ],
+      // Must match the server's normalizeDepositAndWithdrawRecipients:
+      // checksum each address, then sort by it (enclaveTypedData.ts).
+      recipients: params.recipients
+        .map(({ address, amount }) => ({
+          recipient: ethers.getAddress(address),
+          amount: BigInt(amount),
+        }))
+        .sort((a, b) => a.recipient.localeCompare(b.recipient)),
     }),
   );

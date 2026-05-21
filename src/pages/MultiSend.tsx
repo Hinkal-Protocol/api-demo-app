@@ -6,7 +6,6 @@ import {
   useState,
 } from "react";
 import toast from "react-hot-toast";
-import { ethers } from "ethers";
 import { Spinner } from "../components/Spinner";
 import { SelectToken } from "../components/swap/SelectToken";
 import { useAppContext } from "../AppContext";
@@ -14,18 +13,14 @@ import { zeroAddress } from "../constants";
 import { ERC20Token } from "../types";
 import { getAmountInWei } from "../utils/amount.utils";
 import { getERC20Token, getERC20TokenBySymbol } from "../utils/tokens.utils";
-import {
-  SCHEDULE_OPTIONS,
-  ScheduleOption,
-} from "../constants/schedule.constants";
-import { ButtonGroupWithLabel } from "../utils/buttonGroupWithLabel";
 import { RecipientInputRow } from "../utils/recipientInfoRow";
 import {
   depositAndWithdraw,
   OrderStatus,
   getOrderStatus,
+  Recipient,
 } from "../utils/multiSend";
-import { approveErc20, getEthersSigner, sendTx } from "../utils/ethers-wallet";
+import { approveErc20, broadcastDepositTx, getEthersSigner } from "../utils/ethers-wallet";
 
 const NON_NATIVE_GAS_TOKENS = ["USDC", "USDT", "DAI"];
 const POLL_INTERVAL_MS = 5000;
@@ -52,6 +47,8 @@ const waitForOrderTerminal = async (
   throw new Error("Order status poll timed out");
 };
 
+const emptyRecipient = (): Recipient => ({ address: "", amount: "" });
+
 export const MultiSend = () => {
   const { walletAddress, refreshBalances, chainId, signature, nonce, hasWriteAccess } =
     useAppContext();
@@ -68,11 +65,7 @@ export const MultiSend = () => {
   const [selectedToken, setSelectedToken] = useState<ERC20Token | undefined>(
     undefined,
   );
-  const [recipientAddress, setRecipientAddress] = useState<string>("");
-  const [recipientAmount, setRecipientAmount] = useState<string>("");
-  const [schedule, setSchedule] = useState<ScheduleOption>("instantly");
-  const [intervalBetweenTxs, setIntervalBetweenTxs] =
-    useState<ScheduleOption>("instantly");
+  const [recipients, setRecipients] = useState<Recipient[]>([emptyRecipient()]);
   const [isProcessing, setIsProcessing] = useState(false);
 
   useEffect(() => {
@@ -92,12 +85,28 @@ export const MultiSend = () => {
     }
   }, [chainId, allowedTokens, selectedToken]);
 
-  const setAmountHandler = (
+  const updateRecipient = (
+    index: number,
+    field: keyof Recipient,
+    value: string,
+  ) => {
+    setRecipients((prev) =>
+      prev.map((r, i) => (i === index ? { ...r, [field]: value } : r)),
+    );
+  };
+
+  const addRecipient = () =>
+    setRecipients((prev) => [...prev, emptyRecipient()]);
+
+  const removeRecipient = (index: number) =>
+    setRecipients((prev) => prev.filter((_, i) => i !== index));
+
+  const handleAmountChange = (
+    index: number,
     event: React.ChangeEvent<HTMLInputElement>,
-    setValue: (value: string) => void,
   ) => {
     if (/^[0-9]*[.]?[0-9]*$/.test(event.target.value)) {
-      setValue(event.target.value);
+      updateRecipient(index, "amount", event.target.value);
     }
   };
 
@@ -108,15 +117,17 @@ export const MultiSend = () => {
         !selectedToken ||
         !walletAddress ||
         !signature ||
-        !nonce ||
-        !recipientAddress ||
-        !recipientAmount
+        !nonce
       )
         return;
       setIsProcessing(true);
 
       const signer = await getEthersSigner();
-      const amountWei = getAmountInWei(selectedToken, recipientAmount);
+
+      const recipientsWei: Recipient[] = recipients.map((r) => ({
+        address: r.address,
+        amount: getAmountInWei(selectedToken, r.amount).toString(),
+      }));
 
       const order = await depositAndWithdraw(
         signer,
@@ -124,43 +135,27 @@ export const MultiSend = () => {
         walletAddress,
         chainId,
         selectedToken.erc20TokenAddress,
-        amountWei.toString(),
-        recipientAddress,
+        recipientsWei,
       );
 
-      const rlpHex = `0x${Buffer.from(order.serializedTx, "base64").toString(
-        "hex",
-      )}`;
-      const parsedTx = ethers.Transaction.from(rlpHex);
-      if (!parsedTx.to) throw new Error("Order tx missing recipient");
-
-      const amountIn = BigInt(order.amountIn);
       const isNative =
         selectedToken.erc20TokenAddress.toLowerCase() === zeroAddress;
 
-      if (!isNative) {
+      if (!isNative && order.approvalAddress) {
         await approveErc20(
           signer,
           selectedToken.erc20TokenAddress,
-          parsedTx.to,
-          amountIn,
+          order.approvalAddress,
+          BigInt(order.amountIn),
         );
       }
 
-      await sendTx(signer, {
-        to: parsedTx.to,
-        data: parsedTx.data ?? "0x",
-        value:
-          parsedTx.value !== undefined && parsedTx.value !== null
-            ? BigInt(parsedTx.value)
-            : undefined,
-      });
+      await broadcastDepositTx(signer, order.serializedTx);
 
       await waitForOrderTerminal(order.orderId);
 
       toast.success("Multi send scheduled");
-      setRecipientAddress("");
-      setRecipientAmount("");
+      setRecipients([emptyRecipient()]);
       await refreshBalances();
     } catch (err) {
       const message = err instanceof Error ? err.message : "Multi send failed";
@@ -172,12 +167,11 @@ export const MultiSend = () => {
     chainId,
     selectedToken,
     walletAddress,
+    recipients,
+    refreshBalances,
     signature,
     nonce,
     hasWriteAccess,
-    recipientAddress,
-    recipientAmount,
-    refreshBalances,
   ]);
 
   const handleSubmit = (event: SyntheticEvent) => {
@@ -188,16 +182,9 @@ export const MultiSend = () => {
     () =>
       !walletAddress ||
       !selectedToken ||
-      !recipientAddress ||
-      !recipientAmount ||
-      isProcessing,
-    [
-      walletAddress,
-      selectedToken,
-      recipientAddress,
-      recipientAmount,
-      isProcessing,
-    ],
+      isProcessing ||
+      recipients.some((r) => !r.address || !r.amount),
+    [walletAddress, selectedToken, isProcessing, recipients],
   );
 
   return (
@@ -218,29 +205,32 @@ export const MultiSend = () => {
           />
         </div>
 
-        <RecipientInputRow
-          addressValue={recipientAddress}
-          amountValue={recipientAmount}
-          onAddressChange={(e) => setRecipientAddress(e.target.value)}
-          onAmountChange={(event) => setAmountHandler(event, setRecipientAmount)}
-          disabled={isProcessing}
-        />
+        {recipients.map((recipient, index) => (
+          <RecipientInputRow
+            key={index}
+            addressValue={recipient.address}
+            amountValue={recipient.amount}
+            onAddressChange={(e) =>
+              updateRecipient(index, "address", e.target.value)
+            }
+            onAmountChange={(e) => handleAmountChange(index, e)}
+            disabled={isProcessing}
+            onRemove={
+              recipients.length > 1 ? () => removeRecipient(index) : undefined
+            }
+          />
+        ))}
 
-        <ButtonGroupWithLabel
-          label="Schedule Transfer"
-          options={SCHEDULE_OPTIONS}
-          selected={schedule}
-          onSelect={(option) => setSchedule(option as ScheduleOption)}
-          disabled={isProcessing}
-        />
-
-        <ButtonGroupWithLabel
-          label="Interval Between Transactions"
-          options={SCHEDULE_OPTIONS}
-          selected={intervalBetweenTxs}
-          onSelect={(option) => setIntervalBetweenTxs(option as ScheduleOption)}
-          disabled={isProcessing}
-        />
+        <div className="w-[96%] mx-auto mb-4">
+          <button
+            type="button"
+            onClick={addRecipient}
+            disabled={isProcessing}
+            className="text-sm text-[#9ca3af] hover:text-white disabled:opacity-40 duration-200"
+          >
+            + Add recipient
+          </button>
+        </div>
 
         <div className="border-solid">
           <button

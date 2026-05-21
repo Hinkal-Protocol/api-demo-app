@@ -7,12 +7,14 @@ import {
 import type { TxSessionAuth } from "./types";
 
 export enum OrderStatus {
-  AwaitingDeposit = "AwaitingDeposit",
-  DepositConfirmed = "DepositConfirmed",
-  WithdrawScheduled = "WithdrawScheduled",
-  Failed = "Failed",
-  Expired = "Expired",
+  AwaitingDeposit = "awaiting-deposit",
+  DepositConfirmed = "deposit-confirmed",
+  WithdrawScheduled = "withdraw-scheduled",
+  Failed = "failed",
+  Expired = "expired",
 }
+
+export type Recipient = { address: string; amount: string };
 
 export type DepositAndWithdrawOrder = {
   orderId: string;
@@ -20,6 +22,7 @@ export type DepositAndWithdrawOrder = {
   amountIn: string;
   amountOut: string;
   fee: string;
+  approvalAddress: string | null;
 };
 
 export const depositAndWithdraw = async (
@@ -28,16 +31,14 @@ export const depositAndWithdraw = async (
   account: string,
   chainId: number,
   tokenAddress: string,
-  amount: string,
-  recipientAddress: string,
+  recipients: Recipient[],
   feeToken?: string,
 ): Promise<DepositAndWithdrawOrder> => {
   const authFields = await resolveTxAuthFields(session, () =>
     buildDepositAndWithdrawAuthFields(signer, {
       chainId,
       tokenAddress,
-      recipientAddress,
-      amount,
+      recipients,
     }),
   );
   const body = {
@@ -45,8 +46,7 @@ export const depositAndWithdraw = async (
     address: account,
     chainId,
     tokenAddress,
-    amount,
-    recipientAddress,
+    recipients,
     feeToken,
   };
 
@@ -72,6 +72,7 @@ export const depositAndWithdraw = async (
     amountIn: data.amountIn,
     amountOut: data.amountOut,
     fee: data.fee,
+    approvalAddress: data.approvalAddress,
   };
 };
 

@@ -30,7 +30,7 @@ const App = () => {
               {activeTab === AppTab.Transfer && <Transfer />}
               {activeTab === AppTab.Withdraw && <Withdraw />}
               {activeTab === AppTab.Swap && <Swap />}
-              {/* {activeTab === AppTab.MultiSend && <MultiSend />} */}
+              {activeTab === AppTab.MultiSend && <MultiSend />}
             </section>
           </main>
           <Footer />

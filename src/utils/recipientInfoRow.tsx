@@ -8,6 +8,7 @@ interface RecipientInputRowProps {
   disabled?: boolean;
   addressPlaceholder?: string;
   amountPlaceholder?: string;
+  onRemove?: () => void;
 }
 
 export const RecipientInputRow: React.FC<RecipientInputRowProps> = ({
@@ -18,6 +19,7 @@ export const RecipientInputRow: React.FC<RecipientInputRowProps> = ({
   disabled = false,
   addressPlaceholder = "Recipient address",
   amountPlaceholder = "0",
+  onRemove,
 }) => (
   <div className="flex items-center gap-2 w-[96%] mx-auto mb-3">
     <input
@@ -38,5 +40,15 @@ export const RecipientInputRow: React.FC<RecipientInputRowProps> = ({
         value={amountValue}
       />
     </div>
+    {onRemove && (
+      <button
+        type="button"
+        onClick={onRemove}
+        disabled={disabled}
+        className="text-[#848688] hover:text-white disabled:opacity-40 text-lg leading-none px-1"
+      >
+        ×
+      </button>
+    )}
   </div>
 );
