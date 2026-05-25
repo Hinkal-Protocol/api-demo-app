@@ -75,7 +75,7 @@ export const depositAndWithdraw = async (
     ...(txCompletionTime !== undefined && { txCompletionTime }),
   };
 
-  const res = await fetch(`${API_BASE_URL}/deposit-and-withdraw`, {
+  const res = await fetch(`${API_BASE_URL}/private-send`, {
     method: "POST",
     headers: { "Content-Type": "application/json" },
     body: JSON.stringify(body),
@@ -86,9 +86,7 @@ export const depositAndWithdraw = async (
     | { error?: string };
 
   if (!res.ok || !("success" in data && data.success)) {
-    throw new Error(
-      (data as { error?: string }).error ?? "depositAndWithdraw failed",
-    );
+    throw new Error((data as { error?: string }).error ?? "privateSend failed");
   }
 
   return {
@@ -110,7 +108,7 @@ export type OrderStatusResponse = {
 export const getOrderStatus = async (
   orderId: string,
 ): Promise<OrderStatusResponse> => {
-  const res = await fetch(`${API_BASE_URL}/deposit-and-withdraw/${orderId}`);
+  const res = await fetch(`${API_BASE_URL}/private-send/${orderId}`);
   const data = (await res.json()) as OrderStatusResponse & { error?: string };
 
   if (!res.ok || data.success === false) {

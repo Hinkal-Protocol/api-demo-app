@@ -11,7 +11,7 @@ export type EnclaveTypedDataPrimaryType =
   | "Transfer"
   | "Withdraw"
   | "Swap"
-  | "DepositAndWithdraw"
+  | "PrivateSend"
   | "WithdrawStuckUtxos";
 
 const ENCLAVE_TYPED_DATA_TYPES: Record<string, TypedDataField[]> = {
@@ -56,7 +56,7 @@ const ENCLAVE_TYPED_DATA_TYPES: Record<string, TypedDataField[]> = {
     { name: "chainId", type: "uint256" },
     { name: "tokenAmounts", type: "TokenAmount[]" },
   ],
-  DepositAndWithdraw: [
+  PrivateSend: [
     { name: "nonce", type: "string" },
     { name: "chainId", type: "uint256" },
     { name: "tokenAddress", type: "address" },

@@ -136,21 +136,16 @@ export const buildDepositAndWithdrawAuthFields = (
     recipients: Recipient[];
   },
 ) =>
-  signEnclaveTypedData(
-    signer,
-    "DepositAndWithdraw",
-    params.chainId,
-    (nonce) => ({
-      nonce,
-      chainId: BigInt(params.chainId),
-      tokenAddress: params.tokenAddress,
-      // Must match the server's normalizeDepositAndWithdrawRecipients:
-      // checksum each address, then sort by it (enclaveTypedData.ts).
-      recipients: params.recipients
-        .map(({ address, amount }) => ({
-          recipient: ethers.getAddress(address),
-          amount: BigInt(amount),
-        }))
-        .sort((a, b) => a.recipient.localeCompare(b.recipient)),
-    }),
-  );
+  signEnclaveTypedData(signer, "PrivateSend", params.chainId, (nonce) => ({
+    nonce,
+    chainId: BigInt(params.chainId),
+    tokenAddress: params.tokenAddress,
+    // Must match the server's normalizeDepositAndWithdrawRecipients:
+    // checksum each address, then sort by it (enclaveTypedData.ts).
+    recipients: params.recipients
+      .map(({ address, amount }) => ({
+        recipient: ethers.getAddress(address),
+        amount: BigInt(amount),
+      }))
+      .sort((a, b) => a.recipient.localeCompare(b.recipient)),
+  }));
