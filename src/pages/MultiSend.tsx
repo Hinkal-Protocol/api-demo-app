@@ -141,7 +141,7 @@ export const MultiSend = () => {
       const delaySeconds = TX_COMPLETION_TIME_OPTIONS.find(
         (o) => o.label === txCompletionTimeLabel,
       )!.delaySeconds;
-      const txCompletionTime = resolveTxCompletionTime(delaySeconds);
+      const txCompletionTime = delaySeconds > 0 ? resolveTxCompletionTime(delaySeconds) : undefined;
 
       const order = await depositAndWithdraw(
         signer,

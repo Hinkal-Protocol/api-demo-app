@@ -26,6 +26,7 @@ export type ScheduledTransactionItem = {
 export type Recipient = { address: string; amount: string };
 
 export const TX_COMPLETION_TIME_OPTIONS = [
+  { label: "Instant", delaySeconds: 0 },
   { label: "15 min", delaySeconds: 15 * 60 },
   { label: "30 min", delaySeconds: 30 * 60 },
   { label: "60 min", delaySeconds: 60 * 60 },
