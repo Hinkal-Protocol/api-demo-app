@@ -11,13 +11,11 @@ import { zeroAddress } from "../../constants";
 
 const filterTokenBalances = (tokenBalances: TokenBalance[]) => {
   const nonZeroBalances = [...tokenBalances]
-    .sort((a, b) =>
-      a.token.erc20TokenAddress < b.token.erc20TokenAddress ? -1 : 1,
-    )
+    .sort((a, b) => (a.tokenAddress < b.tokenAddress ? -1 : 1))
     .filter((tokenBalance) => tokenBalance.balance !== "0");
   if (nonZeroBalances.length === 0)
     return tokenBalances.filter(
-      (tokenBalance) => tokenBalance.token.erc20TokenAddress === zeroAddress,
+      (tokenBalance) => tokenBalance.tokenAddress === zeroAddress,
     );
   return nonZeroBalances;
 };
@@ -70,7 +68,7 @@ export const WalletInfoDropDown = () => {
         {filterTokenBalances(balances).map((tokenBalance) => (
           <WalletInfoBalance
             tokenBalance={tokenBalance}
-            key={tokenBalance.token.erc20TokenAddress}
+            key={tokenBalance.tokenAddress}
           />
         ))}
       </div>

@@ -41,10 +41,9 @@ export enum ApprovalType {
 }
 
 export interface TokenBalance {
-  token: ERC20Token;
+  chainId: number;
+  tokenAddress: string;
   balance: string;
-  timestamp?: string;
-  nfts?: NFT[];
 }
 
 export interface NFT {
