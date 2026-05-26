@@ -13,12 +13,12 @@ import {
 } from "react";
 import toast from "react-hot-toast";
 import { networkRegistry } from "./constants/chain.constants";
-import { fetchBalances } from "./utils/balance";
+import { fetchBalances, fetchStuckUtxoBalances } from "./utils/balance";
 import { createEnclaveSession } from "./utils/session";
 import type { EnclaveSession } from "./utils/types";
 import { getERC20Registry } from "./constants/token-data";
 import { getEthersSigner } from "./utils/ethers-wallet";
-import { ERC20Token } from "./types";
+import { ERC20Token, TokenBalance } from "./types";
 
 type AppContextArgumnets = {
   signature: string | null;
@@ -39,7 +39,8 @@ type AppContextArgumnets = {
   dataLoaded: boolean;
   setDataLoaded: (val: boolean) => void;
   erc20List: ERC20Token[];
-  balances: any[];
+  balances: TokenBalance[];
+  stuckUtxoBalances: TokenBalance[];
   refreshBalances: () => Promise<void>;
 };
 
@@ -65,6 +66,7 @@ const AppContext = createContext<AppContextArgumnets>({
   setDataLoaded: () => {},
   erc20List: [],
   balances: [],
+  stuckUtxoBalances: [],
   refreshBalances: async () => {},
 });
 
@@ -81,7 +83,8 @@ export const AppContextProvider: FC<AppContextProps> = ({
   const [walletAddress, setWalletAddress] = useState<string | null>(null);
   const [chainId, setChainId] = useState<number | undefined>();
   const [dataLoaded, setDataLoaded] = useState<boolean>(false);
-  const [balances, setBalances] = useState<any[]>([]);
+  const [balances, setBalances] = useState<TokenBalance[]>([]);
+  const [stuckUtxoBalances, setStuckUtxoBalances] = useState<TokenBalance[]>([]);
   const abortControllerRef = useRef<AbortController | null>(null);
   const prevChainIdRef = useRef<number | undefined>();
 
@@ -164,11 +167,15 @@ export const AppContextProvider: FC<AppContextProps> = ({
     abortControllerRef.current = controller;
 
     try {
-      const bals = await fetchBalances(
-        { signature, nonce, address: walletAddress, chainId },
-        controller.signal,
-      );
-      if (!controller.signal.aborted) setBalances(bals);
+      const auth = { signature, nonce, address: walletAddress, chainId };
+      const [bals, stuckBals] = await Promise.all([
+        fetchBalances(auth, controller.signal),
+        fetchStuckUtxoBalances(auth, controller.signal),
+      ]);
+      if (!controller.signal.aborted) {
+        setBalances(bals);
+        setStuckUtxoBalances(stuckBals);
+      }
     } catch (error: any) {
       if (error?.name !== "AbortError") {
         console.error("Error refreshing balances:", error);
@@ -179,6 +186,7 @@ export const AppContextProvider: FC<AppContextProps> = ({
   useEffect(() => {
     if (!dataLoaded || !chainId) return;
     setBalances([]);
+    setStuckUtxoBalances([]);
     refreshBalances();
     const interval = setInterval(refreshBalances, BALANCE_REFRESH_INTERVAL);
     return () => {
@@ -209,6 +217,7 @@ export const AppContextProvider: FC<AppContextProps> = ({
         setDataLoaded,
         erc20List,
         balances,
+        stuckUtxoBalances,
         refreshBalances,
       }}
     >

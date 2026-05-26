@@ -1,9 +1,13 @@
+import { useCallback, useMemo, useState } from "react";
 import toast from "react-hot-toast";
 import { useConfig } from "wagmi";
 import { disconnect } from "wagmi/actions";
 import Copy from "../../assets/Copy.svg";
 import Disconnect from "../../assets/Disconnect.svg";
+import { Spinner } from "../Spinner";
 import { copyToClipboard } from "../../utils/copyToClipboard";
+import { getEthersSigner } from "../../utils/ethers-wallet";
+import { withdrawStuckUtxos } from "../../utils/withdraw";
 import { WalletInfoBalance } from "./WalletInfoBalance";
 import { useAppContext } from "../../AppContext";
 import { TokenBalance } from "../../types";
@@ -23,7 +27,13 @@ const filterTokenBalances = (tokenBalances: TokenBalance[]) => {
 export const WalletInfoDropDown = () => {
   const {
     balances,
+    stuckUtxoBalances,
     walletAddress,
+    chainId,
+    signature,
+    nonce,
+    hasWriteAccess,
+    refreshBalances,
     setWalletAddress,
     clearEnclaveSession,
     setChainId,
@@ -31,6 +41,16 @@ export const WalletInfoDropDown = () => {
     setRequestedWriteAccess,
   } = useAppContext();
   const config = useConfig();
+  const visibleBalances = useMemo(
+    () => filterTokenBalances(balances),
+    [balances],
+  );
+  const visibleStuckUtxoBalances = useMemo(
+    () => filterTokenBalances(stuckUtxoBalances),
+    [stuckUtxoBalances],
+  );
+  const [withdrawingStuckTokenAddress, setWithdrawingStuckTokenAddress] =
+    useState<string | null>(null);
 
   const handleDisconnect = async () => {
     try {
@@ -58,6 +78,35 @@ export const WalletInfoDropDown = () => {
     }
   };
 
+  const handleWithdrawStuckUtxos = useCallback(
+    async (tokenAddress: string) => {
+      try {
+        if (!walletAddress || !chainId || !signature || !nonce) return;
+
+        setWithdrawingStuckTokenAddress(tokenAddress);
+        const signer = await getEthersSigner();
+        const txHashes = await withdrawStuckUtxos(
+          signer,
+          { signature, nonce, hasWriteAccess },
+          walletAddress,
+          chainId,
+          tokenAddress,
+          walletAddress,
+        );
+
+        toast.success(`Withdraw sent (${txHashes.length} txs)`);
+        await refreshBalances();
+      } catch (err) {
+        const message =
+          err instanceof Error ? err.message : "Withdraw stuck UTXOs failed";
+        toast.error(message);
+      } finally {
+        setWithdrawingStuckTokenAddress(null);
+      }
+    },
+    [walletAddress, chainId, signature, nonce, hasWriteAccess, refreshBalances],
+  );
+
   return (
     <div className="absolute min-w-max top-20 md:top-2 left-0 md:left-auto right-0 bg-[#272B30] rounded-xl shadow-metamask font-pubsans p-4 items-center max-content">
       <div className="flex items-center space-x-4">
@@ -65,13 +114,52 @@ export const WalletInfoDropDown = () => {
         <p className="text-[#abaeaf] text-[12px] text-left">Balance</p>
       </div>
       <div className="flex flex-col justify-center gap-4 mb-[10%]">
-        {filterTokenBalances(balances).map((tokenBalance) => (
+        {visibleBalances.map((tokenBalance) => (
           <WalletInfoBalance
             tokenBalance={tokenBalance}
             key={tokenBalance.tokenAddress}
           />
         ))}
       </div>
+
+      {visibleStuckUtxoBalances.length > 0 && (
+        <div className="border-t-2 border-[#36393D] pt-3 mb-[10%]">
+          <p className="text-[#abaeaf] text-[12px] text-left mb-3">
+            Stuck Balances
+          </p>
+          <div className="flex flex-col justify-center gap-4">
+            {visibleStuckUtxoBalances.map((tokenBalance) => {
+              const isWithdrawing =
+                withdrawingStuckTokenAddress === tokenBalance.tokenAddress;
+
+              return (
+                <div
+                  className="flex items-center justify-between gap-3"
+                  key={`stuck-${tokenBalance.tokenAddress}`}
+                >
+                  <WalletInfoBalance tokenBalance={tokenBalance} />
+                  <button
+                    type="button"
+                    disabled={withdrawingStuckTokenAddress !== null}
+                    onClick={() =>
+                      handleWithdrawStuckUtxos(tokenBalance.tokenAddress)
+                    }
+                    className="rounded-md bg-primary px-3 py-1 text-[12px] font-semibold text-white hover:bg-[#4d32fa] disabled:cursor-not-allowed disabled:opacity-50"
+                  >
+                    {isWithdrawing ? (
+                      <span className="flex items-center gap-x-1">
+                        Withdraw <Spinner />
+                      </span>
+                    ) : (
+                      "Withdraw"
+                    )}
+                  </button>
+                </div>
+              );
+            })}
+          </div>
+        </div>
+      )}
 
       <div className="border-t-2 md:text-[15px] border-[#36393D]">
         <button type="button" onClick={handleCopyShieldedAddress}>

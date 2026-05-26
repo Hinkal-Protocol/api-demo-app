@@ -116,6 +116,21 @@ export const buildWithdrawAuthFields = (
     recipient: params.recipient,
   }));
 
+export const buildWithdrawStuckUtxosAuthFields = (
+  signer: ethers.Signer,
+  params: {
+    chainId: number;
+    tokenAddress: string;
+    recipientAddress: string;
+  },
+) =>
+  signEnclaveTypedData(signer, "WithdrawStuckUtxos", params.chainId, (nonce) => ({
+    nonce,
+    chainId: BigInt(params.chainId),
+    tokenAddress: ethers.getAddress(params.tokenAddress),
+    recipient: ethers.getAddress(params.recipientAddress),
+  }));
+
 export const buildSwapAuthFields = (
   signer: ethers.Signer,
   params: { chainId: number; tokenAddresses: string[]; amounts: string[] },
