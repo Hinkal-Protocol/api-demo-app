@@ -26,6 +26,7 @@ import {
 } from "../utils/multiSend";
 import { approveErc20, broadcastDepositTx, getEthersSigner } from "../utils/ethers-wallet";
 import { approveAndBroadcastTronSerializedTx } from "../utils/tron-wallet";
+import { broadcastSolanaTransaction } from "../utils/solana-wallet";
 import { ButtonGroupWithLabel } from "../utils/buttonGroupWithLabel";
 
 const NON_NATIVE_GAS_TOKENS = ["USDC", "USDT", "DAI"];
@@ -58,7 +59,7 @@ const TX_COMPLETION_TIME_LABELS = TX_COMPLETION_TIME_OPTIONS.map(
 const DEFAULT_TX_COMPLETION_TIME_LABEL: TxCompletionTimeLabel = "30 min";
 
 export const MultiSend = () => {
-  const { walletAddress, refreshBalances, chainId, signature, nonce, hasWriteAccess, isTron } =
+  const { walletAddress, refreshBalances, chainId, signature, nonce, hasWriteAccess, isTron, isSolana, solanaProvider } =
     useAppContext();
 
   const allowedTokens = useMemo<ERC20Token[]>(() => {
@@ -150,7 +151,7 @@ export const MultiSend = () => {
         return;
       setIsProcessing(true);
 
-      const signer = isTron ? null : await getEthersSigner();
+      const signer = isTron || isSolana ? null : await getEthersSigner();
 
       const recipientsWei: Recipient[] = recipients.map((r) => ({
         address: r.address,
@@ -176,7 +177,10 @@ export const MultiSend = () => {
       const isNative =
         selectedToken.erc20TokenAddress.toLowerCase() === zeroAddress;
 
-      if (isTron) {
+      if (isSolana) {
+        if (!solanaProvider) throw new Error("Solana provider not set");
+        await broadcastSolanaTransaction(solanaProvider, order.serializedTx);
+      } else if (isTron) {
         await approveAndBroadcastTronSerializedTx(
           order.serializedTx,
           isNative ? null : order.approvalAddress,
@@ -218,6 +222,8 @@ export const MultiSend = () => {
     nonce,
     hasWriteAccess,
     txCompletionTimeLabel,
+    isSolana,
+    solanaProvider,
   ]);
 
   const handleSubmit = (event: SyntheticEvent) => {

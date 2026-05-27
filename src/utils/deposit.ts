@@ -18,7 +18,7 @@ export const deposit = async (
   chainId: number,
   tokenAddresses: string[],
   amounts: string[],
-): Promise<TxData> => {
+): Promise<TxData | string> => {
   const authFields = await resolveTxAuthFields(session, () => {
     if (!signer) throw new Error("EVM signer required for deposit without write-access session");
     return buildDepositAuthFields(signer, "Deposit", { chainId, tokenAddresses, amounts });
@@ -43,7 +43,7 @@ export const deposit = async (
   }
 
   const data = (await res.json()) as
-    | { success: true; txData: TxData }
+    | { success: true; txData: TxData | string }
     | { error?: string };
 
   if (!res.ok || !("success" in data && data.success)) {

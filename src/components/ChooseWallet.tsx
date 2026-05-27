@@ -14,6 +14,8 @@ import { createEnclaveSession } from "../utils/session";
 import { getEthersSigner } from "../utils/ethers-wallet";
 import { connectTronLink } from "../utils/tron-wallet";
 import { createTronEnclaveSession } from "../utils/tron-session";
+import { connectSolanaWallet, SolanaWalletProvider } from "../utils/solana-wallet";
+import { createSolanaEnclaveSession } from "../utils/solana-session";
 import toast from "react-hot-toast";
 
 interface ChooseWalletProps {
@@ -39,6 +41,7 @@ export const ChooseWallet = ({
     setRequestedWriteAccess,
     applyEnclaveSession,
     setWalletType,
+    setSolanaProvider,
   } = useAppContext();
 
   const [connectingId, setConnectingId] = useState<string | null>(null);
@@ -94,6 +97,41 @@ export const ChooseWallet = ({
       applyEnclaveSession,
       setWalletType,
       writeAccessEnabled,
+      onHide,
+    ],
+  );
+
+  const handleConnectSolana = useCallback(
+    async (provider: SolanaWalletProvider) => {
+      try {
+        setIsConnecting?.(true);
+        setConnectingId(`solana-${provider}`);
+        const { address, chainId } = await connectSolanaWallet(provider);
+        const session = await createSolanaEnclaveSession(address, chainId, provider);
+        setWalletType("solana");
+        setSolanaProvider(provider);
+        setWalletAddress(address);
+        applyEnclaveSession(session);
+        setShieldedAddress(undefined);
+        setChainId(chainId);
+        setDataLoaded(true);
+        onHide();
+      } catch (err) {
+        toast.error(`${provider === "phantom" ? "Phantom" : "Solflare"} connection failed: ${err || "Unknown error"}`);
+      } finally {
+        setConnectingId(null);
+        setIsConnecting?.(false);
+      }
+    },
+    [
+      setIsConnecting,
+      setShieldedAddress,
+      setChainId,
+      setDataLoaded,
+      setWalletAddress,
+      applyEnclaveSession,
+      setWalletType,
+      setSolanaProvider,
       onHide,
     ],
   );
@@ -200,6 +238,42 @@ export const ChooseWallet = ({
             <span className="text-[#ef0027] font-bold text-lg leading-none">T</span>
             <span>TronLink</span>
             {connectingId === "tronlink" && <Spinner />}
+          </button>
+        )}
+        {!isMobile && (
+          <button
+            className="bg-modal px-4 py-2 min-w-[180px] w-[80%] rounded-lg border-[2.5px] border-[#f0f0f0] hover:border-[#9c9c9c] font-bold duration-150 flex items-center justify-center gap-x-3"
+            type="button"
+            disabled={!!connectingId}
+            onClick={() => handleConnectSolana("phantom")}
+          >
+            <span className="text-[#AB9FF2] font-bold text-lg leading-none">👻</span>
+            <span>Phantom</span>
+            {connectingId === "solana-phantom" && <Spinner />}
+          </button>
+        )}
+        {!isMobile && (
+          <button
+            className="bg-modal px-4 py-2 min-w-[180px] w-[80%] rounded-lg border-[2.5px] border-[#f0f0f0] hover:border-[#9c9c9c] font-bold duration-150 flex items-center justify-center gap-x-3"
+            type="button"
+            disabled={!!connectingId}
+            onClick={() => handleConnectSolana("solflare")}
+          >
+            <span className="text-[#FC7227] font-bold text-lg leading-none">🔥</span>
+            <span>Solflare</span>
+            {connectingId === "solana-solflare" && <Spinner />}
+          </button>
+        )}
+        {!isMobile && (
+          <button
+            className="bg-modal px-4 py-2 min-w-[180px] w-[80%] rounded-lg border-[2.5px] border-[#f0f0f0] hover:border-[#9c9c9c] font-bold duration-150 flex items-center justify-center gap-x-3"
+            type="button"
+            disabled={!!connectingId}
+            onClick={() => handleConnectSolana("metamask")}
+          >
+            <img src={metamaskLogo} alt="MetaMask" className="w-[26px] h-[26px]" />
+            <span>MetaMask (Solana)</span>
+            {connectingId === "solana-metamask" && <Spinner />}
           </button>
         )}
       </div>

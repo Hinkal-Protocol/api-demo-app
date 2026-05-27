@@ -9,9 +9,10 @@ import { getAmountInWei } from "../utils/amount.utils";
 import { deposit } from "../utils/deposit";
 import { approveErc20, getEthersSigner, sendTx } from "../utils/ethers-wallet";
 import { approveAndBroadcastTronDepositTx } from "../utils/tron-wallet";
+import { broadcastSolanaTransaction } from "../utils/solana-wallet";
 
 export const Deposit = () => {
-  const { walletAddress, refreshBalances, chainId, signature, nonce, hasWriteAccess, isTron } =
+  const { walletAddress, refreshBalances, chainId, signature, nonce, hasWriteAccess, isTron, isSolana, solanaProvider } =
     useAppContext();
 
   const [selectedToken, setSelectedToken] = useState<ERC20Token | undefined>(
@@ -29,7 +30,18 @@ export const Deposit = () => {
       const amountInWei = getAmountInWei(selectedToken, depositAmount);
       const session = { signature, nonce, hasWriteAccess };
 
-      if (isTron) {
+      if (isSolana) {
+        if (!solanaProvider) throw new Error("Solana provider not set");
+        const serializedTx = await deposit(
+          null,
+          session,
+          walletAddress,
+          chainId,
+          [selectedToken.erc20TokenAddress],
+          [amountInWei.toString()],
+        );
+        await broadcastSolanaTransaction(solanaProvider, serializedTx as string);
+      } else if (isTron) {
         const txData = await deposit(
           null,
           session,
@@ -55,12 +67,12 @@ export const Deposit = () => {
           [amountInWei.toString()],
         );
         if (selectedToken.erc20TokenAddress !== zeroAddress) {
-          await approveErc20(signer, selectedToken.erc20TokenAddress, txData.to, amountInWei);
+          await approveErc20(signer, selectedToken.erc20TokenAddress, (txData as { to: string }).to, amountInWei);
         }
         await sendTx(signer, {
-          to: txData.to,
-          data: txData.data,
-          value: txData.value ? BigInt(txData.value) : undefined,
+          to: (txData as { to: string; data: string; value?: string }).to,
+          data: (txData as { to: string; data: string; value?: string }).data,
+          value: (txData as { value?: string }).value ? BigInt((txData as { value?: string }).value!) : undefined,
         });
       }
       await refreshBalances();

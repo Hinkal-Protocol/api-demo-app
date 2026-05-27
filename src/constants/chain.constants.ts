@@ -8,6 +8,7 @@ export const chainIds = {
   base: 8453,
   arcTestnet: 5042002,
   tronNile: 3448148188,
+  solanaMainnet: 501,
 };
 
 export const ALCHEMY_API_KEY = "X4IiEZsSzGOrJq8tzq7Y3";
@@ -47,5 +48,10 @@ export const networkRegistry: Record<number, Network> = {
     name: "Tron Nile",
     chainId: chainIds.tronNile,
     fetchRpcUrl: "https://nile.trongrid.io",
+  },
+  [chainIds.solanaMainnet]: {
+    name: "Solana",
+    chainId: chainIds.solanaMainnet,
+    fetchRpcUrl: "https://mainnet.helius-rpc.com/?api-key=54ad9ec9-dad6-41de-b961-e3e8ea7a7188",
   },
 };

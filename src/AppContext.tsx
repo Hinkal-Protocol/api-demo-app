@@ -16,11 +16,12 @@ import { networkRegistry } from "./constants/chain.constants";
 import { fetchBalances, fetchStuckUtxoBalances } from "./utils/balance";
 import { createEnclaveSession } from "./utils/session";
 import type { EnclaveSession } from "./utils/types";
+import type { SolanaWalletProvider } from "./utils/solana-wallet";
 import { getERC20Registry } from "./constants/token-data";
 import { getEthersSigner } from "./utils/ethers-wallet";
 import { ERC20Token, TokenBalance } from "./types";
 
-export type WalletType = "evm" | "tron";
+export type WalletType = "evm" | "tron" | "solana";
 
 type AppContextArgumnets = {
   signature: string | null;
@@ -33,6 +34,9 @@ type AppContextArgumnets = {
   walletType: WalletType | null;
   setWalletType: Dispatch<SetStateAction<WalletType | null>>;
   isTron: boolean;
+  isSolana: boolean;
+  solanaProvider: SolanaWalletProvider | null;
+  setSolanaProvider: Dispatch<SetStateAction<SolanaWalletProvider | null>>;
   setRequestedWriteAccess: Dispatch<SetStateAction<boolean>>;
   applyEnclaveSession: (session: EnclaveSession) => void;
   clearEnclaveSession: () => void;
@@ -63,6 +67,9 @@ const AppContext = createContext<AppContextArgumnets>({
   walletType: null,
   setWalletType: () => {},
   isTron: false,
+  isSolana: false,
+  solanaProvider: null,
+  setSolanaProvider: () => {},
   applyEnclaveSession: () => {},
   clearEnclaveSession: () => {},
   walletAddress: null,
@@ -90,6 +97,7 @@ export const AppContextProvider: FC<AppContextProps> = ({
   const [requestedWriteAccess, setRequestedWriteAccess] = useState(false);
   const [walletAddress, setWalletAddress] = useState<string | null>(null);
   const [walletType, setWalletType] = useState<WalletType | null>(null);
+  const [solanaProvider, setSolanaProvider] = useState<SolanaWalletProvider | null>(null);
   const [chainId, setChainId] = useState<number | undefined>();
   const [dataLoaded, setDataLoaded] = useState<boolean>(false);
   const [balances, setBalances] = useState<TokenBalance[]>([]);
@@ -98,6 +106,7 @@ export const AppContextProvider: FC<AppContextProps> = ({
   const prevChainIdRef = useRef<number | undefined>();
 
   const isTron = walletType === "tron";
+  const isSolana = walletType === "solana";
 
   const erc20List = useMemo<ERC20Token[]>(
     () => (chainId ? getERC20Registry(chainId) : []),
@@ -122,7 +131,8 @@ export const AppContextProvider: FC<AppContextProps> = ({
     setHasWriteAccess(false);
     setSessionExpiresAt(null);
     setWalletType(null);
-  }, []);
+    setSolanaProvider(null);
+  }, [setSolanaProvider]);
 
   useEffect(() => {
     if (!chainId) {
@@ -136,7 +146,7 @@ export const AppContextProvider: FC<AppContextProps> = ({
     if (!walletAddress || !dataLoaded) return;
     if (prevChainId === undefined || prevChainId === chainId) return;
     // Tron users don't switch chains via wagmi; skip EVM re-auth for them
-    if (walletType === "tron") return;
+    if (walletType === "tron" || walletType === "solana") return;
 
     let cancelled = false;
     setSignature(null);
@@ -236,6 +246,9 @@ export const AppContextProvider: FC<AppContextProps> = ({
         walletType,
         setWalletType,
         isTron,
+        isSolana,
+        solanaProvider,
+        setSolanaProvider,
       }}
     >
       {children}

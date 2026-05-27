@@ -7,6 +7,7 @@ import { zeroAddress } from "../constants";
 import { ERC20Token } from "../types";
 import { getErc20Balance, getNativeBalance } from "../utils/ethers-wallet";
 import { getTronErc20Balance, getTronNativeBalance, isTronChain } from "../utils/tron-wallet";
+import { getSolanaNativeBalance, getSolanaTokenBalance, isSolanaChain, SOLANA_NATIVE_ADDRESS } from "../utils/solana-wallet";
 
 interface TokenAmountInputInterface {
   buttonWrapperStyles?: string;
@@ -23,7 +24,7 @@ export const TokenAmountInput = ({
   selectedToken,
   setSelectedToken,
 }: TokenAmountInputInterface) => {
-  const { erc20List, walletAddress, chainId } = useAppContext();
+  const { erc20List, walletAddress, chainId, isSolana } = useAppContext();
   const [walletBalanceDisplay, setWalletBalanceDisplay] = useState<
     string | null
   >(null);
@@ -46,10 +47,17 @@ export const TokenAmountInput = ({
 
       try {
         const isTron = isTronChain(chainId);
+        const isSolanaNet = isSolanaChain(chainId);
+        const solanaIsNative =
+          selectedToken.erc20TokenAddress === SOLANA_NATIVE_ADDRESS;
         const balance = isTron
           ? isNative
             ? await getTronNativeBalance(walletAddress)
             : await getTronErc20Balance(selectedToken.erc20TokenAddress, walletAddress)
+          : isSolanaNet
+          ? solanaIsNative
+            ? await getSolanaNativeBalance(walletAddress)
+            : await getSolanaTokenBalance(selectedToken.erc20TokenAddress, walletAddress)
           : isNative
           ? await getNativeBalance(chainId, walletAddress)
           : await getErc20Balance(chainId, selectedToken.erc20TokenAddress, walletAddress);

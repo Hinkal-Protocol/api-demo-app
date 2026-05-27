@@ -1,5 +1,6 @@
 import arcTestnetRegistryJson from './arcTestnetRegistry.json';
 import tronNileRegistryJson from './tronNileRegistry.json';
+import solanaMainnetRegistryJson from './solanaMainnetRegistry.json';
 
 import ethMainnetRegistryJson from './ethMainnetRegistry.json';
 import arbMainnetRegistryJson from './arbMainnetRegistry.json';
@@ -17,6 +18,7 @@ const baseRegistry = baseRegistryJson.networkRegistry;
 
 const arcTestnetRegistry = arcTestnetRegistryJson.networkRegistry;
 const tronNileRegistry = tronNileRegistryJson.networkRegistry;
+const solanaMainnetRegistry = solanaMainnetRegistryJson.networkRegistry;
 
 export {
   ethMainnetRegistry,
@@ -26,4 +28,5 @@ export {
   baseRegistry,
   arcTestnetRegistry,
   tronNileRegistry,
+  solanaMainnetRegistry,
 };
