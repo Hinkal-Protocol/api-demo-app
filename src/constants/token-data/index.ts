@@ -1,4 +1,5 @@
 import arcTestnetRegistryJson from './arcTestnetRegistry.json';
+import tronNileRegistryJson from './tronNileRegistry.json';
 
 import ethMainnetRegistryJson from './ethMainnetRegistry.json';
 import arbMainnetRegistryJson from './arbMainnetRegistry.json';
@@ -15,6 +16,7 @@ const optimismRegistry = optimismRegistryJson.networkRegistry;
 const baseRegistry = baseRegistryJson.networkRegistry;
 
 const arcTestnetRegistry = arcTestnetRegistryJson.networkRegistry;
+const tronNileRegistry = tronNileRegistryJson.networkRegistry;
 
 export {
   ethMainnetRegistry,
@@ -23,4 +25,5 @@ export {
   optimismRegistry,
   baseRegistry,
   arcTestnetRegistry,
+  tronNileRegistry,
 };

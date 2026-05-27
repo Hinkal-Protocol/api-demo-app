@@ -12,20 +12,17 @@ export type TxData = {
 };
 
 export const deposit = async (
-  signer: ethers.Signer,
+  signer: ethers.Signer | null,
   session: TxSessionAuth,
   account: string,
   chainId: number,
   tokenAddresses: string[],
   amounts: string[],
 ): Promise<TxData> => {
-  const authFields = await resolveTxAuthFields(session, () =>
-    buildDepositAuthFields(signer, "Deposit", {
-      chainId,
-      tokenAddresses,
-      amounts,
-    }),
-  );
+  const authFields = await resolveTxAuthFields(session, () => {
+    if (!signer) throw new Error("EVM signer required for deposit without write-access session");
+    return buildDepositAuthFields(signer, "Deposit", { chainId, tokenAddresses, amounts });
+  });
   const body = {
     ...authFields,
     address: account,

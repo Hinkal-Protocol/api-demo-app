@@ -7,6 +7,7 @@ export const chainIds = {
   optimism: 10,
   base: 8453,
   arcTestnet: 5042002,
+  tronNile: 3448148188,
 };
 
 export const ALCHEMY_API_KEY = "X4IiEZsSzGOrJq8tzq7Y3";
@@ -41,5 +42,10 @@ export const networkRegistry: Record<number, Network> = {
     name: "Arc Testnet",
     chainId: chainIds.arcTestnet,
     fetchRpcUrl: `https://arc-testnet.g.alchemy.com/v2/${ALCHEMY_API_KEY}`,
+  },
+  [chainIds.tronNile]: {
+    name: "Tron Nile",
+    chainId: chainIds.tronNile,
+    fetchRpcUrl: "https://nile.trongrid.io",
   },
 };

@@ -6,6 +6,7 @@ import { useAppContext } from "../AppContext";
 import { zeroAddress } from "../constants";
 import { ERC20Token } from "../types";
 import { getErc20Balance, getNativeBalance } from "../utils/ethers-wallet";
+import { getTronErc20Balance, getTronNativeBalance, isTronChain } from "../utils/tron-wallet";
 
 interface TokenAmountInputInterface {
   buttonWrapperStyles?: string;
@@ -44,13 +45,14 @@ export const TokenAmountInput = ({
       }
 
       try {
-        const balance = isNative
+        const isTron = isTronChain(chainId);
+        const balance = isTron
+          ? isNative
+            ? await getTronNativeBalance(walletAddress)
+            : await getTronErc20Balance(selectedToken.erc20TokenAddress, walletAddress)
+          : isNative
           ? await getNativeBalance(chainId, walletAddress)
-          : await getErc20Balance(
-              chainId,
-              selectedToken.erc20TokenAddress,
-              walletAddress,
-            );
+          : await getErc20Balance(chainId, selectedToken.erc20TokenAddress, walletAddress);
 
         if (!cancelled) {
           setWalletBalanceDisplay(

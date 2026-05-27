@@ -8,9 +8,10 @@ import { ERC20Token } from "../types";
 import { getAmountInWei } from "../utils/amount.utils";
 import { deposit } from "../utils/deposit";
 import { approveErc20, getEthersSigner, sendTx } from "../utils/ethers-wallet";
+import { approveAndBroadcastTronDepositTx } from "../utils/tron-wallet";
 
 export const Deposit = () => {
-  const { walletAddress, refreshBalances, chainId, signature, nonce, hasWriteAccess } =
+  const { walletAddress, refreshBalances, chainId, signature, nonce, hasWriteAccess, isTron } =
     useAppContext();
 
   const [selectedToken, setSelectedToken] = useState<ERC20Token | undefined>(
@@ -25,32 +26,43 @@ export const Deposit = () => {
         return;
       setIsProcessing(true);
 
-      const signer = await getEthersSigner();
       const amountInWei = getAmountInWei(selectedToken, depositAmount);
+      const session = { signature, nonce, hasWriteAccess };
 
-      const txData = await deposit(
-        signer,
-        { signature, nonce, hasWriteAccess },
-        walletAddress,
-        chainId,
-        [selectedToken.erc20TokenAddress],
-        [amountInWei.toString()],
-      );
-
-      if (selectedToken.erc20TokenAddress !== zeroAddress) {
-        await approveErc20(
-          signer,
-          selectedToken.erc20TokenAddress,
-          txData.to,
-          amountInWei,
+      if (isTron) {
+        const txData = await deposit(
+          null,
+          session,
+          walletAddress,
+          chainId,
+          [selectedToken.erc20TokenAddress],
+          [amountInWei.toString()],
         );
+        await approveAndBroadcastTronDepositTx(
+          txData,
+          amountInWei,
+          selectedToken.erc20TokenAddress,
+          walletAddress,
+        );
+      } else {
+        const signer = await getEthersSigner();
+        const txData = await deposit(
+          signer,
+          session,
+          walletAddress,
+          chainId,
+          [selectedToken.erc20TokenAddress],
+          [amountInWei.toString()],
+        );
+        if (selectedToken.erc20TokenAddress !== zeroAddress) {
+          await approveErc20(signer, selectedToken.erc20TokenAddress, txData.to, amountInWei);
+        }
+        await sendTx(signer, {
+          to: txData.to,
+          data: txData.data,
+          value: txData.value ? BigInt(txData.value) : undefined,
+        });
       }
-
-      await sendTx(signer, {
-        to: txData.to,
-        data: txData.data,
-        value: txData.value ? BigInt(txData.value) : undefined,
-      });
       await refreshBalances();
     } catch (err) {
       const errorMessage =

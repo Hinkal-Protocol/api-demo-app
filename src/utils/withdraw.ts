@@ -9,7 +9,7 @@ import type { TxSessionAuth } from "./types";
 import { FeeStructure } from "./fees";
 
 export const withdraw = async (
-  signer: ethers.Signer,
+  signer: ethers.Signer | null,
   session: TxSessionAuth,
   account: string,
   chainId: number,
@@ -20,14 +20,10 @@ export const withdraw = async (
   feeToken?: string,
   feeStructure?: FeeStructure,
 ): Promise<string> => {
-  const authFields = await resolveTxAuthFields(session, () =>
-    buildWithdrawAuthFields(signer, {
-      chainId,
-      tokenAddresses,
-      amounts,
-      recipient: recipientAddress,
-    }),
-  );
+  const authFields = await resolveTxAuthFields(session, () => {
+    if (!signer) throw new Error("EVM signer required for withdraw without write-access session");
+    return buildWithdrawAuthFields(signer, { chainId, tokenAddresses, amounts, recipient: recipientAddress });
+  });
   const body = {
     ...authFields,
     address: account,
@@ -58,20 +54,17 @@ export const withdraw = async (
 };
 
 export const withdrawStuckUtxos = async (
-  signer: ethers.Signer,
+  signer: ethers.Signer | null,
   session: TxSessionAuth,
   account: string,
   chainId: number,
   tokenAddress: string,
   recipientAddress: string,
 ): Promise<string[]> => {
-  const authFields = await resolveTxAuthFields(session, () =>
-    buildWithdrawStuckUtxosAuthFields(signer, {
-      chainId,
-      tokenAddress,
-      recipientAddress,
-    }),
-  );
+  const authFields = await resolveTxAuthFields(session, () => {
+    if (!signer) throw new Error("EVM signer required for withdrawStuckUtxos without write-access session");
+    return buildWithdrawStuckUtxosAuthFields(signer, { chainId, tokenAddress, recipientAddress });
+  });
   const body = {
     ...authFields,
     address: account,

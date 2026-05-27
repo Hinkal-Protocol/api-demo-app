@@ -13,16 +13,13 @@ import { useAppContext } from "../../AppContext";
 import { TokenBalance } from "../../types";
 import { zeroAddress } from "../../constants";
 
-const filterTokenBalances = (tokenBalances: TokenBalance[]) => {
-  const nonZeroBalances = [...tokenBalances]
-    .sort((a, b) => (a.tokenAddress < b.tokenAddress ? -1 : 1))
-    .filter((tokenBalance) => tokenBalance.balance !== "0");
-  if (nonZeroBalances.length === 0)
-    return tokenBalances.filter(
-      (tokenBalance) => tokenBalance.tokenAddress === zeroAddress,
-    );
-  return nonZeroBalances;
-};
+const sortTokenBalances = (tokenBalances: TokenBalance[]) =>
+  [...tokenBalances].sort((a, b) =>
+    a.tokenAddress < b.tokenAddress ? -1 : 1,
+  );
+
+const filterNonZeroTokenBalances = (tokenBalances: TokenBalance[]) =>
+  tokenBalances.filter((b) => b.balance !== "0");
 
 export const WalletInfoDropDown = () => {
   const {
@@ -42,21 +39,25 @@ export const WalletInfoDropDown = () => {
   } = useAppContext();
   const config = useConfig();
   const visibleBalances = useMemo(
-    () => filterTokenBalances(balances),
+    () => sortTokenBalances(balances),
     [balances],
   );
   const visibleStuckUtxoBalances = useMemo(
-    () => filterTokenBalances(stuckUtxoBalances),
+    () => filterNonZeroTokenBalances(stuckUtxoBalances),
     [stuckUtxoBalances],
   );
   const [withdrawingStuckTokenAddress, setWithdrawingStuckTokenAddress] =
     useState<string | null>(null);
 
+  const { isTron } = useAppContext();
+
   const handleDisconnect = async () => {
-    try {
-      await disconnect(config);
-    } catch (err) {
-      console.error("disconnect failed", err);
+    if (!isTron) {
+      try {
+        await disconnect(config);
+      } catch (err) {
+        console.error("disconnect failed", err);
+      }
     }
     setWalletAddress(null);
     clearEnclaveSession();
@@ -84,7 +85,7 @@ export const WalletInfoDropDown = () => {
         if (!walletAddress || !chainId || !signature || !nonce) return;
 
         setWithdrawingStuckTokenAddress(tokenAddress);
-        const signer = await getEthersSigner();
+        const signer = isTron ? null : await getEthersSigner();
         const txHashes = await withdrawStuckUtxos(
           signer,
           { signature, nonce, hasWriteAccess },
@@ -111,15 +112,19 @@ export const WalletInfoDropDown = () => {
     <div className="absolute min-w-max top-20 md:top-2 left-0 md:left-auto right-0 bg-[#272B30] rounded-xl shadow-metamask font-pubsans p-4 items-center max-content">
       <div className="flex items-center space-x-4">
         <div className="w-[26px]" />
-        <p className="text-[#abaeaf] text-[12px] text-left">Balance</p>
+        <p className="text-[#abaeaf] text-[12px] text-left">Private Balance</p>
       </div>
       <div className="flex flex-col justify-center gap-4 mb-[10%]">
-        {visibleBalances.map((tokenBalance) => (
-          <WalletInfoBalance
-            tokenBalance={tokenBalance}
-            key={tokenBalance.tokenAddress}
-          />
-        ))}
+        {visibleBalances.length > 0 ? (
+          visibleBalances.map((tokenBalance) => (
+            <WalletInfoBalance
+              tokenBalance={tokenBalance}
+              key={tokenBalance.tokenAddress}
+            />
+          ))
+        ) : (
+          <p className="text-[#abaeaf] text-[13px]">No private balance</p>
+        )}
       </div>
 
       {visibleStuckUtxoBalances.length > 0 && (

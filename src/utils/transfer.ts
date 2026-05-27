@@ -5,7 +5,7 @@ import type { TxSessionAuth } from "./types";
 import { FeeStructure } from "./fees";
 
 export const transfer = async (
-  signer: ethers.Signer,
+  signer: ethers.Signer | null,
   session: TxSessionAuth,
   account: string,
   chainId: number,
@@ -15,14 +15,10 @@ export const transfer = async (
   feeToken?: string,
   feeStructure?: FeeStructure,
 ): Promise<string> => {
-  const authFields = await resolveTxAuthFields(session, () =>
-    buildTransferAuthFields(signer, {
-      chainId,
-      tokenAddresses,
-      amounts,
-      recipient: recipientAddress,
-    }),
-  );
+  const authFields = await resolveTxAuthFields(session, () => {
+    if (!signer) throw new Error("EVM signer required for transfer without write-access session");
+    return buildTransferAuthFields(signer, { chainId, tokenAddresses, amounts, recipient: recipientAddress });
+  });
   const body = {
     ...authFields,
     address: account,

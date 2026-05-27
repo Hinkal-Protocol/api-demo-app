@@ -25,6 +25,7 @@ import {
   resolveTxCompletionTime,
 } from "../utils/multiSend";
 import { approveErc20, broadcastDepositTx, getEthersSigner } from "../utils/ethers-wallet";
+import { approveAndBroadcastTronSerializedTx } from "../utils/tron-wallet";
 import { ButtonGroupWithLabel } from "../utils/buttonGroupWithLabel";
 
 const NON_NATIVE_GAS_TOKENS = ["USDC", "USDT", "DAI"];
@@ -57,7 +58,7 @@ const TX_COMPLETION_TIME_LABELS = TX_COMPLETION_TIME_OPTIONS.map(
 const DEFAULT_TX_COMPLETION_TIME_LABEL: TxCompletionTimeLabel = "30 min";
 
 export const MultiSend = () => {
-  const { walletAddress, refreshBalances, chainId, signature, nonce, hasWriteAccess } =
+  const { walletAddress, refreshBalances, chainId, signature, nonce, hasWriteAccess, isTron } =
     useAppContext();
 
   const allowedTokens = useMemo<ERC20Token[]>(() => {
@@ -72,6 +73,7 @@ export const MultiSend = () => {
   const [selectedToken, setSelectedToken] = useState<ERC20Token | undefined>(
     undefined,
   );
+  const [feeToken, setFeeToken] = useState<ERC20Token | undefined>(undefined);
   const [recipients, setRecipients] = useState<Recipient[]>([emptyRecipient()]);
   const [txCompletionTimeLabel, setTxCompletionTimeLabel] =
     useState<TxCompletionTimeLabel>(DEFAULT_TX_COMPLETION_TIME_LABEL);
@@ -93,6 +95,23 @@ export const MultiSend = () => {
       setSelectedToken(allowedTokens[0]);
     }
   }, [chainId, allowedTokens, selectedToken]);
+
+  useEffect(() => {
+    if (!chainId) {
+      setFeeToken(undefined);
+      return;
+    }
+    if (feeToken) {
+      const stillValid = allowedTokens.some(
+        (t) =>
+          t.erc20TokenAddress.toLowerCase() ===
+          feeToken.erc20TokenAddress.toLowerCase(),
+      );
+      if (!stillValid) setFeeToken(selectedToken);
+    } else if (selectedToken) {
+      setFeeToken(selectedToken);
+    }
+  }, [chainId, allowedTokens, feeToken, selectedToken]);
 
   const updateRecipient = (
     index: number,
@@ -131,7 +150,7 @@ export const MultiSend = () => {
         return;
       setIsProcessing(true);
 
-      const signer = await getEthersSigner();
+      const signer = isTron ? null : await getEthersSigner();
 
       const recipientsWei: Recipient[] = recipients.map((r) => ({
         address: r.address,
@@ -150,23 +169,32 @@ export const MultiSend = () => {
         chainId,
         selectedToken.erc20TokenAddress,
         recipientsWei,
-        undefined,
+        feeToken?.erc20TokenAddress,
         txCompletionTime,
       );
 
       const isNative =
         selectedToken.erc20TokenAddress.toLowerCase() === zeroAddress;
 
-      if (!isNative && order.approvalAddress) {
-        await approveErc20(
-          signer,
-          selectedToken.erc20TokenAddress,
-          order.approvalAddress,
+      if (isTron) {
+        await approveAndBroadcastTronSerializedTx(
+          order.serializedTx,
+          isNative ? null : order.approvalAddress,
           BigInt(order.amountIn),
+          selectedToken.erc20TokenAddress,
+          walletAddress,
         );
+      } else {
+        if (!isNative && order.approvalAddress) {
+          await approveErc20(
+            signer!,
+            selectedToken.erc20TokenAddress,
+            order.approvalAddress,
+            BigInt(order.amountIn),
+          );
+        }
+        await broadcastDepositTx(signer!, order.serializedTx);
       }
-
-      await broadcastDepositTx(signer, order.serializedTx);
 
       await waitForOrderTerminal(order.orderId);
 
@@ -182,6 +210,7 @@ export const MultiSend = () => {
   }, [
     chainId,
     selectedToken,
+    feeToken,
     walletAddress,
     recipients,
     refreshBalances,
@@ -220,6 +249,24 @@ export const MultiSend = () => {
               )
             }
           />
+        </div>
+
+        <div className="w-[96%] mx-auto mb-4">
+          <label className="block text-xs text-[#9ca3af] mb-1">Fee token</label>
+          <div className="flex items-center gap-2">
+            <SelectToken
+              swapToken={feeToken}
+              onTokenChange={(_prev, cur) => setFeeToken(cur)}
+              disabled={isProcessing}
+              tokenFilter={(token) =>
+                allowedTokens.some(
+                  (allowed) =>
+                    allowed.erc20TokenAddress.toLowerCase() ===
+                    token.erc20TokenAddress.toLowerCase(),
+                )
+              }
+            />
+          </div>
         </div>
 
         {recipients.map((recipient, index) => (

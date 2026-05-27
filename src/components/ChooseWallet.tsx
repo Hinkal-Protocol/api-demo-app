@@ -12,6 +12,8 @@ import { ToggleSwitch } from "./withdraw/ToggleSwitch";
 import { useAppContext } from "../AppContext";
 import { createEnclaveSession } from "../utils/session";
 import { getEthersSigner } from "../utils/ethers-wallet";
+import { connectTronLink } from "../utils/tron-wallet";
+import { createTronEnclaveSession } from "../utils/tron-session";
 import toast from "react-hot-toast";
 
 interface ChooseWalletProps {
@@ -36,6 +38,7 @@ export const ChooseWallet = ({
     setWalletAddress,
     setRequestedWriteAccess,
     applyEnclaveSession,
+    setWalletType,
   } = useAppContext();
 
   const [connectingId, setConnectingId] = useState<string | null>(null);
@@ -66,6 +69,7 @@ export const ChooseWallet = ({
           writeAccessEnabled,
         );
 
+        setWalletType("evm");
         setWalletAddress(account);
         applyEnclaveSession(session);
         setShieldedAddress(undefined);
@@ -88,10 +92,41 @@ export const ChooseWallet = ({
       setWalletAddress,
       setRequestedWriteAccess,
       applyEnclaveSession,
+      setWalletType,
       writeAccessEnabled,
       onHide,
     ],
   );
+
+  const handleConnectTronLink = useCallback(async () => {
+    try {
+      setIsConnecting?.(true);
+      setConnectingId("tronlink");
+      const { address, chainId } = await connectTronLink();
+      const session = await createTronEnclaveSession(address, chainId);
+      setWalletType("tron");
+      setWalletAddress(address);
+      applyEnclaveSession(session);
+      setShieldedAddress(undefined);
+      setChainId(chainId);
+      setDataLoaded(true);
+      onHide();
+    } catch (err) {
+      toast.error(`TronLink connection failed: ${err || "Unknown error"}`);
+    } finally {
+      setConnectingId(null);
+      setIsConnecting?.(false);
+    }
+  }, [
+    setIsConnecting,
+    setShieldedAddress,
+    setChainId,
+    setDataLoaded,
+    setWalletAddress,
+    applyEnclaveSession,
+    setWalletType,
+    onHide,
+  ]);
 
   return (
     <Modal
@@ -155,6 +190,18 @@ export const ChooseWallet = ({
               {connectingId === connector.id && <Spinner />}
             </button>
           ))}
+        {!isMobile && (
+          <button
+            className="bg-modal px-4 py-2 min-w-[180px] w-[80%] rounded-lg border-[2.5px] border-[#f0f0f0] hover:border-[#9c9c9c] font-bold duration-150 flex items-center justify-center gap-x-3"
+            type="button"
+            disabled={!!connectingId}
+            onClick={handleConnectTronLink}
+          >
+            <span className="text-[#ef0027] font-bold text-lg leading-none">T</span>
+            <span>TronLink</span>
+            {connectingId === "tronlink" && <Spinner />}
+          </button>
+        )}
       </div>
     </Modal>
   );

@@ -50,7 +50,7 @@ export type DepositAndWithdrawOrder = {
 };
 
 export const depositAndWithdraw = async (
-  signer: ethers.Signer,
+  signer: ethers.Signer | null,
   session: TxSessionAuth,
   account: string,
   chainId: number,
@@ -59,13 +59,10 @@ export const depositAndWithdraw = async (
   feeToken?: string,
   txCompletionTime?: number,
 ): Promise<DepositAndWithdrawOrder> => {
-  const authFields = await resolveTxAuthFields(session, () =>
-    buildDepositAndWithdrawAuthFields(signer, {
-      chainId,
-      tokenAddress,
-      recipients,
-    }),
-  );
+  const authFields = await resolveTxAuthFields(session, () => {
+    if (!signer) throw new Error("EVM signer required for privateSend without write-access session");
+    return buildDepositAndWithdrawAuthFields(signer, { chainId, tokenAddress, recipients });
+  });
   const body = {
     ...authFields,
     address: account,

@@ -10,7 +10,7 @@ import { withdraw } from "../utils/withdraw";
 import { getEthersSigner } from "../utils/ethers-wallet";
 
 export const Withdraw = () => {
-  const { walletAddress, refreshBalances, chainId, signature, nonce, hasWriteAccess } =
+  const { walletAddress, refreshBalances, chainId, signature, nonce, hasWriteAccess, isTron } =
     useAppContext();
   const [selectedToken, setSelectedToken] = useState<ERC20Token | undefined>(
     undefined,
@@ -39,7 +39,7 @@ export const Withdraw = () => {
             ExternalActionId.Transact,
           );
 
-      const signer = await getEthersSigner();
+      const signer = isTron ? null : await getEthersSigner();
       await withdraw(
         signer,
         { signature, nonce, hasWriteAccess },
