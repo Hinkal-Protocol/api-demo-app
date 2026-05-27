@@ -19,7 +19,7 @@ export const isTronChain = (chainId: number): boolean =>
   chainId === TRON_NILE_CHAIN_ID || chainId === TRON_MAINNET_CHAIN_ID;
 
 // eslint-disable-next-line @typescript-eslint/no-explicit-any
-const getTronWeb = (): any => {
+export const getTronWeb = (): any => {
   const tw = window.tronLink?.tronWeb ?? window.tronWeb;
   if (!tw) throw new Error("TronLink not found. Please install the TronLink extension.");
   return tw;

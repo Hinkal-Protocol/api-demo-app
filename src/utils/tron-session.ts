@@ -15,9 +15,11 @@ type CreateSessionResponse =
 export const createTronEnclaveSession = async (
   address: string,
   chainId: number,
+  writeAccess = true,
 ): Promise<EnclaveSession> => {
+  const access = writeAccess ? EnclaveSessionAccess.Write : EnclaveSessionAccess.Read;
   const nonce = generateNonce();
-  const message = buildEnclaveSignMessage(nonce, EnclaveSessionAccess.Write);
+  const message = buildEnclaveSignMessage(nonce, access);
 
   // TronLink signMessageV2 is synchronous but wrapped in Promise for consistency
   const signature = await Promise.resolve(signTronPersonalMessage(message));
@@ -33,7 +35,7 @@ export const createTronEnclaveSession = async (
         address,
         chainId,
         nonce,
-        writeAccess: true,
+        writeAccess,
       }),
     });
   } catch (err) {
@@ -48,7 +50,7 @@ export const createTronEnclaveSession = async (
   return {
     signature: normalizedSig,
     nonce,
-    hasWriteAccess: true,
+    hasWriteAccess: writeAccess,
     expiresAt: data.expiresAt,
   };
 };
