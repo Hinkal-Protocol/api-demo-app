@@ -1,7 +1,7 @@
 import { ethers } from "ethers";
 import { API_BASE_URL } from "../constants/server.constants";
 import { buildTransferAuthFields, resolveTxAuthFields } from "./enclave-auth";
-import type { TxSessionAuth } from "./types";
+import type { EnclaveAuthFields, TxSessionAuth } from "./types";
 import { FeeStructure } from "./fees";
 
 export const transfer = async (
@@ -14,8 +14,10 @@ export const transfer = async (
   recipientAddress: string,
   feeToken?: string,
   feeStructure?: FeeStructure,
+  buildReadOnlyAuth?: () => Promise<EnclaveAuthFields>,
 ): Promise<string> => {
   const authFields = await resolveTxAuthFields(session, () => {
+    if (buildReadOnlyAuth) return buildReadOnlyAuth();
     if (!signer) throw new Error("EVM signer required for transfer without write-access session");
     return buildTransferAuthFields(signer, { chainId, tokenAddresses, amounts, recipient: recipientAddress });
   });

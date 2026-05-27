@@ -5,7 +5,7 @@ import {
   buildWithdrawStuckUtxosAuthFields,
   resolveTxAuthFields,
 } from "./enclave-auth";
-import type { TxSessionAuth } from "./types";
+import type { EnclaveAuthFields, TxSessionAuth } from "./types";
 import { FeeStructure } from "./fees";
 
 export const withdraw = async (
@@ -19,8 +19,10 @@ export const withdraw = async (
   isRelayerOff?: boolean,
   feeToken?: string,
   feeStructure?: FeeStructure,
+  buildReadOnlyAuth?: () => Promise<EnclaveAuthFields>,
 ): Promise<string> => {
   const authFields = await resolveTxAuthFields(session, () => {
+    if (buildReadOnlyAuth) return buildReadOnlyAuth();
     if (!signer) throw new Error("EVM signer required for withdraw without write-access session");
     return buildWithdrawAuthFields(signer, { chainId, tokenAddresses, amounts, recipient: recipientAddress });
   });
@@ -60,8 +62,10 @@ export const withdrawStuckUtxos = async (
   chainId: number,
   tokenAddress: string,
   recipientAddress: string,
+  buildReadOnlyAuth?: () => Promise<EnclaveAuthFields>,
 ): Promise<string[]> => {
   const authFields = await resolveTxAuthFields(session, () => {
+    if (buildReadOnlyAuth) return buildReadOnlyAuth();
     if (!signer) throw new Error("EVM signer required for withdrawStuckUtxos without write-access session");
     return buildWithdrawStuckUtxosAuthFields(signer, { chainId, tokenAddress, recipientAddress });
   });

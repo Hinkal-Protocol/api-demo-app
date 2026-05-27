@@ -16,9 +16,11 @@ export const createSolanaEnclaveSession = async (
   address: string,
   chainId: number,
   provider: SolanaWalletProvider,
+  writeAccess = true,
 ): Promise<EnclaveSession> => {
+  const access = writeAccess ? EnclaveSessionAccess.Write : EnclaveSessionAccess.Read;
   const nonce = generateNonce();
-  const message = buildEnclaveSignMessage(nonce, EnclaveSessionAccess.Write);
+  const message = buildEnclaveSignMessage(nonce, access);
   const signature = await signSolanaMessage(provider, message);
   const normalizedSig = signature.startsWith("0x") ? signature : `0x${signature}`;
 
@@ -32,7 +34,7 @@ export const createSolanaEnclaveSession = async (
         address,
         chainId,
         nonce,
-        writeAccess: true,
+        writeAccess,
       }),
     });
   } catch (err) {
@@ -47,7 +49,7 @@ export const createSolanaEnclaveSession = async (
   return {
     signature: normalizedSig,
     nonce,
-    hasWriteAccess: true,
+    hasWriteAccess: writeAccess,
     expiresAt: data.expiresAt,
   };
 };
