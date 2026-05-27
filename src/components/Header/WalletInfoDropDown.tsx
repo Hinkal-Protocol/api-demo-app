@@ -8,10 +8,11 @@ import { Spinner } from "../Spinner";
 import { copyToClipboard } from "../../utils/copyToClipboard";
 import { getEthersSigner } from "../../utils/ethers-wallet";
 import { withdrawStuckUtxos } from "../../utils/withdraw";
+import { buildSolanaWithdrawStuckUtxosAuthFields } from "../../utils/solana-auth";
+import { buildTronWithdrawStuckUtxosAuthFields } from "../../utils/tron-auth";
 import { WalletInfoBalance } from "./WalletInfoBalance";
 import { useAppContext } from "../../AppContext";
 import { TokenBalance } from "../../types";
-import { zeroAddress } from "../../constants";
 
 const sortTokenBalances = (tokenBalances: TokenBalance[]) =>
   [...tokenBalances].sort((a, b) =>
@@ -36,6 +37,8 @@ export const WalletInfoDropDown = () => {
     setChainId,
     setDataLoaded,
     setRequestedWriteAccess,
+    isSolana,
+    solanaProvider,
   } = useAppContext();
   const config = useConfig();
   const visibleBalances = useMemo(
@@ -85,7 +88,12 @@ export const WalletInfoDropDown = () => {
         if (!walletAddress || !chainId || !signature || !nonce) return;
 
         setWithdrawingStuckTokenAddress(tokenAddress);
-        const signer = isTron ? null : await getEthersSigner();
+        const signer = isTron || isSolana ? null : await getEthersSigner();
+        const buildReadOnlyAuth = isSolana && solanaProvider
+          ? () => buildSolanaWithdrawStuckUtxosAuthFields(solanaProvider, chainId, tokenAddress, walletAddress)
+          : isTron
+          ? () => buildTronWithdrawStuckUtxosAuthFields(chainId, tokenAddress, walletAddress)
+          : undefined;
         const txHashes = await withdrawStuckUtxos(
           signer,
           { signature, nonce, hasWriteAccess },
@@ -93,6 +101,7 @@ export const WalletInfoDropDown = () => {
           chainId,
           tokenAddress,
           walletAddress,
+          buildReadOnlyAuth,
         );
 
         toast.success(`Withdraw sent (${txHashes.length} txs)`);

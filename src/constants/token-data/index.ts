@@ -1,4 +1,5 @@
 import arcTestnetRegistryJson from './arcTestnetRegistry.json';
+import sepoliaRegistryJson from './sepoliaRegistry.json';
 import tronNileRegistryJson from './tronNileRegistry.json';
 import solanaMainnetRegistryJson from './solanaMainnetRegistry.json';
 
@@ -17,6 +18,7 @@ const optimismRegistry = optimismRegistryJson.networkRegistry;
 const baseRegistry = baseRegistryJson.networkRegistry;
 
 const arcTestnetRegistry = arcTestnetRegistryJson.networkRegistry;
+const sepoliaRegistry = sepoliaRegistryJson.networkRegistry;
 const tronNileRegistry = tronNileRegistryJson.networkRegistry;
 const solanaMainnetRegistry = solanaMainnetRegistryJson.networkRegistry;
 
@@ -27,6 +29,7 @@ export {
   optimismRegistry,
   baseRegistry,
   arcTestnetRegistry,
+  sepoliaRegistry,
   tronNileRegistry,
   solanaMainnetRegistry,
 };

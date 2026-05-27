@@ -107,7 +107,8 @@ export const ChooseWallet = ({
         setIsConnecting?.(true);
         setConnectingId(`solana-${provider}`);
         const { address, chainId } = await connectSolanaWallet(provider);
-        const session = await createSolanaEnclaveSession(address, chainId, provider);
+        const session = await createSolanaEnclaveSession(address, chainId, provider, writeAccessEnabled);
+        setRequestedWriteAccess(writeAccessEnabled);
         setWalletType("solana");
         setSolanaProvider(provider);
         setWalletAddress(address);
@@ -129,10 +130,12 @@ export const ChooseWallet = ({
       setChainId,
       setDataLoaded,
       setWalletAddress,
+      setRequestedWriteAccess,
       applyEnclaveSession,
       setWalletType,
       setSolanaProvider,
       onHide,
+      writeAccessEnabled,
     ],
   );
 
@@ -141,7 +144,8 @@ export const ChooseWallet = ({
       setIsConnecting?.(true);
       setConnectingId("tronlink");
       const { address, chainId } = await connectTronLink();
-      const session = await createTronEnclaveSession(address, chainId);
+      const session = await createTronEnclaveSession(address, chainId, writeAccessEnabled);
+      setRequestedWriteAccess(writeAccessEnabled);
       setWalletType("tron");
       setWalletAddress(address);
       applyEnclaveSession(session);
@@ -161,9 +165,11 @@ export const ChooseWallet = ({
     setChainId,
     setDataLoaded,
     setWalletAddress,
+    setRequestedWriteAccess,
     applyEnclaveSession,
     setWalletType,
     onHide,
+    writeAccessEnabled,
   ]);
 
   return (

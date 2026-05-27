@@ -1,7 +1,7 @@
 import { ethers } from "ethers";
 import { API_BASE_URL } from "../constants/server.constants";
 import { buildDepositAuthFields, resolveTxAuthFields } from "./enclave-auth";
-import type { TxSessionAuth } from "./types";
+import type { EnclaveAuthFields, TxSessionAuth } from "./types";
 
 export type TxData = {
   to: string;
@@ -18,8 +18,10 @@ export const deposit = async (
   chainId: number,
   tokenAddresses: string[],
   amounts: string[],
+  buildReadOnlyAuth?: () => Promise<EnclaveAuthFields>,
 ): Promise<TxData | string> => {
   const authFields = await resolveTxAuthFields(session, () => {
+    if (buildReadOnlyAuth) return buildReadOnlyAuth();
     if (!signer) throw new Error("EVM signer required for deposit without write-access session");
     return buildDepositAuthFields(signer, "Deposit", { chainId, tokenAddresses, amounts });
   });

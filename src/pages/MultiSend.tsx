@@ -27,6 +27,8 @@ import {
 import { approveErc20, broadcastDepositTx, getEthersSigner } from "../utils/ethers-wallet";
 import { approveAndBroadcastTronSerializedTx } from "../utils/tron-wallet";
 import { broadcastSolanaTransaction } from "../utils/solana-wallet";
+import { buildSolanaPrivateSendAuthFields } from "../utils/solana-auth";
+import { buildTronPrivateSendAuthFields } from "../utils/tron-auth";
 import { ButtonGroupWithLabel } from "../utils/buttonGroupWithLabel";
 
 const NON_NATIVE_GAS_TOKENS = ["USDC", "USDT", "DAI"];
@@ -74,7 +76,6 @@ export const MultiSend = () => {
   const [selectedToken, setSelectedToken] = useState<ERC20Token | undefined>(
     undefined,
   );
-  const [feeToken, setFeeToken] = useState<ERC20Token | undefined>(undefined);
   const [recipients, setRecipients] = useState<Recipient[]>([emptyRecipient()]);
   const [txCompletionTimeLabel, setTxCompletionTimeLabel] =
     useState<TxCompletionTimeLabel>(DEFAULT_TX_COMPLETION_TIME_LABEL);
@@ -96,23 +97,6 @@ export const MultiSend = () => {
       setSelectedToken(allowedTokens[0]);
     }
   }, [chainId, allowedTokens, selectedToken]);
-
-  useEffect(() => {
-    if (!chainId) {
-      setFeeToken(undefined);
-      return;
-    }
-    if (feeToken) {
-      const stillValid = allowedTokens.some(
-        (t) =>
-          t.erc20TokenAddress.toLowerCase() ===
-          feeToken.erc20TokenAddress.toLowerCase(),
-      );
-      if (!stillValid) setFeeToken(selectedToken);
-    } else if (selectedToken) {
-      setFeeToken(selectedToken);
-    }
-  }, [chainId, allowedTokens, feeToken, selectedToken]);
 
   const updateRecipient = (
     index: number,
@@ -163,6 +147,13 @@ export const MultiSend = () => {
       )!.delaySeconds;
       const txCompletionTime = delaySeconds > 0 ? resolveTxCompletionTime(delaySeconds) : undefined;
 
+      const buildReadOnlyAuth = isSolana && solanaProvider
+        ? () => buildSolanaPrivateSendAuthFields(solanaProvider, chainId, selectedToken.erc20TokenAddress, recipientsWei)
+        : isTron
+        ? () => buildTronPrivateSendAuthFields(chainId, selectedToken.erc20TokenAddress, recipientsWei)
+        : undefined;
+
+      console.time("[MultiSend] POST /private-send");
       const order = await depositAndWithdraw(
         signer,
         { signature, nonce, hasWriteAccess },
@@ -170,17 +161,22 @@ export const MultiSend = () => {
         chainId,
         selectedToken.erc20TokenAddress,
         recipientsWei,
-        feeToken?.erc20TokenAddress,
         txCompletionTime,
+        buildReadOnlyAuth,
       );
+      console.timeEnd("[MultiSend] POST /private-send");
+      console.log("[MultiSend] order:", { orderId: order.orderId, amountIn: order.amountIn, fee: order.fee });
 
       const isNative =
         selectedToken.erc20TokenAddress.toLowerCase() === zeroAddress;
 
       if (isSolana) {
         if (!solanaProvider) throw new Error("Solana provider not set");
+        console.time("[MultiSend] broadcast (Solana)");
         await broadcastSolanaTransaction(solanaProvider, order.serializedTx);
+        console.timeEnd("[MultiSend] broadcast (Solana)");
       } else if (isTron) {
+        console.time("[MultiSend] broadcast (Tron)");
         await approveAndBroadcastTronSerializedTx(
           order.serializedTx,
           isNative ? null : order.approvalAddress,
@@ -188,19 +184,26 @@ export const MultiSend = () => {
           selectedToken.erc20TokenAddress,
           walletAddress,
         );
+        console.timeEnd("[MultiSend] broadcast (Tron)");
       } else {
         if (!isNative && order.approvalAddress) {
+          console.time("[MultiSend] ERC20 approve");
           await approveErc20(
             signer!,
             selectedToken.erc20TokenAddress,
             order.approvalAddress,
             BigInt(order.amountIn),
           );
+          console.timeEnd("[MultiSend] ERC20 approve");
         }
+        console.time("[MultiSend] broadcast deposit tx");
         await broadcastDepositTx(signer!, order.serializedTx);
+        console.timeEnd("[MultiSend] broadcast deposit tx");
       }
 
+      console.time("[MultiSend] poll until scheduled");
       await waitForOrderTerminal(order.orderId);
+      console.timeEnd("[MultiSend] poll until scheduled");
 
       toast.success("Multi send scheduled");
       setRecipients([emptyRecipient()]);
@@ -214,7 +217,6 @@ export const MultiSend = () => {
   }, [
     chainId,
     selectedToken,
-    feeToken,
     walletAddress,
     recipients,
     refreshBalances,
@@ -255,24 +257,6 @@ export const MultiSend = () => {
               )
             }
           />
-        </div>
-
-        <div className="w-[96%] mx-auto mb-4">
-          <label className="block text-xs text-[#9ca3af] mb-1">Fee token</label>
-          <div className="flex items-center gap-2">
-            <SelectToken
-              swapToken={feeToken}
-              onTokenChange={(_prev, cur) => setFeeToken(cur)}
-              disabled={isProcessing}
-              tokenFilter={(token) =>
-                allowedTokens.some(
-                  (allowed) =>
-                    allowed.erc20TokenAddress.toLowerCase() ===
-                    token.erc20TokenAddress.toLowerCase(),
-                )
-              }
-            />
-          </div>
         </div>
 
         {recipients.map((recipient, index) => (

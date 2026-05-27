@@ -1,4 +1,4 @@
-import { arbitrum, mainnet, optimism, polygon, base } from "wagmi/chains";
+import { arbitrum, mainnet, optimism, polygon, base, sepolia } from "wagmi/chains";
 import { defineChain } from "viem";
 
 export const arcTestnet = defineChain({
@@ -17,6 +17,7 @@ export const SUPPORTED_CHAINS = [
   optimism, // 10
   base, // 8453
   arcTestnet, // 5042002
+  sepolia, // 11155111
 ] as const;
 
 export const SUPPORTED_CHAIN_IDS: number[] = SUPPORTED_CHAINS.map(

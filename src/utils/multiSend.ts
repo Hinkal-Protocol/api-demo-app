@@ -4,7 +4,7 @@ import {
   buildDepositAndWithdrawAuthFields,
   resolveTxAuthFields,
 } from "./enclave-auth";
-import type { TxSessionAuth } from "./types";
+import type { EnclaveAuthFields, TxSessionAuth } from "./types";
 
 export enum OrderStatus {
   Processing = "processing",
@@ -56,10 +56,11 @@ export const depositAndWithdraw = async (
   chainId: number,
   tokenAddress: string,
   recipients: Recipient[],
-  feeToken?: string,
   txCompletionTime?: number,
+  buildReadOnlyAuth?: () => Promise<EnclaveAuthFields>,
 ): Promise<DepositAndWithdrawOrder> => {
   const authFields = await resolveTxAuthFields(session, () => {
+    if (buildReadOnlyAuth) return buildReadOnlyAuth();
     if (!signer) throw new Error("EVM signer required for privateSend without write-access session");
     return buildDepositAndWithdrawAuthFields(signer, { chainId, tokenAddress, recipients });
   });
@@ -69,7 +70,6 @@ export const depositAndWithdraw = async (
     chainId,
     tokenAddress,
     recipients,
-    feeToken,
     ...(txCompletionTime !== undefined && { txCompletionTime }),
   };
 

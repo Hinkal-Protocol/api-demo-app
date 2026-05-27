@@ -10,6 +10,8 @@ import { deposit } from "../utils/deposit";
 import { approveErc20, getEthersSigner, sendTx } from "../utils/ethers-wallet";
 import { approveAndBroadcastTronDepositTx } from "../utils/tron-wallet";
 import { broadcastSolanaTransaction } from "../utils/solana-wallet";
+import { buildSolanaDepositAuthFields } from "../utils/solana-auth";
+import { buildTronDepositAuthFields } from "../utils/tron-auth";
 
 export const Deposit = () => {
   const { walletAddress, refreshBalances, chainId, signature, nonce, hasWriteAccess, isTron, isSolana, solanaProvider } =
@@ -32,24 +34,18 @@ export const Deposit = () => {
 
       if (isSolana) {
         if (!solanaProvider) throw new Error("Solana provider not set");
-        const serializedTx = await deposit(
-          null,
-          session,
-          walletAddress,
-          chainId,
-          [selectedToken.erc20TokenAddress],
-          [amountInWei.toString()],
-        );
+        const tokenAddr = selectedToken.erc20TokenAddress;
+        const amountStr = amountInWei.toString();
+        const buildReadOnlyAuth = () =>
+          buildSolanaDepositAuthFields(solanaProvider, chainId, [tokenAddr], [amountStr]);
+        const serializedTx = await deposit(null, session, walletAddress, chainId, [tokenAddr], [amountStr], buildReadOnlyAuth);
         await broadcastSolanaTransaction(solanaProvider, serializedTx as string);
       } else if (isTron) {
-        const txData = await deposit(
-          null,
-          session,
-          walletAddress,
-          chainId,
-          [selectedToken.erc20TokenAddress],
-          [amountInWei.toString()],
-        );
+        const tokenAddr = selectedToken.erc20TokenAddress;
+        const amountStr = amountInWei.toString();
+        const buildReadOnlyAuth = () =>
+          buildTronDepositAuthFields(chainId, [tokenAddr], [amountStr]);
+        const txData = await deposit(null, session, walletAddress, chainId, [tokenAddr], [amountStr], buildReadOnlyAuth);
         await approveAndBroadcastTronDepositTx(
           txData,
           amountInWei,

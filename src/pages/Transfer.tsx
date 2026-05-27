@@ -8,9 +8,11 @@ import { getAmountInWei } from "../utils/amount.utils";
 import { ExternalActionId, getFeeStructure } from "../utils/fees";
 import { transfer } from "../utils/transfer";
 import { getEthersSigner } from "../utils/ethers-wallet";
+import { buildSolanaTransferAuthFields } from "../utils/solana-auth";
+import { buildTronTransferAuthFields } from "../utils/tron-auth";
 
 export const Transfer = () => {
-  const { walletAddress, refreshBalances, chainId, signature, nonce, hasWriteAccess, isTron } =
+  const { walletAddress, refreshBalances, chainId, signature, nonce, hasWriteAccess, isTron, isSolana, solanaProvider } =
     useAppContext();
   const [selectedToken, setSelectedToken] = useState<ERC20Token | undefined>(
     undefined,
@@ -36,17 +38,24 @@ export const Transfer = () => {
         ExternalActionId.Transact,
       );
 
-      const signer = isTron ? null : await getEthersSigner();
+      const signer = isTron || isSolana ? null : await getEthersSigner();
+      const amountStr = amountInWei.toString();
+      const buildReadOnlyAuth = isSolana && solanaProvider
+        ? () => buildSolanaTransferAuthFields(solanaProvider, chainId, [tokenAddress], [amountStr], transferAddress)
+        : isTron
+        ? () => buildTronTransferAuthFields(chainId, [tokenAddress], [amountStr], transferAddress)
+        : undefined;
       await transfer(
         signer,
         { signature, nonce, hasWriteAccess },
         walletAddress,
         chainId,
         [tokenAddress],
-        [amountInWei.toString()],
+        [amountStr],
         transferAddress,
         tokenAddress,
         feeStructure,
+        buildReadOnlyAuth,
       );
 
       await refreshBalances();

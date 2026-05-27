@@ -8,9 +8,11 @@ import { getAmountInWei } from "../utils/amount.utils";
 import { ExternalActionId, getFeeStructure } from "../utils/fees";
 import { withdraw } from "../utils/withdraw";
 import { getEthersSigner } from "../utils/ethers-wallet";
+import { buildSolanaWithdrawAuthFields } from "../utils/solana-auth";
+import { buildTronWithdrawAuthFields } from "../utils/tron-auth";
 
 export const Withdraw = () => {
-  const { walletAddress, refreshBalances, chainId, signature, nonce, hasWriteAccess, isTron } =
+  const { walletAddress, refreshBalances, chainId, signature, nonce, hasWriteAccess, isTron, isSolana, solanaProvider } =
     useAppContext();
   const [selectedToken, setSelectedToken] = useState<ERC20Token | undefined>(
     undefined,
@@ -39,18 +41,25 @@ export const Withdraw = () => {
             ExternalActionId.Transact,
           );
 
-      const signer = isTron ? null : await getEthersSigner();
+      const signer = isTron || isSolana ? null : await getEthersSigner();
+      const amountStr = amountInWei.toString();
+      const buildReadOnlyAuth = isSolana && solanaProvider
+        ? () => buildSolanaWithdrawAuthFields(solanaProvider, chainId, [tokenAddress], [amountStr], recipientAddress)
+        : isTron
+        ? () => buildTronWithdrawAuthFields(chainId, [tokenAddress], [amountStr], recipientAddress)
+        : undefined;
       await withdraw(
         signer,
         { signature, nonce, hasWriteAccess },
         walletAddress,
         chainId,
         [tokenAddress],
-        [amountInWei.toString()],
+        [amountStr],
         recipientAddress,
         isRelayerOff,
         tokenAddress,
         feeStructure,
+        buildReadOnlyAuth,
       );
 
       toast.success("Withdraw confirmed");
