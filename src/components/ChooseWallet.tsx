@@ -14,7 +14,10 @@ import { createEnclaveSession } from "../utils/session";
 import { getEthersSigner } from "../utils/ethers-wallet";
 import { connectTronLink } from "../utils/tron-wallet";
 import { createTronEnclaveSession } from "../utils/tron-session";
-import { connectSolanaWallet, SolanaWalletProvider } from "../utils/solana-wallet";
+import {
+  connectSolanaWallet,
+  SolanaWalletProvider,
+} from "../utils/solana-wallet";
 import { createSolanaEnclaveSession } from "../utils/solana-session";
 import toast from "react-hot-toast";
 
@@ -107,7 +110,12 @@ export const ChooseWallet = ({
         setIsConnecting?.(true);
         setConnectingId(`solana-${provider}`);
         const { address, chainId } = await connectSolanaWallet(provider);
-        const session = await createSolanaEnclaveSession(address, chainId, provider, writeAccessEnabled);
+        const session = await createSolanaEnclaveSession(
+          address,
+          chainId,
+          provider,
+          writeAccessEnabled,
+        );
         setRequestedWriteAccess(writeAccessEnabled);
         setWalletType("solana");
         setSolanaProvider(provider);
@@ -118,7 +126,11 @@ export const ChooseWallet = ({
         setDataLoaded(true);
         onHide();
       } catch (err) {
-        toast.error(`${provider === "phantom" ? "Phantom" : "Solflare"} connection failed: ${err || "Unknown error"}`);
+        toast.error(
+          `${
+            provider === "phantom" ? "Phantom" : "Solflare"
+          } connection failed: ${err || "Unknown error"}`,
+        );
       } finally {
         setConnectingId(null);
         setIsConnecting?.(false);
@@ -144,7 +156,11 @@ export const ChooseWallet = ({
       setIsConnecting?.(true);
       setConnectingId("tronlink");
       const { address, chainId } = await connectTronLink();
-      const session = await createTronEnclaveSession(address, chainId, writeAccessEnabled);
+      const session = await createTronEnclaveSession(
+        address,
+        chainId,
+        writeAccessEnabled,
+      );
       setRequestedWriteAccess(writeAccessEnabled);
       setWalletType("tron");
       setWalletAddress(address);
@@ -199,7 +215,9 @@ export const ChooseWallet = ({
       <div className="p-5 pb-10 flex flex-col items-center gap-y-5">
         {connectors
           .filter((connector) =>
-            isMobile ? connector.name === "WalletConnect" : true,
+            isMobile
+              ? connector.name === "WalletConnect"
+              : connector.name !== "Hinkal",
           )
           .map((connector) => (
             <button
@@ -241,8 +259,7 @@ export const ChooseWallet = ({
             disabled={!!connectingId}
             onClick={handleConnectTronLink}
           >
-            <span className="text-[#ef0027] font-bold text-lg leading-none">T</span>
-            <span>TronLink</span>
+            <span>TronLink (Tron)</span>
             {connectingId === "tronlink" && <Spinner />}
           </button>
         )}
@@ -253,8 +270,7 @@ export const ChooseWallet = ({
             disabled={!!connectingId}
             onClick={() => handleConnectSolana("phantom")}
           >
-            <span className="text-[#AB9FF2] font-bold text-lg leading-none">👻</span>
-            <span>Phantom</span>
+            <span>Phantom (Solana)</span>
             {connectingId === "solana-phantom" && <Spinner />}
           </button>
         )}
@@ -265,8 +281,7 @@ export const ChooseWallet = ({
             disabled={!!connectingId}
             onClick={() => handleConnectSolana("solflare")}
           >
-            <span className="text-[#FC7227] font-bold text-lg leading-none">🔥</span>
-            <span>Solflare</span>
+            <span>Solflare (Solana)</span>
             {connectingId === "solana-solflare" && <Spinner />}
           </button>
         )}
@@ -277,7 +292,11 @@ export const ChooseWallet = ({
             disabled={!!connectingId}
             onClick={() => handleConnectSolana("metamask")}
           >
-            <img src={metamaskLogo} alt="MetaMask" className="w-[26px] h-[26px]" />
+            <img
+              src={metamaskLogo}
+              alt="MetaMask"
+              className="w-[26px] h-[26px]"
+            />
             <span>MetaMask (Solana)</span>
             {connectingId === "solana-metamask" && <Spinner />}
           </button>

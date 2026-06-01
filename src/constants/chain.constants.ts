@@ -9,6 +9,8 @@ export const chainIds = {
   arcTestnet: 5042002,
   sepolia: 11155111,
   tronNile: 3448148188,
+  tronLocalnet: 103,
+  tronMainnet: 728126428,
   solanaMainnet: 501,
 };
 
@@ -58,6 +60,13 @@ export const networkRegistry: Record<number, Network> = {
   [chainIds.solanaMainnet]: {
     name: "Solana",
     chainId: chainIds.solanaMainnet,
-    fetchRpcUrl: "https://mainnet.helius-rpc.com/?api-key=54ad9ec9-dad6-41de-b961-e3e8ea7a7188",
+    fetchRpcUrl:
+      "https://mainnet.helius-rpc.com/?api-key=54ad9ec9-dad6-41de-b961-e3e8ea7a7188",
   },
 };
+
+export const TRON_CHAIN_IDS = [
+  chainIds.tronNile,
+  chainIds.tronMainnet,
+  chainIds.tronLocalnet,
+];

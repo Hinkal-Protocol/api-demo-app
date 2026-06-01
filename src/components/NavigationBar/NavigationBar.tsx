@@ -1,6 +1,8 @@
-import { Dispatch, SetStateAction } from "react";
+import { Dispatch, SetStateAction, useMemo } from "react";
 import { AppTab } from "../../types";
 import { TabButton } from "./TabButton";
+import { useAppContext } from "../../AppContext";
+import { isTronLike } from "../../utils/tronFunctions";
 
 interface NavigationBarProps {
   activeTab: AppTab;
@@ -8,12 +10,17 @@ interface NavigationBarProps {
 }
 
 const buttonClassName =
-  "xl:flex w-1/5 block place-self-end xl:place-self-start max-xl:w-[50%] xl:space-x-0 space-y-3";
+  "xl:flex w-1/4 block place-self-end xl:place-self-start max-xl:w-[50%] xl:space-x-0 space-y-3";
 
 export const NavigationBar = ({
   activeTab,
   setActiveTab,
 }: NavigationBarProps) => {
+  const { chainId } = useAppContext();
+  const swapDisabled = useMemo(
+    () => !!chainId && isTronLike(chainId),
+    [chainId],
+  );
   return (
     <div className="mt-[4%] xl:flex h-12 mb-4 text-[15px] font-semibold border-b border-[#3e3c3c] block relative">
       <div className="flex xl:h-full h-1 xl:py-0 py-2 w-full align-top">
@@ -43,6 +50,8 @@ export const NavigationBar = ({
             isActive={activeTab === AppTab.Swap}
             title="Swap"
             onClick={() => setActiveTab(AppTab.Swap)}
+            disabled={swapDisabled}
+            disabledTooltip="Swap not available on Tron"
           />
         </div>
         <div className={buttonClassName}>
