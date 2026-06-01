@@ -4,9 +4,18 @@ import {
   getTypesForPrimary,
 } from "../constants/enclave.constants";
 import { generateNonce } from "./enclave-auth";
-import { getTronWeb } from "./tron-wallet";
+import { getTronWeb, tronBase58ToHex } from "./tron-wallet";
 import type { EnclaveAuthFields } from "./types";
 import type { Recipient } from "./multiSend";
+
+// eslint-disable-next-line @typescript-eslint/no-explicit-any
+const serializeBigInts = (obj: any): any => {
+  if (typeof obj === "bigint") return obj.toString();
+  if (Array.isArray(obj)) return obj.map(serializeBigInts);
+  if (obj !== null && typeof obj === "object")
+    return Object.fromEntries(Object.entries(obj).map(([k, v]) => [k, serializeBigInts(v)]));
+  return obj;
+};
 
 const signTypedData = async (
   primaryType: Parameters<typeof getTypesForPrimary>[0],
@@ -19,14 +28,9 @@ const signTypedData = async (
   const value = buildValue(nonce);
 
   const tw = getTronWeb();
-  // tronWeb.trx.signTypedData requires { domain, types, message, primaryType }
-  const typedData = {
-    domain,
-    types: { EIP712Domain: [], ...types },
-    message: value,
-    primaryType,
-  };
-  const signature: string = await tw.trx.signTypedData(typedData);
+  const serializedDomain = serializeBigInts(domain);
+  const serializedMessage = serializeBigInts(value);
+  const signature = await tw.trx._signTypedData(serializedDomain, types, serializedMessage);
   return { signature, nonce };
 };
 
@@ -87,7 +91,7 @@ export const buildTronPrivateSendAuthFields = (
     tokenAddress: ethers.getAddress(tokenAddress),
     recipients: [...recipients]
       .map(({ address, amount }) => ({
-        recipient: ethers.getAddress(address),
+        recipient: ethers.getAddress(tronBase58ToHex(address)),
         amount: BigInt(amount),
       }))
       .sort((a, b) => a.recipient.localeCompare(b.recipient)),

@@ -194,7 +194,6 @@ export const MultiSend = () => {
         ? () => buildTronPrivateSendAuthFields(chainId, selectedToken.erc20TokenAddress, recipientsWei)
         : undefined;
 
-      console.time("[MultiSend] POST /private-send");
       const order = await depositAndWithdraw(
         signer,
         { signature, nonce, hasWriteAccess },
@@ -205,19 +204,14 @@ export const MultiSend = () => {
         txCompletionTime,
         buildReadOnlyAuth,
       );
-      console.timeEnd("[MultiSend] POST /private-send");
-      console.log("[MultiSend] order:", { orderId: order.orderId, amountIn: order.amountIn, fee: order.fee });
 
       const isNative =
         selectedToken.erc20TokenAddress.toLowerCase() === zeroAddress;
 
       if (isSolana) {
         if (!solanaProvider) throw new Error("Solana provider not set");
-        console.time("[MultiSend] broadcast (Solana)");
         await broadcastSolanaTransaction(solanaProvider, order.serializedTx);
-        console.timeEnd("[MultiSend] broadcast (Solana)");
       } else if (isTron) {
-        console.time("[MultiSend] broadcast (Tron)");
         await approveAndBroadcastTronSerializedTx(
           order.serializedTx,
           isNative ? null : order.approvalAddress,
@@ -225,26 +219,19 @@ export const MultiSend = () => {
           selectedToken.erc20TokenAddress,
           walletAddress,
         );
-        console.timeEnd("[MultiSend] broadcast (Tron)");
       } else {
         if (!isNative && order.approvalAddress) {
-          console.time("[MultiSend] ERC20 approve");
           await approveErc20(
             signer!,
             selectedToken.erc20TokenAddress,
             order.approvalAddress,
             BigInt(order.amountIn),
           );
-          console.timeEnd("[MultiSend] ERC20 approve");
         }
-        console.time("[MultiSend] broadcast deposit tx");
         await broadcastDepositTx(signer!, order.serializedTx);
-        console.timeEnd("[MultiSend] broadcast deposit tx");
       }
 
-      console.time("[MultiSend] poll until scheduled");
       await waitForOrderTerminal(order.orderId);
-      console.timeEnd("[MultiSend] poll until scheduled");
 
       toast.success("Multi send scheduled");
       setRecipients([emptyRecipient()]);
