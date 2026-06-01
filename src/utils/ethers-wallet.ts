@@ -18,8 +18,13 @@ const clientToSigner = (
   return new ethers.JsonRpcSigner(provider, account.address);
 };
 
-export const getEthersSigner = async (): Promise<ethers.JsonRpcSigner> => {
-  const client = await getConnectorClient(wagmiConfig);
+export const getEthersSigner = async (
+  chainId?: number,
+): Promise<ethers.JsonRpcSigner> => {
+  const client = await getConnectorClient(
+    wagmiConfig,
+    chainId ? { chainId: chainId as any, assertChainId: false } : undefined,
+  );
   return clientToSigner(client);
 };
 

@@ -6,8 +6,17 @@ import { useAppContext } from "../AppContext";
 import { zeroAddress } from "../constants";
 import { ERC20Token } from "../types";
 import { getErc20Balance, getNativeBalance } from "../utils/ethers-wallet";
-import { getTronErc20Balance, getTronNativeBalance, isTronChain } from "../utils/tron-wallet";
-import { getSolanaNativeBalance, getSolanaTokenBalance, isSolanaChain, SOLANA_NATIVE_ADDRESS } from "../utils/solana-wallet";
+import {
+  getTronErc20Balance,
+  getTronNativeBalance,
+  isTronChain,
+} from "../utils/tron-wallet";
+import {
+  getSolanaNativeBalance,
+  getSolanaTokenBalance,
+  isSolanaChain,
+  SOLANA_NATIVE_ADDRESS,
+} from "../utils/solana-wallet";
 
 interface TokenAmountInputInterface {
   buttonWrapperStyles?: string;
@@ -15,6 +24,7 @@ interface TokenAmountInputInterface {
   setTokenAmount: (param: SetStateAction<string>) => void;
   selectedToken: ERC20Token | undefined;
   setSelectedToken: (param: SetStateAction<ERC20Token | undefined>) => void;
+  withWalletBalance?: boolean;
 }
 
 export const TokenAmountInput = ({
@@ -23,6 +33,7 @@ export const TokenAmountInput = ({
   setTokenAmount,
   selectedToken,
   setSelectedToken,
+  withWalletBalance = false,
 }: TokenAmountInputInterface) => {
   const { erc20List, walletAddress, chainId, isSolana } = useAppContext();
   const [walletBalanceDisplay, setWalletBalanceDisplay] = useState<
@@ -53,18 +64,30 @@ export const TokenAmountInput = ({
         const balance = isTron
           ? isNative
             ? await getTronNativeBalance(walletAddress)
-            : await getTronErc20Balance(selectedToken.erc20TokenAddress, walletAddress)
+            : await getTronErc20Balance(
+                selectedToken.erc20TokenAddress,
+                walletAddress,
+              )
           : isSolanaNet
           ? solanaIsNative
             ? await getSolanaNativeBalance(walletAddress)
-            : await getSolanaTokenBalance(selectedToken.erc20TokenAddress, walletAddress)
+            : await getSolanaTokenBalance(
+                selectedToken.erc20TokenAddress,
+                walletAddress,
+              )
           : isNative
           ? await getNativeBalance(chainId, walletAddress)
-          : await getErc20Balance(chainId, selectedToken.erc20TokenAddress, walletAddress);
+          : await getErc20Balance(
+              chainId,
+              selectedToken.erc20TokenAddress,
+              walletAddress,
+            );
 
         if (!cancelled) {
           setWalletBalanceDisplay(
-            `${Number(ethers.formatUnits(balance, selectedToken.decimals)).toFixed(4)} ${selectedToken.symbol}`,
+            `${Number(
+              ethers.formatUnits(balance, selectedToken.decimals),
+            ).toFixed(4)} ${selectedToken.symbol}`,
           );
         }
       } catch {
@@ -89,14 +112,16 @@ export const TokenAmountInput = ({
 
   return (
     <div className="flex flex-col item-center justify-center">
-      <div className="flex justify-between items-center pl-[5%] pr-[5%]">
-        <label className="text-white text-[14px] font-[300]">Token</label>
-        {walletBalanceDisplay && (
-          <span className="text-[#9ca3af] text-[12px]">
-            Wallet: {walletBalanceDisplay}
-          </span>
-        )}
-      </div>
+      {withWalletBalance && (
+        <div className="flex justify-between items-center pl-[5%] pr-[5%]">
+          <label className="text-white text-[14px] font-[300]">Token</label>
+          {walletBalanceDisplay && (
+            <span className="text-[#9ca3af] text-[12px]">
+              Wallet: {walletBalanceDisplay}
+            </span>
+          )}
+        </div>
+      )}
       <div
         className={`flex justify-center mt-1 mb-8 ${buttonWrapperStyles} w-[90%] mx-auto relative`}
       >
@@ -140,7 +165,7 @@ export const TokenAmountInput = ({
                   </div>
                 )}
               </Listbox.Button>
-              <Listbox.Options className="absolute w-full top-10 text-white flex flex-col bg-[#272B30] rounded-b-lg z-20">
+              <Listbox.Options className="absolute w-full top-10 text-white flex flex-col bg-[#272B30] rounded-b-lg z-20 max-h-80 overflow-y-auto">
                 {erc20List.map((token, index) => (
                   <Listbox.Option
                     key={token.name + token.erc20TokenAddress}

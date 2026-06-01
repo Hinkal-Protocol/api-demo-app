@@ -14,8 +14,17 @@ import { buildSolanaDepositAuthFields } from "../utils/solana-auth";
 import { buildTronDepositAuthFields } from "../utils/tron-auth";
 
 export const Deposit = () => {
-  const { walletAddress, refreshBalances, chainId, signature, nonce, hasWriteAccess, isTron, isSolana, solanaProvider } =
-    useAppContext();
+  const {
+    walletAddress,
+    refreshBalances,
+    chainId,
+    signature,
+    nonce,
+    hasWriteAccess,
+    isTron,
+    isSolana,
+    solanaProvider,
+  } = useAppContext();
 
   const [selectedToken, setSelectedToken] = useState<ERC20Token | undefined>(
     undefined,
@@ -37,15 +46,39 @@ export const Deposit = () => {
         const tokenAddr = selectedToken.erc20TokenAddress;
         const amountStr = amountInWei.toString();
         const buildReadOnlyAuth = () =>
-          buildSolanaDepositAuthFields(solanaProvider, chainId, [tokenAddr], [amountStr]);
-        const serializedTx = await deposit(null, session, walletAddress, chainId, [tokenAddr], [amountStr], buildReadOnlyAuth);
-        await broadcastSolanaTransaction(solanaProvider, serializedTx as string);
+          buildSolanaDepositAuthFields(
+            solanaProvider,
+            chainId,
+            [tokenAddr],
+            [amountStr],
+          );
+        const serializedTx = await deposit(
+          null,
+          session,
+          walletAddress,
+          chainId,
+          [tokenAddr],
+          [amountStr],
+          buildReadOnlyAuth,
+        );
+        await broadcastSolanaTransaction(
+          solanaProvider,
+          serializedTx as string,
+        );
       } else if (isTron) {
         const tokenAddr = selectedToken.erc20TokenAddress;
         const amountStr = amountInWei.toString();
         const buildReadOnlyAuth = () =>
           buildTronDepositAuthFields(chainId, [tokenAddr], [amountStr]);
-        const txData = await deposit(null, session, walletAddress, chainId, [tokenAddr], [amountStr], buildReadOnlyAuth);
+        const txData = await deposit(
+          null,
+          session,
+          walletAddress,
+          chainId,
+          [tokenAddr],
+          [amountStr],
+          buildReadOnlyAuth,
+        );
         await approveAndBroadcastTronDepositTx(
           txData,
           amountInWei,
@@ -63,12 +96,19 @@ export const Deposit = () => {
           [amountInWei.toString()],
         );
         if (selectedToken.erc20TokenAddress !== zeroAddress) {
-          await approveErc20(signer, selectedToken.erc20TokenAddress, (txData as { to: string }).to, amountInWei);
+          await approveErc20(
+            signer,
+            selectedToken.erc20TokenAddress,
+            (txData as { to: string }).to,
+            amountInWei,
+          );
         }
         await sendTx(signer, {
           to: (txData as { to: string; data: string; value?: string }).to,
           data: (txData as { to: string; data: string; value?: string }).data,
-          value: (txData as { value?: string }).value ? BigInt((txData as { value?: string }).value!) : undefined,
+          value: (txData as { value?: string }).value
+            ? BigInt((txData as { value?: string }).value!)
+            : undefined,
         });
       }
       await refreshBalances();
@@ -108,6 +148,7 @@ export const Deposit = () => {
           setTokenAmount={setDepositAmount}
           selectedToken={selectedToken}
           setSelectedToken={setSelectedToken}
+          withWalletBalance
         />
         <div className="w-[90%] mx-auto mb-6 mt-6 h-[1px] bg-[#272B30]" />
         <div className="border-solid">

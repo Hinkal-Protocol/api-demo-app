@@ -5,6 +5,7 @@ import {
   useMemo,
   useState,
 } from "react";
+import { ethers } from "ethers";
 import toast from "react-hot-toast";
 import { Spinner } from "../components/Spinner";
 import { SelectToken } from "../components/swap/SelectToken";
@@ -24,9 +25,9 @@ import {
   Recipient,
   resolveTxCompletionTime,
 } from "../utils/multiSend";
-import { approveErc20, broadcastDepositTx, getEthersSigner } from "../utils/ethers-wallet";
-import { approveAndBroadcastTronSerializedTx } from "../utils/tron-wallet";
-import { broadcastSolanaTransaction } from "../utils/solana-wallet";
+import { approveErc20, broadcastDepositTx, getEthersSigner, getErc20Balance, getNativeBalance } from "../utils/ethers-wallet";
+import { approveAndBroadcastTronSerializedTx, getTronErc20Balance, getTronNativeBalance, isTronChain } from "../utils/tron-wallet";
+import { broadcastSolanaTransaction, getSolanaNativeBalance, getSolanaTokenBalance, isSolanaChain, SOLANA_NATIVE_ADDRESS } from "../utils/solana-wallet";
 import { buildSolanaPrivateSendAuthFields } from "../utils/solana-auth";
 import { buildTronPrivateSendAuthFields } from "../utils/tron-auth";
 import { ButtonGroupWithLabel } from "../utils/buttonGroupWithLabel";
@@ -80,6 +81,7 @@ export const MultiSend = () => {
   const [txCompletionTimeLabel, setTxCompletionTimeLabel] =
     useState<TxCompletionTimeLabel>(DEFAULT_TX_COMPLETION_TIME_LABEL);
   const [isProcessing, setIsProcessing] = useState(false);
+  const [walletBalanceDisplay, setWalletBalanceDisplay] = useState<string | null>(null);
 
   useEffect(() => {
     if (!chainId) {
@@ -97,6 +99,45 @@ export const MultiSend = () => {
       setSelectedToken(allowedTokens[0]);
     }
   }, [chainId, allowedTokens, selectedToken]);
+
+  useEffect(() => {
+    let cancelled = false;
+    const isNative = selectedToken?.erc20TokenAddress.toLowerCase() === zeroAddress;
+
+    const loadBalance = async () => {
+      if (!walletAddress || !selectedToken || !chainId) {
+        setWalletBalanceDisplay(null);
+        return;
+      }
+      try {
+        const isTron = isTronChain(chainId);
+        const isSolanaNet = isSolanaChain(chainId);
+        const solanaIsNative = selectedToken.erc20TokenAddress === SOLANA_NATIVE_ADDRESS;
+        const balance = isTron
+          ? isNative
+            ? await getTronNativeBalance(walletAddress)
+            : await getTronErc20Balance(selectedToken.erc20TokenAddress, walletAddress)
+          : isSolanaNet
+          ? solanaIsNative
+            ? await getSolanaNativeBalance(walletAddress)
+            : await getSolanaTokenBalance(selectedToken.erc20TokenAddress, walletAddress)
+          : isNative
+          ? await getNativeBalance(chainId, walletAddress)
+          : await getErc20Balance(chainId, selectedToken.erc20TokenAddress, walletAddress);
+
+        if (!cancelled) {
+          setWalletBalanceDisplay(
+            `${Number(ethers.formatUnits(balance, selectedToken.decimals)).toFixed(4)} ${selectedToken.symbol}`,
+          );
+        }
+      } catch {
+        if (!cancelled) setWalletBalanceDisplay(null);
+      }
+    };
+
+    loadBalance();
+    return () => { cancelled = true; };
+  }, [walletAddress, selectedToken, chainId]);
 
   const updateRecipient = (
     index: number,
@@ -244,19 +285,29 @@ export const MultiSend = () => {
   return (
     <div className="text-white">
       <form onSubmit={handleSubmit}>
-        <div className="flex items-center gap-2 w-[96%] mx-auto mb-4">
-          <SelectToken
-            swapToken={selectedToken}
-            onTokenChange={(_prev, cur) => setSelectedToken(cur)}
-            disabled={isProcessing}
-            tokenFilter={(token) =>
-              allowedTokens.some(
-                (allowed) =>
-                  allowed.erc20TokenAddress.toLowerCase() ===
-                  token.erc20TokenAddress.toLowerCase(),
-              )
-            }
-          />
+        <div className="flex flex-col w-[96%] mx-auto mb-4">
+          <div className="flex justify-between items-center mb-1">
+            <span className="text-white text-[14px] font-[300]">Token</span>
+            {walletBalanceDisplay && (
+              <span className="text-[#9ca3af] text-[12px]">
+                Wallet: {walletBalanceDisplay}
+              </span>
+            )}
+          </div>
+          <div className="flex items-center gap-2">
+            <SelectToken
+              swapToken={selectedToken}
+              onTokenChange={(_prev, cur) => setSelectedToken(cur)}
+              disabled={isProcessing}
+              tokenFilter={(token) =>
+                allowedTokens.some(
+                  (allowed) =>
+                    allowed.erc20TokenAddress.toLowerCase() ===
+                    token.erc20TokenAddress.toLowerCase(),
+                )
+              }
+            />
+          </div>
         </div>
 
         {recipients.map((recipient, index) => (

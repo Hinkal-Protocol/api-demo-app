@@ -156,7 +156,7 @@ export const AppContextProvider: FC<AppContextProps> = ({
 
     const refreshAuth = async () => {
       try {
-        const signer = await getEthersSigner();
+        const signer = await getEthersSigner(chainId);
         const session = await createEnclaveSession(
           signer,
           walletAddress,

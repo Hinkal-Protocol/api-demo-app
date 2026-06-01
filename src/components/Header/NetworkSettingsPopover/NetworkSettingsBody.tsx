@@ -7,7 +7,14 @@ type NetworkSettingsBodyProps = {
   open: boolean;
 };
 export const NetworkSettingsBody = ({ open }: NetworkSettingsBodyProps) => {
-  const { selectedNetwork } = useAppContext();
+  const { selectedNetwork, isTron } = useAppContext();
+  if (isTron) {
+    return (
+      <div className="rounded-[12px] text-white font-semibold flex items-center gap-2 px-3 min-[375px]:px-4 py-[0.875rem] text-base bg-[#2c2a2a]">
+        <div>{selectedNetwork?.name || "Unsupported Network"}</div>
+      </div>
+    );
+  }
 
   return (
     <>
