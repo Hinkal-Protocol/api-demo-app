@@ -2,7 +2,9 @@ import { ethers } from "ethers";
 import { API_BASE_URL } from "../constants/server.constants";
 import { ERC20Token } from "../types";
 import { buildSwapAuthFields, resolveTxAuthFields } from "./enclave-auth";
+import { buildSolanaSwapAuthFields } from "./solana-auth";
 import { ExternalActionId, getFeeStructure } from "./fees";
+import type { SolanaWalletProvider } from "./solana-wallet";
 import { Auth, TxSessionAuth } from "./types";
 
 export const HINKAL_SWAP_VARIABLE_RATE = 35n;
@@ -54,7 +56,7 @@ export const getSwapData = async (
 };
 
 export const executeSwap = async (
-  signer: ethers.Signer,
+  signer: ethers.Signer | null,
   session: TxSessionAuth,
   account: string,
   getterAuth: Auth,
@@ -62,7 +64,9 @@ export const executeSwap = async (
   outToken: ERC20Token,
   inAmount: string,
   quotedData: SwapData,
+  solanaProvider?: SolanaWalletProvider,
 ): Promise<string> => {
+  const isSolana = !!solanaProvider;
   const inAmountWei = BigInt(
     Math.floor(parseFloat(inAmount) * 10 ** inToken.decimals),
   );
@@ -76,21 +80,27 @@ export const executeSwap = async (
   ];
   const amounts = [(-inAmountWei).toString(), outAdjusted.toString()];
 
+  const feeToken = isSolana ? outToken.erc20TokenAddress : inToken.erc20TokenAddress;
+
   const feeStructure = await getFeeStructure(
     getterAuth,
-    inToken.erc20TokenAddress,
+    feeToken,
     tokenAddresses,
     quotedData.externalActionId,
     HINKAL_SWAP_VARIABLE_RATE.toString(),
+    isSolana ? [inAmountWei, -BigInt(quotedData.outSwapAmount)] : undefined,
+    isSolana ? inToken.erc20TokenAddress : undefined,
   );
 
-  const authFields = await resolveTxAuthFields(session, () =>
-    buildSwapAuthFields(signer, {
-      chainId: getterAuth.chainId,
-      tokenAddresses,
-      amounts,
-    }),
-  );
+  const authFields = isSolana
+    ? await buildSolanaSwapAuthFields(solanaProvider, getterAuth.chainId, tokenAddresses, amounts)
+    : await resolveTxAuthFields(session, () =>
+        buildSwapAuthFields(signer!, {
+          chainId: getterAuth.chainId,
+          tokenAddresses,
+          amounts,
+        }),
+      );
 
   const res = await fetch(`${API_BASE_URL}/swap`, {
     method: "POST",
@@ -103,8 +113,7 @@ export const executeSwap = async (
       amounts,
       externalActionId: quotedData.externalActionId,
       swapData: quotedData.swapData,
-      feeToken: inToken.erc20TokenAddress,
-      feeStructure,
+      ...(isSolana ? { feeStructure } : { feeToken, feeStructure }),
     }),
   });
 

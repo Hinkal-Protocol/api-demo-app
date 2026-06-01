@@ -90,6 +90,19 @@ export const buildSolanaPrivateSendAuthFields = async (
   return sign(provider, message, nonce);
 };
 
+export const buildSolanaSwapAuthFields = async (
+  provider: SolanaWalletProvider,
+  chainId: number,
+  tokenAddresses: string[],
+  amounts: string[],
+): Promise<EnclaveAuthFields> => {
+  const nonce = generateNonce();
+  const message =
+    `${buildHeader("Swap", nonce, chainId)}` +
+    `\nToken Amounts:\n${renderTokenAmounts(tokenAddresses, amounts)}`;
+  return sign(provider, message, nonce);
+};
+
 export const buildSolanaWithdrawStuckUtxosAuthFields = async (
   provider: SolanaWalletProvider,
   chainId: number,

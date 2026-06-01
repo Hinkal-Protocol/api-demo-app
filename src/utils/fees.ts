@@ -24,7 +24,7 @@ export const getFeeStructure = async (
   tokenAddresses: string[],
   externalActionId: ExternalActionId,
   variableRate?: string,
-  amounts?: string[],
+  amounts?: bigint[],
   mintFrom?: string,
 ): Promise<FeeStructure> => {
   const { signature, nonce, address, chainId } = auth;
@@ -44,7 +44,7 @@ export const getFeeStructure = async (
   }
   if (amounts !== undefined) {
     for (const amount of amounts) {
-      params.append("amounts", amount);
+      params.append("amounts", amount.toString());
     }
   }
   if (mintFrom !== undefined) {
