@@ -91,7 +91,8 @@ export const MultiSend = () => {
 
   const allowedTokens = useMemo<ERC20Token[]>(() => {
     if (!chainId) return [];
-    const nativeToken = getERC20Token(zeroAddress, chainId);
+    const nativeAddress = isSolanaChain(chainId) ? SOLANA_NATIVE_ADDRESS : zeroAddress;
+    const nativeToken = getERC20Token(nativeAddress, chainId);
     const stablecoins = NON_NATIVE_GAS_TOKENS.map((symbol) =>
       getERC20TokenBySymbol(symbol, chainId),
     ).filter((token): token is ERC20Token => token !== undefined);
