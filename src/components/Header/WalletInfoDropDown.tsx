@@ -6,6 +6,7 @@ import Copy from "../../assets/Copy.svg";
 import Disconnect from "../../assets/Disconnect.svg";
 import { Spinner } from "../Spinner";
 import { copyToClipboard } from "../../utils/copyToClipboard";
+import { fetchRecipientInfo } from "../../utils/recipientInfo";
 import { getEthersSigner } from "../../utils/ethers-wallet";
 import { withdrawStuckUtxos } from "../../utils/withdraw";
 import { buildSolanaWithdrawStuckUtxosAuthFields } from "../../utils/solana-auth";
@@ -51,6 +52,7 @@ export const WalletInfoDropDown = () => {
   );
   const [withdrawingStuckTokenAddress, setWithdrawingStuckTokenAddress] =
     useState<string | null>(null);
+  const [isCopyingPrivate, setIsCopyingPrivate] = useState(false);
 
   const { isTron } = useAppContext();
 
@@ -79,6 +81,28 @@ export const WalletInfoDropDown = () => {
       toast.success("Wallet address copied to clipboard");
     } catch (err: any) {
       toast.error(err?.message || "Failed to copy wallet address");
+    }
+  };
+
+  const handleCopyPrivateAddress = async () => {
+    try {
+      if (!walletAddress || !chainId || !signature || !nonce) {
+        toast.error("No active session found");
+        return;
+      }
+      setIsCopyingPrivate(true);
+      const recipientInfo = await fetchRecipientInfo({
+        address: walletAddress,
+        chainId,
+        signature,
+        nonce,
+      });
+      copyToClipboard(recipientInfo);
+      toast.success("Private address copied to clipboard");
+    } catch (err: any) {
+      toast.error(err?.message || "Failed to copy private address");
+    } finally {
+      setIsCopyingPrivate(false);
     }
   };
 
@@ -176,12 +200,29 @@ export const WalletInfoDropDown = () => {
       )}
 
       <div className="border-t-2 md:text-[15px] border-[#36393D]">
-        <button type="button" onClick={handleCopyShieldedAddress}>
+        <button
+          type="button"
+          className="block w-full text-left"
+          onClick={handleCopyShieldedAddress}
+        >
           <div className="flex items-center mt-2 text-white text-[14px] md:w-[9.5rem]">
             <div className="flex justify-center items-center w-[25px] h-[25px]">
               <Copy />
             </div>
             <div className="pl-2">Copy Address</div>
+          </div>
+        </button>
+        <button
+          type="button"
+          disabled={isCopyingPrivate}
+          className="block w-full text-left"
+          onClick={handleCopyPrivateAddress}
+        >
+          <div className="flex items-center mt-2 text-white text-[14px] md:w-[9.5rem]">
+            <div className="flex justify-center items-center w-[25px] h-[25px]">
+              {isCopyingPrivate ? <Spinner /> : <Copy />}
+            </div>
+            <div className="pl-2">Copy Private Address</div>
           </div>
         </button>
         <div>

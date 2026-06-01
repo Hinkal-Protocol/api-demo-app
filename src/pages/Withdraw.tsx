@@ -39,6 +39,8 @@ export const Withdraw = () => {
             tokenAddress,
             [tokenAddress],
             ExternalActionId.Transact,
+            undefined,
+            [amountInWei.toString()],
           );
 
       const signer = isTron || isSolana ? null : await getEthersSigner();

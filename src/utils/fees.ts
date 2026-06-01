@@ -24,6 +24,8 @@ export const getFeeStructure = async (
   tokenAddresses: string[],
   externalActionId: ExternalActionId,
   variableRate?: string,
+  amounts?: string[],
+  mintFrom?: string,
 ): Promise<FeeStructure> => {
   const { signature, nonce, address, chainId } = auth;
   const params = new URLSearchParams({
@@ -39,6 +41,14 @@ export const getFeeStructure = async (
   }
   if (variableRate !== undefined) {
     params.append("variableRate", variableRate);
+  }
+  if (amounts !== undefined) {
+    for (const amount of amounts) {
+      params.append("amounts", amount);
+    }
+  }
+  if (mintFrom !== undefined) {
+    params.append("mintFrom", mintFrom);
   }
 
   const res = await fetch(`${API_BASE_URL}/get-fee-structure?${params}`);
