@@ -31,7 +31,7 @@ export const Modal = ({
     />
     <div
       className={`fixed w-[90%] bg-black border-[1px] border-solid border-hinkal-gray-400 rounded md:w-2/5 left-[5%] top-[20%] md:left-[30%] z-[100]
-    max-h-[80vh] overflow-hidden flex flex-col
+    max-h-[70vh] overflow-hidden flex flex-col
     ${styleProps}
     ${
       isOpen

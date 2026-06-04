@@ -11,6 +11,7 @@ import {
 } from "../utils/amount.utils";
 import { getFeeAmount } from "../utils/fees";
 import { useTransactFee } from "../hooks/useTransactFee";
+import { getFriendlyErrorMessage } from "../utils/errors";
 import { withdraw } from "../utils/withdraw";
 import { getEthersSigner } from "../utils/ethers-wallet";
 import { buildSolanaWithdrawAuthFields } from "../utils/solana-auth";
@@ -129,8 +130,7 @@ export const Withdraw = () => {
       handleReset();
       refreshBalancesSoon();
     } catch (err) {
-      const message = err instanceof Error ? err.message : "Withdraw failed";
-      toast.error(message);
+      toast.error(getFriendlyErrorMessage(err, "Withdraw failed"));
     } finally {
       setIsProcessing(false);
     }

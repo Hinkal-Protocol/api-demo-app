@@ -15,6 +15,7 @@ import toast from "react-hot-toast";
 import { networkRegistry } from "./constants/chain.constants";
 import { fetchBalances, fetchStuckUtxoBalances } from "./utils/balance";
 import { createEnclaveSession } from "./utils/session";
+import { getFriendlyErrorMessage } from "./utils/errors";
 import type { EnclaveSession } from "./utils/types";
 import type { SolanaWalletProvider } from "./utils/solana-wallet";
 import { getERC20Registry } from "./constants/token-data";
@@ -178,7 +179,7 @@ export const AppContextProvider: FC<AppContextProps> = ({
             error
           );
           toast.error(
-            `Failed to authorize on new network: ${error || "Unknown error"}`
+            getFriendlyErrorMessage(error, "Failed to authorize on new network")
           );
         }
       }

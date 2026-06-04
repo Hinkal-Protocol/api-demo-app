@@ -13,6 +13,7 @@ import { zeroAddress } from "../constants";
 import { ERC20Token } from "../types";
 import { getAmountInWei } from "../utils/amount.utils";
 import { deposit } from "../utils/deposit";
+import { getFriendlyErrorMessage } from "../utils/errors";
 import { approveErc20, getEthersSigner, sendTx } from "../utils/ethers-wallet";
 import { approveAndBroadcastTronDepositTx } from "../utils/tron-wallet";
 import { broadcastSolanaTransaction } from "../utils/solana-wallet";
@@ -177,9 +178,7 @@ export const Deposit = () => {
       await refreshBalances();
       handleReset();
     } catch (err) {
-      const errorMessage =
-        err instanceof Error ? err.message : "Deposit failed";
-      toast.error(errorMessage);
+      toast.error(getFriendlyErrorMessage(err, "Deposit failed"));
     } finally {
       setIsProcessing(false);
     }

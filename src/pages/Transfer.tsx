@@ -11,6 +11,7 @@ import {
 } from "../utils/amount.utils";
 import { getFeeAmount } from "../utils/fees";
 import { useTransactFee } from "../hooks/useTransactFee";
+import { getFriendlyErrorMessage } from "../utils/errors";
 import { transfer } from "../utils/transfer";
 import { getEthersSigner } from "../utils/ethers-wallet";
 import { buildSolanaTransferAuthFields } from "../utils/solana-auth";
@@ -124,8 +125,7 @@ export const Transfer = () => {
       handleReset();
       refreshBalancesSoon();
     } catch (err) {
-      const message = err instanceof Error ? err.message : "Transfer failed";
-      toast.error(message);
+      toast.error(getFriendlyErrorMessage(err, "Transfer failed"));
     } finally {
       setIsProcessing(false);
     }

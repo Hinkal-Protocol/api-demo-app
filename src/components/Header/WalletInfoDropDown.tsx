@@ -6,6 +6,7 @@ import Copy from "../../assets/Copy.svg";
 import Disconnect from "../../assets/Disconnect.svg";
 import { Spinner } from "../Spinner";
 import { copyToClipboard } from "../../utils/copyToClipboard";
+import { getFriendlyErrorMessage } from "../../utils/errors";
 import { fetchRecipientInfo } from "../../utils/recipientInfo";
 import { getEthersSigner } from "../../utils/ethers-wallet";
 import { withdrawStuckUtxos } from "../../utils/withdraw";
@@ -78,7 +79,9 @@ export const WalletInfoDropDown = () => {
       copyToClipboard(walletAddress);
       toast.success("Wallet address copied to clipboard");
     } catch (err: any) {
-      toast.error(err?.message || "Failed to copy wallet address");
+      toast.error(
+        getFriendlyErrorMessage(err, "Failed to copy wallet address")
+      );
     }
   };
 
@@ -98,7 +101,9 @@ export const WalletInfoDropDown = () => {
       copyToClipboard(recipientInfo);
       toast.success("Private address copied to clipboard");
     } catch (err: any) {
-      toast.error(err?.message || "Failed to copy private address");
+      toast.error(
+        getFriendlyErrorMessage(err, "Failed to copy private address")
+      );
     } finally {
       setIsCopyingPrivate(false);
     }
@@ -141,9 +146,9 @@ export const WalletInfoDropDown = () => {
         toast.success(`Withdraw sent (${txHashes.length} txs)`);
         await refreshBalances();
       } catch (err) {
-        const message =
-          err instanceof Error ? err.message : "Withdraw stuck UTXOs failed";
-        toast.error(message);
+        toast.error(
+          getFriendlyErrorMessage(err, "Withdraw stuck UTXOs failed")
+        );
       } finally {
         setWithdrawingStuckTokenAddress(null);
       }

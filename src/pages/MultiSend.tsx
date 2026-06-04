@@ -13,6 +13,7 @@ import { useAppContext } from "../AppContext";
 import { zeroAddress } from "../constants";
 import { ERC20Token } from "../types";
 import { getAmountInWei } from "../utils/amount.utils";
+import { getFriendlyErrorMessage } from "../utils/errors";
 import { getERC20Token, getERC20TokenBySymbol } from "../utils/tokens.utils";
 import { RecipientInputRow } from "../utils/recipientInfoRow";
 import {
@@ -294,8 +295,7 @@ export const MultiSend = () => {
       await refreshBalances();
       handleReset();
     } catch (err) {
-      const message = err instanceof Error ? err.message : "Multi send failed";
-      toast.error(message);
+      toast.error(getFriendlyErrorMessage(err, "Multi send failed"));
     } finally {
       setIsProcessing(false);
     }

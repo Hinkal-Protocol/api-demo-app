@@ -25,6 +25,7 @@ import {
   type SwapData,
 } from "../utils/swap";
 import { FeeStructure, getFeeAmount, getFeeStructure } from "../utils/fees";
+import { getFriendlyErrorMessage } from "../utils/errors";
 import { getEthersSigner } from "../utils/ethers-wallet";
 
 export const Swap = () => {
@@ -58,7 +59,7 @@ export const Swap = () => {
 
   const inSwapBalanceDisplay = useMemo(
     () => (inSwapToken ? getTokenBalanceDisplay(balances, inSwapToken) : null),
-    [balances, inSwapToken],
+    [balances, inSwapToken]
   );
 
   const [feeStructure, setFeeStructure] = useState<FeeStructure | undefined>();
@@ -90,7 +91,7 @@ export const Swap = () => {
       feeToken,
       [inSwapToken.erc20TokenAddress, outSwapToken.erc20TokenAddress],
       quotedData.externalActionId,
-      HINKAL_SWAP_VARIABLE_RATE.toString(),
+      HINKAL_SWAP_VARIABLE_RATE.toString()
     )
       .then((fee) => {
         if (!cancelled) setFeeStructure(fee);
@@ -165,16 +166,14 @@ export const Swap = () => {
           inSwapToken.erc20TokenAddress,
           outSwapToken.erc20TokenAddress,
           inSwapAmount,
-          parseFloat(slippageTolerance),
+          parseFloat(slippageTolerance)
         );
         if (!cancelled) {
           setQuotedData(result);
         }
       } catch (err) {
         if (!cancelled) {
-          toast.error(
-            err instanceof Error ? err.message : "Quote fetch failed",
-          );
+          toast.error(getFriendlyErrorMessage(err, "Quote fetch failed"));
         }
       } finally {
         if (!cancelled) setIsPriceLoading(false);
@@ -201,7 +200,7 @@ export const Swap = () => {
       outSwapToken && quotedData
         ? getAmountInToken(outSwapToken, quotedData.outSwapAmount)
         : "",
-    [outSwapToken, quotedData],
+    [outSwapToken, quotedData]
   );
 
   const isReadyForSwap = useMemo(
@@ -211,7 +210,7 @@ export const Swap = () => {
       !!inSwapToken &&
       !!outSwapToken &&
       !!quotedData,
-    [inSwapAmount, inSwapToken, outSwapToken, quotedData],
+    [inSwapAmount, inSwapToken, outSwapToken, quotedData]
   );
 
   const handleReset = () => {
@@ -245,12 +244,12 @@ export const Swap = () => {
         outSwapToken,
         inSwapAmount,
         quotedData,
-        isSolana && solanaProvider ? solanaProvider : undefined,
+        isSolana && solanaProvider ? solanaProvider : undefined
       );
       handleReset();
       refreshBalancesSoon();
     } catch (err) {
-      toast.error(err instanceof Error ? err.message : "Swap failed");
+      toast.error(getFriendlyErrorMessage(err, "Swap failed"));
     } finally {
       setIsProcessing(false);
     }
@@ -270,7 +269,7 @@ export const Swap = () => {
 
   const setTokenAmountHandler = (
     event: React.ChangeEvent<HTMLInputElement>,
-    setValue: (value: string) => void,
+    setValue: (value: string) => void
   ) => {
     if (/^[0-9]*[.]?[0-9]*$/.test(event.target.value)) {
       setValue(event.target.value);

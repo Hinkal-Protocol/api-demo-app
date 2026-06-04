@@ -19,6 +19,7 @@ import {
   SolanaWalletProvider,
 } from "../utils/solana-wallet";
 import { createSolanaEnclaveSession } from "../utils/solana-session";
+import { getFriendlyErrorMessage } from "../utils/errors";
 import toast from "react-hot-toast";
 
 interface ChooseWalletProps {
@@ -83,7 +84,7 @@ export const ChooseWallet = ({
         setDataLoaded(true);
         onHide();
       } catch (err) {
-        toast.error(`Wallet connection failed: ${err || "Unknown error"}`);
+        toast.error(getFriendlyErrorMessage(err, "Wallet connection failed"));
       } finally {
         setConnectingId(null);
         setIsConnecting?.(false);
@@ -127,9 +128,12 @@ export const ChooseWallet = ({
         onHide();
       } catch (err) {
         toast.error(
-          `${
-            provider === "phantom" ? "Phantom" : "Solflare"
-          } connection failed: ${err || "Unknown error"}`
+          getFriendlyErrorMessage(
+            err,
+            `${
+              provider === "phantom" ? "Phantom" : "Solflare"
+            } connection failed`
+          )
         );
       } finally {
         setConnectingId(null);
@@ -170,7 +174,7 @@ export const ChooseWallet = ({
       setDataLoaded(true);
       onHide();
     } catch (err) {
-      toast.error(`TronLink connection failed: ${err || "Unknown error"}`);
+      toast.error(getFriendlyErrorMessage(err, "TronLink connection failed"));
     } finally {
       setConnectingId(null);
       setIsConnecting?.(false);
