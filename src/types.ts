@@ -66,3 +66,7 @@ export enum ScheduleDelayOption {
   ONE_HOUR = "1hr",
   TWENTY_FOUR_HOURS = "24hrs",
 }
+
+export type SVGIconType = React.FunctionComponent<
+  React.SVGAttributes<SVGElement>
+>;

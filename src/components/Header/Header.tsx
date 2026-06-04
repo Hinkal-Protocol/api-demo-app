@@ -1,9 +1,12 @@
 import { useState } from "react";
-import HinkalLogo from "../../assets/HinkalLogo.png";
+import HinkalLogoSvg from "../../assets/hinkal-logo.svg";
 import { ChooseWallet } from "../ChooseWallet";
 import { HinkalInfo } from "./HinkalInfo";
 import { Spinner } from "../Spinner";
 import { useAppContext } from "../../AppContext";
+import { SVGIconType } from "../../types";
+
+const HinkalLogo = HinkalLogoSvg as unknown as SVGIconType;
 
 export const Header = () => {
   // local states
@@ -23,15 +26,9 @@ export const Header = () => {
       <div
         className={`flex ${
           walletAddress ? "flex-col" : ""
-        } md:flex-row justify-between w-[87%] md:w-[81.5%] mx-auto pt-[1%] relative md:static`}
+        } md:flex-row items-center justify-between w-[87%] md:w-[81.5%] mx-auto pt-[1%] relative md:static`}
       >
-        <div className="flex items-center justify-between gap-2.5">
-          <img src={HinkalLogo} alt="" className="w-9 h-9 md:w-10 md:h-10" />
-          <p className="text-[20px] md:text-2xl font-bold text-white font-generalSans">
-            HINKAL
-          </p>
-        </div>
-
+        <HinkalLogo className="text-hinkal-white-200 shrink-0 cursor-pointer transition-opacity duration-300 hover:opacity-80" />
         {walletAddress ? (
           <HinkalInfo shieldedAddress={walletAddress} />
         ) : (
