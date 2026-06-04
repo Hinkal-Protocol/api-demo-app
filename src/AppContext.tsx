@@ -51,6 +51,7 @@ type AppContextArgumnets = {
   balances: TokenBalance[];
   stuckUtxoBalances: TokenBalance[];
   refreshBalances: () => Promise<void>;
+  refreshBalancesSoon: (delaysMs?: number[]) => Promise<void>;
 };
 
 const BALANCE_REFRESH_INTERVAL = 100000;
@@ -83,6 +84,7 @@ const AppContext = createContext<AppContextArgumnets>({
   balances: [],
   stuckUtxoBalances: [],
   refreshBalances: async () => {},
+  refreshBalancesSoon: async () => {},
 });
 
 type AppContextProps = { children: ReactNode };
@@ -97,11 +99,14 @@ export const AppContextProvider: FC<AppContextProps> = ({
   const [requestedWriteAccess, setRequestedWriteAccess] = useState(false);
   const [walletAddress, setWalletAddress] = useState<string | null>(null);
   const [walletType, setWalletType] = useState<WalletType | null>(null);
-  const [solanaProvider, setSolanaProvider] = useState<SolanaWalletProvider | null>(null);
+  const [solanaProvider, setSolanaProvider] =
+    useState<SolanaWalletProvider | null>(null);
   const [chainId, setChainId] = useState<number | undefined>();
   const [dataLoaded, setDataLoaded] = useState<boolean>(false);
   const [balances, setBalances] = useState<TokenBalance[]>([]);
-  const [stuckUtxoBalances, setStuckUtxoBalances] = useState<TokenBalance[]>([]);
+  const [stuckUtxoBalances, setStuckUtxoBalances] = useState<TokenBalance[]>(
+    []
+  );
   const abortControllerRef = useRef<AbortController | null>(null);
   const prevChainIdRef = useRef<number | undefined>();
 
@@ -110,12 +115,12 @@ export const AppContextProvider: FC<AppContextProps> = ({
 
   const erc20List = useMemo<ERC20Token[]>(
     () => (chainId ? getERC20Registry(chainId) : []),
-    [chainId],
+    [chainId]
   );
 
   const selectedNetwork = useMemo(
     () => (chainId ? networkRegistry[chainId] : undefined),
-    [chainId],
+    [chainId]
   );
 
   const applyEnclaveSession = useCallback((session: EnclaveSession) => {
@@ -161,16 +166,19 @@ export const AppContextProvider: FC<AppContextProps> = ({
           signer,
           walletAddress,
           chainId,
-          requestedWriteAccess,
+          requestedWriteAccess
         );
         if (!cancelled) {
           applyEnclaveSession(session);
         }
       } catch (error) {
         if (!cancelled) {
-          console.error("Failed to refresh enclave auth after chain switch:", error);
+          console.error(
+            "Failed to refresh enclave auth after chain switch:",
+            error
+          );
           toast.error(
-            `Failed to authorize on new network: ${error || "Unknown error"}`,
+            `Failed to authorize on new network: ${error || "Unknown error"}`
           );
         }
       }
@@ -180,7 +188,14 @@ export const AppContextProvider: FC<AppContextProps> = ({
     return () => {
       cancelled = true;
     };
-  }, [chainId, walletAddress, dataLoaded, requestedWriteAccess, applyEnclaveSession, walletType]);
+  }, [
+    chainId,
+    walletAddress,
+    dataLoaded,
+    requestedWriteAccess,
+    applyEnclaveSession,
+    walletType,
+  ]);
 
   const refreshBalances = useCallback(async () => {
     if (!dataLoaded || !chainId || !walletAddress || !signature || !nonce)
@@ -206,6 +221,19 @@ export const AppContextProvider: FC<AppContextProps> = ({
       }
     }
   }, [dataLoaded, chainId, walletAddress, signature, nonce]);
+
+  // After a tx the new balance may not be indexed yet, so a single immediate
+  // refresh returns stale data. Re-poll a few times spaced out to catch it
+  // well before the periodic interval would.
+  const refreshBalancesSoon = useCallback(
+    async (delaysMs: number[] = [2000, 5000, 9000]) => {
+      for (const ms of delaysMs) {
+        await new Promise((resolve) => setTimeout(resolve, ms));
+        await refreshBalances();
+      }
+    },
+    [refreshBalances]
+  );
 
   useEffect(() => {
     if (!dataLoaded || !chainId) return;
@@ -243,6 +271,7 @@ export const AppContextProvider: FC<AppContextProps> = ({
         balances,
         stuckUtxoBalances,
         refreshBalances,
+        refreshBalancesSoon,
         walletType,
         setWalletType,
         isTron,

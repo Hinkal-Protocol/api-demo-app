@@ -55,16 +55,16 @@ export const TokenAmountInput = ({
 
   useEffect(() => {
     if (filteredTokens.length === 0) {
-      setSelectedToken(undefined);
+      if (selectedToken) setSelectedToken(undefined);
       return;
     }
-    setSelectedToken((prev) =>
-      prev &&
-      filteredTokens.some((t) => t.erc20TokenAddress === prev.erc20TokenAddress)
-        ? prev
-        : filteredTokens[0]
-    );
-  }, [filteredTokens, setSelectedToken]);
+    const stillValid =
+      selectedToken &&
+      filteredTokens.some(
+        (t) => t.erc20TokenAddress === selectedToken.erc20TokenAddress,
+      );
+    if (!stillValid) setSelectedToken(filteredTokens[0]);
+  }, [filteredTokens, selectedToken, setSelectedToken]);
 
   const shieldedBalanceDisplay = useMemo(
     () =>

@@ -22,7 +22,7 @@ import { getEthersSigner } from "../utils/ethers-wallet";
 export const Swap = () => {
   const {
     walletAddress,
-    refreshBalances,
+    refreshBalancesSoon,
     chainId,
     signature,
     nonce,
@@ -50,7 +50,7 @@ export const Swap = () => {
 
   const inSwapBalanceDisplay = useMemo(
     () => (inSwapToken ? getTokenBalanceDisplay(balances, inSwapToken) : null),
-    [balances, inSwapToken]
+    [balances, inSwapToken],
   );
 
   useEffect(() => {
@@ -78,7 +78,7 @@ export const Swap = () => {
           inSwapToken.erc20TokenAddress,
           outSwapToken.erc20TokenAddress,
           inSwapAmount,
-          parseFloat(slippageTolerance)
+          parseFloat(slippageTolerance),
         );
         if (!cancelled) {
           setQuotedData(result);
@@ -86,7 +86,7 @@ export const Swap = () => {
       } catch (err) {
         if (!cancelled) {
           toast.error(
-            err instanceof Error ? err.message : "Quote fetch failed"
+            err instanceof Error ? err.message : "Quote fetch failed",
           );
         }
       } finally {
@@ -114,7 +114,7 @@ export const Swap = () => {
       outSwapToken && quotedData
         ? getAmountInToken(outSwapToken, quotedData.outSwapAmount)
         : "",
-    [outSwapToken, quotedData]
+    [outSwapToken, quotedData],
   );
 
   const isReadyForSwap = useMemo(
@@ -124,7 +124,7 @@ export const Swap = () => {
       !!inSwapToken &&
       !!outSwapToken &&
       !!quotedData,
-    [inSwapAmount, inSwapToken, outSwapToken, quotedData]
+    [inSwapAmount, inSwapToken, outSwapToken, quotedData],
   );
 
   const handleReset = () => {
@@ -158,10 +158,10 @@ export const Swap = () => {
         outSwapToken,
         inSwapAmount,
         quotedData,
-        isSolana && solanaProvider ? solanaProvider : undefined
+        isSolana && solanaProvider ? solanaProvider : undefined,
       );
-      await refreshBalances();
       handleReset();
+      refreshBalancesSoon();
     } catch (err) {
       toast.error(err instanceof Error ? err.message : "Swap failed");
     } finally {
@@ -177,13 +177,13 @@ export const Swap = () => {
     walletAddress,
     chainId,
     inSwapAmount,
-    refreshBalances,
+    refreshBalancesSoon,
     hasWriteAccess,
   ]);
 
   const setTokenAmountHandler = (
     event: React.ChangeEvent<HTMLInputElement>,
-    setValue: (value: string) => void
+    setValue: (value: string) => void,
   ) => {
     if (/^[0-9]*[.]?[0-9]*$/.test(event.target.value)) {
       setValue(event.target.value);
