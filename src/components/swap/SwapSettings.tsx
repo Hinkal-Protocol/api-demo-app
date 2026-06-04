@@ -23,14 +23,12 @@ export const SwapSettings = ({
       >
         <i className="bi bi-gear" />
       </button>
-      {swapSettingsDropdownShown && (
-        <SwapSettingsDropdown
-          slippageTolerance={slippageTolerance}
-          setSlippageTollerance={setSlippageTollerance}
-          swapSettingsDropdownShown={swapSettingsDropdownShown}
-          setSwapSettingsDropdownShown={setSwapSettingsDropdownShown}
-        />
-      )}
+      <SwapSettingsDropdown
+        slippageTolerance={slippageTolerance}
+        setSlippageTollerance={setSlippageTollerance}
+        swapSettingsDropdownShown={swapSettingsDropdownShown}
+        setSwapSettingsDropdownShown={setSwapSettingsDropdownShown}
+      />
     </>
   );
 };

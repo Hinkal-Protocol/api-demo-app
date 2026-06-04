@@ -24,8 +24,8 @@ export const Modal = ({
   <>
     {/* this div has onClick so that the popup closes if the user clicks outside of it */}
     <div
-      className={`bg-[#000000a6] fixed top-0 left-0 w-full h-screen z-10 ${stylePropsBg} ${
-        isOpen ? "block" : "hidden"
+      className={`bg-[#000000a6] fixed top-0 left-0 w-full h-screen z-10 transition-opacity duration-300 ${stylePropsBg} ${
+        isOpen ? "opacity-100" : "opacity-0 pointer-events-none"
       } `}
       onClick={xBtnAction}
     />
@@ -36,7 +36,7 @@ export const Modal = ({
     ${
       isOpen
         ? "opacity-[1] translate-y-[0%]"
-        : "opacity-[0] translate-y-[-200%]"
+        : "opacity-[0] translate-y-[-200%] pointer-events-none"
     } transition-all duration-500 `}
     >
       {xBtn && (

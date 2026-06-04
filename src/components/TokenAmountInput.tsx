@@ -1,5 +1,5 @@
-import { Listbox } from "@headlessui/react";
-import { SetStateAction, useEffect, useMemo, useState } from "react";
+import { Listbox, Transition } from "@headlessui/react";
+import { Fragment, SetStateAction, useEffect, useMemo, useState } from "react";
 import { ethers } from "ethers";
 import { Spinner } from "./Spinner";
 import VectorDown from "../assets/VectorDown.svg";
@@ -188,40 +188,50 @@ export const TokenAmountInput = ({
                   </div>
                 )}
               </Listbox.Button>
-              <Listbox.Options className="absolute w-full top-10 text-white flex flex-col bg-hinkal-blue-900 rounded-b-lg z-20 max-h-80 overflow-y-auto">
-                {isTokensLoading ? (
-                  <div className="flex items-center justify-center gap-x-2 py-3 text-sm text-hinkal-gray-100">
-                    <Spinner /> <span>Loading tokens</span>
-                  </div>
-                ) : filteredTokens.length === 0 ? (
-                  <div className="py-3 text-center text-sm text-hinkal-gray-100">
-                    No tokens available
-                  </div>
-                ) : (
-                  filteredTokens.map((token, index) => (
-                    <Listbox.Option
-                      key={token.name + token.erc20TokenAddress}
-                      value={token}
-                      className={`cursor-pointer py-2 flex items-center gap-x-2 pl-[8px] ${
-                        token?.name === selectedToken?.name
-                          ? "bg-hinkal-gray-300"
-                          : ""
-                      } ${
-                        index === filteredTokens.length - 1
-                          ? " rounded-b-lg"
-                          : ""
-                      }  `}
-                    >
-                      <img
-                        src={token?.logoURI}
-                        alt="tokenIcon"
-                        className="w-[26px]"
-                      />{" "}
-                      <span>{token?.symbol}</span>
-                    </Listbox.Option>
-                  ))
-                )}
-              </Listbox.Options>
+              <Transition
+                as={Fragment}
+                enter="transition ease-out duration-150"
+                enterFrom="opacity-0 -translate-y-2"
+                enterTo="opacity-100 translate-y-0"
+                leave="transition ease-in duration-100"
+                leaveFrom="opacity-100 translate-y-0"
+                leaveTo="opacity-0 -translate-y-2"
+              >
+                <Listbox.Options className="absolute w-full top-10 text-white flex flex-col bg-hinkal-blue-900 rounded-b-lg z-20 max-h-80 overflow-y-auto">
+                  {isTokensLoading ? (
+                    <div className="flex items-center justify-center gap-x-2 py-3 text-sm text-hinkal-gray-100">
+                      <Spinner /> <span>Loading tokens</span>
+                    </div>
+                  ) : filteredTokens.length === 0 ? (
+                    <div className="py-3 text-center text-sm text-hinkal-gray-100">
+                      No tokens available
+                    </div>
+                  ) : (
+                    filteredTokens.map((token, index) => (
+                      <Listbox.Option
+                        key={token.name + token.erc20TokenAddress}
+                        value={token}
+                        className={`cursor-pointer py-2 flex items-center gap-x-2 pl-[8px] ${
+                          token?.name === selectedToken?.name
+                            ? "bg-hinkal-gray-300"
+                            : ""
+                        } ${
+                          index === filteredTokens.length - 1
+                            ? " rounded-b-lg"
+                            : ""
+                        }  `}
+                      >
+                        <img
+                          src={token?.logoURI}
+                          alt="tokenIcon"
+                          className="w-[26px]"
+                        />{" "}
+                        <span>{token?.symbol}</span>
+                      </Listbox.Option>
+                    ))
+                  )}
+                </Listbox.Options>
+              </Transition>
             </>
           )}
         </Listbox>

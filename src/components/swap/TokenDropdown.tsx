@@ -28,7 +28,7 @@ export const TokenDropdown = ({
       xBtn
       xBtnAction={() => setIsTokenSelectShown(false)}
       styleProps="md:!w-[70%] md:!left-[15%] !top-[10%] xl:!w-[50%] xl:!left-[25%]"
-      stylePropsBg=" opacity-[0.5] "
+      stylePropsBg=" bg-[#00000052] "
       scrollBody={false}
     >
       <div className="text-white font-poppins bg-hinkal-blue-300 flex flex-col min-h-0">

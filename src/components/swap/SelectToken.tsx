@@ -53,15 +53,13 @@ export const SelectToken = ({
           </div>
         )}
       </button>
-      {isTokenSelectShown && (
-        <TokenDropdown
-          isTokenSelectShown={isTokenSelectShown}
-          setIsTokenSelectShown={setIsTokenSelectShown}
-          swapToken={swapToken}
-          onTokenChange={onTokenChange}
-          tokenFilter={tokenFilter}
-        />
-      )}
+      <TokenDropdown
+        isTokenSelectShown={isTokenSelectShown}
+        setIsTokenSelectShown={setIsTokenSelectShown}
+        swapToken={swapToken}
+        onTokenChange={onTokenChange}
+        tokenFilter={tokenFilter}
+      />
     </>
   );
 };
