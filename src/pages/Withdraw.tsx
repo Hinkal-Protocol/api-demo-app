@@ -12,11 +12,27 @@ import { buildSolanaWithdrawAuthFields } from "../utils/solana-auth";
 import { buildTronWithdrawAuthFields } from "../utils/tron-auth";
 
 export const Withdraw = () => {
-  const { walletAddress, refreshBalances, chainId, signature, nonce, hasWriteAccess, isTron, isSolana, solanaProvider } =
-    useAppContext();
+  const {
+    walletAddress,
+    refreshBalances,
+    chainId,
+    signature,
+    nonce,
+    hasWriteAccess,
+    isTron,
+    isSolana,
+    solanaProvider,
+    balances,
+  } = useAppContext();
   const [selectedToken, setSelectedToken] = useState<ERC20Token | undefined>(
     undefined,
   );
+
+  const tokenFilter = useMemo(() => {
+    const owned = new Set(balances.map((b) => b.tokenAddress.toLowerCase()));
+    return (token: ERC20Token) =>
+      owned.has(token.erc20TokenAddress.toLowerCase());
+  }, [balances]);
   const [withdrawAmount, setWithdrawAmount] = useState("");
   const [recipientAddress, setRecipientAddress] = useState("");
   const [isProcessing, setIsProcessing] = useState(false);
@@ -40,16 +56,32 @@ export const Withdraw = () => {
             [tokenAddress],
             ExternalActionId.Transact,
             undefined,
-            [amountInWei.toString()],
+            [amountInWei],
           );
+
+      console.log("Withdraw fee structure", feeStructure);
 
       const signer = isTron || isSolana ? null : await getEthersSigner();
       const amountStr = amountInWei.toString();
-      const buildReadOnlyAuth = isSolana && solanaProvider
-        ? () => buildSolanaWithdrawAuthFields(solanaProvider, chainId, [tokenAddress], [amountStr], recipientAddress)
-        : isTron
-        ? () => buildTronWithdrawAuthFields(chainId, [tokenAddress], [amountStr], recipientAddress)
-        : undefined;
+      const buildReadOnlyAuth =
+        isSolana && solanaProvider
+          ? () =>
+              buildSolanaWithdrawAuthFields(
+                solanaProvider,
+                chainId,
+                [tokenAddress],
+                [amountStr],
+                recipientAddress,
+              )
+          : isTron
+          ? () =>
+              buildTronWithdrawAuthFields(
+                chainId,
+                [tokenAddress],
+                [amountStr],
+                recipientAddress,
+              )
+          : undefined;
       await withdraw(
         signer,
         { signature, nonce, hasWriteAccess },
@@ -119,6 +151,7 @@ export const Withdraw = () => {
           setTokenAmount={setWithdrawAmount}
           selectedToken={selectedToken}
           setSelectedToken={setSelectedToken}
+          tokenFilter={tokenFilter}
         />
         <div className="mt-[-15px] text-white">
           <label

@@ -1,5 +1,5 @@
 import { Listbox } from "@headlessui/react";
-import { SetStateAction, useEffect, useState } from "react";
+import { SetStateAction, useEffect, useMemo, useState } from "react";
 import { ethers } from "ethers";
 import VectorDown from "../assets/VectorDown.svg";
 import { useAppContext } from "../AppContext";
@@ -25,6 +25,7 @@ interface TokenAmountInputInterface {
   selectedToken: ERC20Token | undefined;
   setSelectedToken: (param: SetStateAction<ERC20Token | undefined>) => void;
   withWalletBalance?: boolean;
+  tokenFilter?: (token: ERC20Token) => boolean;
 }
 
 export const TokenAmountInput = ({
@@ -34,15 +35,29 @@ export const TokenAmountInput = ({
   selectedToken,
   setSelectedToken,
   withWalletBalance = false,
+  tokenFilter,
 }: TokenAmountInputInterface) => {
   const { erc20List, walletAddress, chainId, isSolana } = useAppContext();
   const [walletBalanceDisplay, setWalletBalanceDisplay] = useState<
     string | null
   >(null);
 
+  const filteredTokens = useMemo(
+    () => (tokenFilter ? erc20List.filter(tokenFilter) : erc20List),
+    [erc20List, tokenFilter],
+  );
+
   useEffect(() => {
-    if (erc20List.length > 0) setSelectedToken(erc20List[0]);
-  }, [erc20List, setSelectedToken]);
+    if (filteredTokens.length === 0) {
+      setSelectedToken(undefined);
+      return;
+    }
+    setSelectedToken((prev) =>
+      prev && filteredTokens.some((t) => t.erc20TokenAddress === prev.erc20TokenAddress)
+        ? prev
+        : filteredTokens[0],
+    );
+  }, [filteredTokens, setSelectedToken]);
 
   const isNative =
     selectedToken?.erc20TokenAddress.toLowerCase() === zeroAddress;
@@ -166,14 +181,14 @@ export const TokenAmountInput = ({
                 )}
               </Listbox.Button>
               <Listbox.Options className="absolute w-full top-10 text-white flex flex-col bg-hinkal-blue-900 rounded-b-lg z-20 max-h-80 overflow-y-auto">
-                {erc20List.map((token, index) => (
+                {filteredTokens.map((token, index) => (
                   <Listbox.Option
                     key={token.name + token.erc20TokenAddress}
                     value={token}
                     className={`cursor-pointer py-2 flex items-center gap-x-2 pl-[8px] ${
                       token?.name === selectedToken?.name ? "bg-hinkal-gray-300" : ""
                     } ${
-                      index === erc20List.length - 1 ? " rounded-b-lg" : ""
+                      index === filteredTokens.length - 1 ? " rounded-b-lg" : ""
                     }  `}
                   >
                     <img

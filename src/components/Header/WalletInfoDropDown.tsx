@@ -152,13 +152,10 @@ export const WalletInfoDropDown = () => {
   );
 
   return (
-    <div className="absolute min-w-max top-20 md:top-2 left-0 md:left-auto right-0 bg-hinkal-blue-900 rounded-xl shadow-metamask font-generalSans p-4 items-center max-content">
-      <div className="flex items-center space-x-4">
-        <div className="w-[26px]" />
-        <p className="text-hinkal-white-300 text-[12px] text-left">
-          Private Balance
-        </p>
-      </div>
+    <div className="absolute top-20 md:top-2 right-0 left-auto w-60 max-w-[90vw] bg-hinkal-blue-900 rounded-xl shadow-metamask font-generalSans p-4 items-center">
+      <p className="text-hinkal-white-300 text-[12px] text-left">
+        Private Balance
+      </p>
       <div className="flex flex-col justify-center gap-4 mb-[10%]">
         {visibleBalances.length > 0 ? (
           visibleBalances.map((tokenBalance) => (
@@ -219,7 +216,7 @@ export const WalletInfoDropDown = () => {
           className="block w-full text-left"
           onClick={handleCopyShieldedAddress}
         >
-          <div className="flex items-center mt-2 text-white text-[14px] md:w-[9.5rem]">
+          <div className="flex items-center mt-2 text-white text-[14px] md:w-[12.5rem]">
             <div className="flex justify-center items-center w-[25px] h-[25px]">
               <Copy />
             </div>
@@ -232,7 +229,7 @@ export const WalletInfoDropDown = () => {
           className="block w-full text-left"
           onClick={handleCopyPrivateAddress}
         >
-          <div className="flex items-center mt-2 text-white text-[14px] md:w-[9.5rem]">
+          <div className="flex items-center mt-2 text-white text-[14px] md:w-[12.5rem]">
             <div className="flex justify-center items-center w-[25px] h-[25px]">
               {isCopyingPrivate ? <Spinner /> : <Copy />}
             </div>
@@ -245,7 +242,7 @@ export const WalletInfoDropDown = () => {
             className="cursor-pointer"
             onClick={handleDisconnect}
           >
-            <div className="flex flex-row items-center text-white text-[14px] mt-2 w-[9.5rem]">
+            <div className="flex flex-row items-center text-white text-[14px] mt-2 ml-px w-[12.5rem]">
               <div className="flex justify-center items-center w-[25px] h-[25px]">
                 <Disconnect />
               </div>

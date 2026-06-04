@@ -32,6 +32,7 @@ export const TokenDropdown = ({
   tokenFilter = () => true,
 }: TokenDropdownProps) => {
   const { erc20List } = useAppContext();
+  const filteredTokens = (erc20List ?? []).filter(tokenFilter);
   const [itemsPerRow, setItemsPerRow] = useState(
     window.innerWidth <= 500 ? 2 : 4,
   );
@@ -55,19 +56,21 @@ export const TokenDropdown = ({
         <div className="w-full h-[1px] my-2 bg-[#525151b4]" />
         <div className="p-8 pt-0">
           <div className="flex flex-col item-center justify-center gap-2 mt-5">
-            {erc20List &&
+            {filteredTokens.length === 0 ? (
+              <p className="text-hinkal-white-300 text-sm text-center py-6">
+                No tokens available
+              </p>
+            ) : (
               splitTokenButtonsIntoRows(
-                erc20List
-                  .filter(tokenFilter)
-                  .map((token, jndex) => (
-                    <TokenDropdownButton
-                      key={jndex}
-                      token={token}
-                      swapToken={swapToken}
-                      onTokenChange={onTokenChange}
-                      setIsTokenSelectShown={setIsTokenSelectShown}
-                    />
-                  )),
+                filteredTokens.map((token, jndex) => (
+                  <TokenDropdownButton
+                    key={jndex}
+                    token={token}
+                    swapToken={swapToken}
+                    onTokenChange={onTokenChange}
+                    setIsTokenSelectShown={setIsTokenSelectShown}
+                  />
+                )),
                 itemsPerRow,
               ).map((buttons, index) => (
                 <div
@@ -76,7 +79,8 @@ export const TokenDropdown = ({
                 >
                   {buttons}
                 </div>
-              ))}
+              ))
+            )}
           </div>
           <div className="bg-gray-600 w-full h-[0.1px] my-5" />
         </div>

@@ -1,4 +1,10 @@
-import { SyntheticEvent, useCallback, useState, useMemo } from "react";
+import {
+  SyntheticEvent,
+  useCallback,
+  useEffect,
+  useState,
+  useMemo,
+} from "react";
 import { toast } from "react-hot-toast";
 import { Spinner } from "../components/Spinner";
 import { TokenAmountInput } from "../components/TokenAmountInput";
@@ -10,6 +16,7 @@ import { deposit } from "../utils/deposit";
 import { approveErc20, getEthersSigner, sendTx } from "../utils/ethers-wallet";
 import { approveAndBroadcastTronDepositTx } from "../utils/tron-wallet";
 import { broadcastSolanaTransaction } from "../utils/solana-wallet";
+import { getPublicBalances } from "../utils/public-balances";
 import { buildSolanaDepositAuthFields } from "../utils/solana-auth";
 import { buildTronDepositAuthFields } from "../utils/tron-auth";
 
@@ -24,6 +31,8 @@ export const Deposit = () => {
     isTron,
     isSolana,
     solanaProvider,
+    erc20List,
+    walletType,
   } = useAppContext();
 
   const [selectedToken, setSelectedToken] = useState<ERC20Token | undefined>(
@@ -31,6 +40,38 @@ export const Deposit = () => {
   );
   const [depositAmount, setDepositAmount] = useState<string>("");
   const [isProcessing, setIsProcessing] = useState(false);
+  const [ownedTokens, setOwnedTokens] = useState<Set<string>>(new Set());
+
+  useEffect(() => {
+    if (!walletAddress || !chainId || !walletType || erc20List.length === 0) {
+      setOwnedTokens(new Set());
+      return;
+    }
+
+    let cancelled = false;
+    getPublicBalances(erc20List, walletAddress, chainId, walletType).then(
+      (balances) => {
+        if (cancelled) return;
+        setOwnedTokens(
+          new Set(
+            balances
+              .filter((b) => b.balance > 0n)
+              .map((b) => b.token.erc20TokenAddress.toLowerCase()),
+          ),
+        );
+      },
+    );
+
+    return () => {
+      cancelled = true;
+    };
+  }, [walletAddress, chainId, walletType, erc20List]);
+
+  const tokenFilter = useCallback(
+    (token: ERC20Token) =>
+      ownedTokens.has(token.erc20TokenAddress.toLowerCase()),
+    [ownedTokens],
+  );
 
   const handleDeposit = useCallback(async () => {
     try {
@@ -149,6 +190,7 @@ export const Deposit = () => {
           selectedToken={selectedToken}
           setSelectedToken={setSelectedToken}
           withWalletBalance
+          tokenFilter={tokenFilter}
         />
         <div className="w-[90%] mx-auto mb-6 mt-6 h-[1px] bg-hinkal-blue-900" />
         <div className="border-solid">

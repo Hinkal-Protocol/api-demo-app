@@ -18,7 +18,7 @@ import { getSwapData, executeSwap, type SwapData } from "../utils/swap";
 import { getEthersSigner } from "../utils/ethers-wallet";
 
 export const Swap = () => {
-  const { walletAddress, refreshBalances, chainId, signature, nonce, hasWriteAccess, isSolana, solanaProvider } =
+  const { walletAddress, refreshBalances, chainId, signature, nonce, hasWriteAccess, isSolana, solanaProvider, balances } =
     useAppContext();
   const [inSwapAmount, setInSwapAmount] = useState("");
   const [inSwapToken, setInSwapToken] = useState<ERC20Token | undefined>();
@@ -30,6 +30,12 @@ export const Swap = () => {
   const [isPriceLoading, setIsPriceLoading] = useState(false);
   const [isProcessing, setIsProcessing] = useState(false);
   const [slippageTolerance, setSlippageTolerance] = useState("0.10");
+
+  const inTokenFilter = useMemo(() => {
+    const owned = new Set(balances.map((b) => b.tokenAddress.toLowerCase()));
+    return (token: ERC20Token) =>
+      owned.has(token.erc20TokenAddress.toLowerCase());
+  }, [balances]);
 
   useEffect(() => {
     setQuotedData(undefined);
@@ -204,6 +210,7 @@ export const Swap = () => {
                     setOutSwapToken(prev);
                 }}
                 disabled={isProcessing}
+                tokenFilter={inTokenFilter}
               />
             </div>
           </div>

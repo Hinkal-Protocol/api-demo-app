@@ -12,11 +12,28 @@ import { buildSolanaTransferAuthFields } from "../utils/solana-auth";
 import { buildTronTransferAuthFields } from "../utils/tron-auth";
 
 export const Transfer = () => {
-  const { walletAddress, refreshBalances, chainId, signature, nonce, hasWriteAccess, isTron, isSolana, solanaProvider } =
-    useAppContext();
+  const {
+    walletAddress,
+    refreshBalances,
+    chainId,
+    signature,
+    nonce,
+    hasWriteAccess,
+    isTron,
+    isSolana,
+    solanaProvider,
+    balances,
+  } = useAppContext();
   const [selectedToken, setSelectedToken] = useState<ERC20Token | undefined>(
     undefined,
   );
+
+  const tokenFilter = useMemo(() => {
+    const owned = new Set(balances.map((b) => b.tokenAddress.toLowerCase()));
+    return (token: ERC20Token) =>
+      owned.has(token.erc20TokenAddress.toLowerCase());
+  }, [balances]);
+
   const [transferAmount, setTransferAmount] = useState<string>("");
   const [transferAddress, setTransferAddress] = useState<string>("");
   const [isProcessing, setIsProcessing] = useState(false);
@@ -37,16 +54,30 @@ export const Transfer = () => {
         [tokenAddress],
         ExternalActionId.Transact,
         undefined,
-        [amountInWei.toString()],
+        [amountInWei],
       );
 
       const signer = isTron || isSolana ? null : await getEthersSigner();
       const amountStr = amountInWei.toString();
-      const buildReadOnlyAuth = isSolana && solanaProvider
-        ? () => buildSolanaTransferAuthFields(solanaProvider, chainId, [tokenAddress], [amountStr], transferAddress)
-        : isTron
-        ? () => buildTronTransferAuthFields(chainId, [tokenAddress], [amountStr], transferAddress)
-        : undefined;
+      const buildReadOnlyAuth =
+        isSolana && solanaProvider
+          ? () =>
+              buildSolanaTransferAuthFields(
+                solanaProvider,
+                chainId,
+                [tokenAddress],
+                [amountStr],
+                transferAddress,
+              )
+          : isTron
+          ? () =>
+              buildTronTransferAuthFields(
+                chainId,
+                [tokenAddress],
+                [amountStr],
+                transferAddress,
+              )
+          : undefined;
       await transfer(
         signer,
         { signature, nonce, hasWriteAccess },
@@ -112,6 +143,7 @@ export const Transfer = () => {
         setTokenAmount={setTransferAmount}
         selectedToken={selectedToken}
         setSelectedToken={setSelectedToken}
+        tokenFilter={tokenFilter}
       />
       <div className="mt-[-3%]">
         <label

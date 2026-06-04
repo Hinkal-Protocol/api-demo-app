@@ -9,8 +9,7 @@ interface NavigationBarProps {
   setActiveTab: Dispatch<SetStateAction<AppTab>>;
 }
 
-const buttonClassName =
-  "xl:flex w-1/4 block place-self-end xl:place-self-start max-xl:w-[50%] xl:space-x-0 space-y-3";
+const buttonClassName = "flex-1 min-w-0";
 
 export const NavigationBar = ({
   activeTab,
