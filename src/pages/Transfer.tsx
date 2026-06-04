@@ -4,8 +4,13 @@ import { Spinner } from "../components/Spinner";
 import { TokenAmountInput } from "../components/TokenAmountInput";
 import { useAppContext } from "../AppContext";
 import { ERC20Token } from "../types";
-import { getAmountInWei } from "../utils/amount.utils";
-import { ExternalActionId, getFeeStructure } from "../utils/fees";
+import {
+  getAmountInToken,
+  getAmountInWei,
+  getTokenBalanceWei,
+} from "../utils/amount.utils";
+import { getFeeAmount } from "../utils/fees";
+import { useTransactFee } from "../hooks/useTransactFee";
 import { transfer } from "../utils/transfer";
 import { getEthersSigner } from "../utils/ethers-wallet";
 import { buildSolanaTransferAuthFields } from "../utils/solana-auth";
@@ -25,7 +30,7 @@ export const Transfer = () => {
     balances,
   } = useAppContext();
   const [selectedToken, setSelectedToken] = useState<ERC20Token | undefined>(
-    undefined,
+    undefined
   );
 
   const tokenFilter = useMemo(() => {
@@ -38,6 +43,34 @@ export const Transfer = () => {
   const [transferAddress, setTransferAddress] = useState<string>("");
   const [isProcessing, setIsProcessing] = useState(false);
 
+  const amountWei = useMemo(() => {
+    if (!selectedToken || !transferAmount) return 0n;
+    try {
+      return getAmountInWei(selectedToken, transferAmount);
+    } catch {
+      return 0n;
+    }
+  }, [selectedToken, transferAmount]);
+
+  const { feeStructure, isFeeLoading } = useTransactFee({
+    token: selectedToken,
+    amountWei,
+  });
+
+  const feeAmount = getFeeAmount(feeStructure);
+
+  const feeDisplay =
+    selectedToken && feeStructure
+      ? `${Number(getAmountInToken(selectedToken, feeAmount)).toFixed(6)} ${
+          selectedToken.symbol
+        }`
+      : null;
+
+  const hasInsufficientFunds = useMemo(() => {
+    if (!selectedToken || amountWei <= 0n) return false;
+    return getTokenBalanceWei(balances, selectedToken) < amountWei + feeAmount;
+  }, [selectedToken, amountWei, balances, feeAmount]);
+
   const handleReset = () => {
     setSelectedToken(undefined);
     setTransferAmount("");
@@ -48,20 +81,11 @@ export const Transfer = () => {
     try {
       if (!chainId || !selectedToken || !walletAddress || !signature || !nonce)
         return;
+      if (!feeStructure) return;
       setIsProcessing(true);
 
       const amountInWei = getAmountInWei(selectedToken, transferAmount);
-      const auth = { signature, nonce, address: walletAddress, chainId };
       const tokenAddress = selectedToken.erc20TokenAddress;
-
-      const feeStructure = await getFeeStructure(
-        auth,
-        tokenAddress,
-        [tokenAddress],
-        ExternalActionId.Transact,
-        undefined,
-        [amountInWei],
-      );
 
       const signer = isTron || isSolana ? null : await getEthersSigner();
       const amountStr = amountInWei.toString();
@@ -73,7 +97,7 @@ export const Transfer = () => {
                 chainId,
                 [tokenAddress],
                 [amountStr],
-                transferAddress,
+                transferAddress
               )
           : isTron
           ? () =>
@@ -81,7 +105,7 @@ export const Transfer = () => {
                 chainId,
                 [tokenAddress],
                 [amountStr],
-                transferAddress,
+                transferAddress
               )
           : undefined;
       await transfer(
@@ -94,7 +118,7 @@ export const Transfer = () => {
         transferAddress,
         tokenAddress,
         feeStructure,
-        buildReadOnlyAuth,
+        buildReadOnlyAuth
       );
 
       handleReset();
@@ -113,12 +137,13 @@ export const Transfer = () => {
     nonce,
     transferAmount,
     transferAddress,
+    feeStructure,
     refreshBalancesSoon,
     hasWriteAccess,
   ]);
 
   const setTransferAddressHandler = (
-    event: React.ChangeEvent<HTMLInputElement>,
+    event: React.ChangeEvent<HTMLInputElement>
   ) => {
     setTransferAddress(event.target.value);
   };
@@ -133,14 +158,20 @@ export const Transfer = () => {
       !selectedToken ||
       !transferAmount ||
       !transferAddress ||
-      isProcessing,
+      isProcessing ||
+      isFeeLoading ||
+      !feeStructure ||
+      hasInsufficientFunds,
     [
       walletAddress,
       selectedToken,
       transferAmount,
       transferAddress,
       isProcessing,
-    ],
+      isFeeLoading,
+      feeStructure,
+      hasInsufficientFunds,
+    ]
   );
 
   return (
@@ -169,6 +200,22 @@ export const Transfer = () => {
           value={transferAddress}
         />
         <br />
+      </div>
+      <div className="px-[5%] mb-2 text-[13px]">
+        {isFeeLoading ? (
+          <span className="text-hinkal-gray-100">Calculating fee…</span>
+        ) : (
+          feeDisplay && (
+            <span className="text-hinkal-gray-100">
+              Network fee: {feeDisplay}
+            </span>
+          )
+        )}
+        {hasInsufficientFunds && (
+          <p className="text-hinkal-red-100">
+            Insufficient balance for amount + fee
+          </p>
+        )}
       </div>
       <div className="w-[90%] mx-auto mb-6 mt-6 h-[1px] bg-hinkal-blue-900" />
       <div className=" border-solid ">

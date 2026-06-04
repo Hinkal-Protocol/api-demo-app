@@ -13,10 +13,18 @@ import { SwapSettings } from "../components/swap/SwapSettings";
 import { useAppContext } from "../AppContext";
 import {
   getAmountInToken,
+  getAmountInWei,
   getTokenBalanceDisplay,
+  getTokenBalanceWei,
 } from "../utils/amount.utils";
 import { ERC20Token } from "../types";
-import { getSwapData, executeSwap, type SwapData } from "../utils/swap";
+import {
+  getSwapData,
+  executeSwap,
+  HINKAL_SWAP_VARIABLE_RATE,
+  type SwapData,
+} from "../utils/swap";
+import { FeeStructure, getFeeAmount, getFeeStructure } from "../utils/fees";
 import { getEthersSigner } from "../utils/ethers-wallet";
 
 export const Swap = () => {
@@ -50,8 +58,87 @@ export const Swap = () => {
 
   const inSwapBalanceDisplay = useMemo(
     () => (inSwapToken ? getTokenBalanceDisplay(balances, inSwapToken) : null),
-    [balances, inSwapToken],
+    [balances, inSwapToken]
   );
+
+  const [feeStructure, setFeeStructure] = useState<FeeStructure | undefined>();
+  const [isFeeLoading, setIsFeeLoading] = useState(false);
+
+  useEffect(() => {
+    if (
+      !quotedData ||
+      !inSwapToken ||
+      !outSwapToken ||
+      !chainId ||
+      !walletAddress ||
+      !signature ||
+      !nonce
+    ) {
+      setFeeStructure(undefined);
+      setIsFeeLoading(false);
+      return;
+    }
+
+    let cancelled = false;
+    setIsFeeLoading(true);
+    const auth = { signature, nonce, address: walletAddress, chainId };
+    const feeToken = isSolana
+      ? outSwapToken.erc20TokenAddress
+      : inSwapToken.erc20TokenAddress;
+    getFeeStructure(
+      auth,
+      feeToken,
+      [inSwapToken.erc20TokenAddress, outSwapToken.erc20TokenAddress],
+      quotedData.externalActionId,
+      HINKAL_SWAP_VARIABLE_RATE.toString()
+    )
+      .then((fee) => {
+        if (!cancelled) setFeeStructure(fee);
+      })
+      .catch(() => {
+        if (!cancelled) setFeeStructure(undefined);
+      })
+      .finally(() => {
+        if (!cancelled) setIsFeeLoading(false);
+      });
+
+    return () => {
+      cancelled = true;
+    };
+  }, [
+    quotedData,
+    inSwapToken,
+    outSwapToken,
+    chainId,
+    walletAddress,
+    signature,
+    nonce,
+    isSolana,
+  ]);
+
+  const feeAmount = getFeeAmount(feeStructure);
+  const feeToken = isSolana ? outSwapToken : inSwapToken;
+  const feeDisplay =
+    feeToken && feeStructure
+      ? `${Number(getAmountInToken(feeToken, feeAmount)).toFixed(6)} ${
+          feeToken.symbol
+        }`
+      : null;
+
+  const inAmountWei = useMemo(() => {
+    if (!inSwapToken || !inSwapAmount) return 0n;
+    try {
+      return getAmountInWei(inSwapToken, inSwapAmount);
+    } catch {
+      return 0n;
+    }
+  }, [inSwapToken, inSwapAmount]);
+
+  const hasInsufficientFunds = useMemo(() => {
+    if (!inSwapToken || inAmountWei <= 0n) return false;
+    const required = inAmountWei + (isSolana ? 0n : feeAmount);
+    return getTokenBalanceWei(balances, inSwapToken) < required;
+  }, [inSwapToken, inAmountWei, isSolana, feeAmount, balances]);
 
   useEffect(() => {
     setQuotedData(undefined);
@@ -78,7 +165,7 @@ export const Swap = () => {
           inSwapToken.erc20TokenAddress,
           outSwapToken.erc20TokenAddress,
           inSwapAmount,
-          parseFloat(slippageTolerance),
+          parseFloat(slippageTolerance)
         );
         if (!cancelled) {
           setQuotedData(result);
@@ -86,7 +173,7 @@ export const Swap = () => {
       } catch (err) {
         if (!cancelled) {
           toast.error(
-            err instanceof Error ? err.message : "Quote fetch failed",
+            err instanceof Error ? err.message : "Quote fetch failed"
           );
         }
       } finally {
@@ -114,7 +201,7 @@ export const Swap = () => {
       outSwapToken && quotedData
         ? getAmountInToken(outSwapToken, quotedData.outSwapAmount)
         : "",
-    [outSwapToken, quotedData],
+    [outSwapToken, quotedData]
   );
 
   const isReadyForSwap = useMemo(
@@ -124,7 +211,7 @@ export const Swap = () => {
       !!inSwapToken &&
       !!outSwapToken &&
       !!quotedData,
-    [inSwapAmount, inSwapToken, outSwapToken, quotedData],
+    [inSwapAmount, inSwapToken, outSwapToken, quotedData]
   );
 
   const handleReset = () => {
@@ -158,7 +245,7 @@ export const Swap = () => {
         outSwapToken,
         inSwapAmount,
         quotedData,
-        isSolana && solanaProvider ? solanaProvider : undefined,
+        isSolana && solanaProvider ? solanaProvider : undefined
       );
       handleReset();
       refreshBalancesSoon();
@@ -183,7 +270,7 @@ export const Swap = () => {
 
   const setTokenAmountHandler = (
     event: React.ChangeEvent<HTMLInputElement>,
-    setValue: (value: string) => void,
+    setValue: (value: string) => void
   ) => {
     if (/^[0-9]*[.]?[0-9]*$/.test(event.target.value)) {
       setValue(event.target.value);
@@ -195,6 +282,8 @@ export const Swap = () => {
     if (!inSwapToken || !outSwapToken) return "Select a token";
     if (!inSwapAmount || Number(inSwapAmount) === 0) return "Enter an amount";
     if (isPriceLoading) return "Fetching price";
+    if (isFeeLoading) return "Calculating fee";
+    if (hasInsufficientFunds) return "Insufficient balance";
     return isReadyForSwap ? "Swap" : "Enter an amount";
   };
 
@@ -296,6 +385,11 @@ export const Swap = () => {
                 } font-bold`}
               />
             </div>
+          </div>
+        )}
+        {feeDisplay && (
+          <div className="w-[96%] mx-auto px-[2%] text-[12px] text-hinkal-gray-100">
+            Network fee: {feeDisplay}
           </div>
         )}
       </div>

@@ -4,8 +4,13 @@ import { Spinner } from "../components/Spinner";
 import { TokenAmountInput } from "../components/TokenAmountInput";
 import { useAppContext } from "../AppContext";
 import { ERC20Token } from "../types";
-import { getAmountInWei } from "../utils/amount.utils";
-import { ExternalActionId, getFeeStructure } from "../utils/fees";
+import {
+  getAmountInToken,
+  getAmountInWei,
+  getTokenBalanceWei,
+} from "../utils/amount.utils";
+import { getFeeAmount } from "../utils/fees";
+import { useTransactFee } from "../hooks/useTransactFee";
 import { withdraw } from "../utils/withdraw";
 import { getEthersSigner } from "../utils/ethers-wallet";
 import { buildSolanaWithdrawAuthFields } from "../utils/solana-auth";
@@ -39,6 +44,35 @@ export const Withdraw = () => {
   const [isProcessing, setIsProcessing] = useState(false);
   const [isRelayerOff, setIsRelayerOff] = useState(false);
 
+  const amountWei = useMemo(() => {
+    if (!selectedToken || !withdrawAmount) return 0n;
+    try {
+      return getAmountInWei(selectedToken, withdrawAmount);
+    } catch {
+      return 0n;
+    }
+  }, [selectedToken, withdrawAmount]);
+
+  const { feeStructure, isFeeLoading } = useTransactFee({
+    token: selectedToken,
+    amountWei,
+    enabled: !isRelayerOff,
+  });
+
+  const feeAmount = getFeeAmount(feeStructure);
+
+  const feeDisplay =
+    selectedToken && feeStructure
+      ? `${Number(getAmountInToken(selectedToken, feeAmount)).toFixed(6)} ${
+          selectedToken.symbol
+        }`
+      : null;
+
+  const hasInsufficientFunds = useMemo(() => {
+    if (!selectedToken || amountWei <= 0n) return false;
+    return getTokenBalanceWei(balances, selectedToken) < amountWei + feeAmount;
+  }, [selectedToken, amountWei, balances, feeAmount]);
+
   const handleReset = () => {
     setSelectedToken(undefined);
     setWithdrawAmount("");
@@ -50,24 +84,11 @@ export const Withdraw = () => {
     try {
       if (!chainId || !selectedToken || !walletAddress || !signature || !nonce)
         return;
+      if (!isRelayerOff && !feeStructure) return;
       setIsProcessing(true);
 
       const amountInWei = getAmountInWei(selectedToken, withdrawAmount);
-      const auth = { signature, nonce, address: walletAddress, chainId };
       const tokenAddress = selectedToken.erc20TokenAddress;
-
-      const feeStructure = isRelayerOff
-        ? undefined
-        : await getFeeStructure(
-            auth,
-            tokenAddress,
-            [tokenAddress],
-            ExternalActionId.Transact,
-            undefined,
-            [amountInWei]
-          );
-
-      console.log("Withdraw fee structure", feeStructure);
 
       const signer = isTron || isSolana ? null : await getEthersSigner();
       const amountStr = amountInWei.toString();
@@ -122,6 +143,7 @@ export const Withdraw = () => {
     withdrawAmount,
     recipientAddress,
     isRelayerOff,
+    feeStructure,
     refreshBalances,
     refreshBalancesSoon,
     hasWriteAccess,
@@ -143,13 +165,20 @@ export const Withdraw = () => {
       !selectedToken ||
       !withdrawAmount ||
       !recipientAddress ||
-      isProcessing,
+      isProcessing ||
+      isFeeLoading ||
+      hasInsufficientFunds ||
+      (!isRelayerOff && !feeStructure),
     [
       walletAddress,
       selectedToken,
       withdrawAmount,
       recipientAddress,
       isProcessing,
+      isFeeLoading,
+      hasInsufficientFunds,
+      isRelayerOff,
+      feeStructure,
     ]
   );
 
@@ -196,6 +225,22 @@ export const Withdraw = () => {
           >
             Withdraw without relayer
           </label>
+        </div>
+        <div className="px-[5%] mb-2 text-[13px]">
+          {isFeeLoading ? (
+            <span className="text-hinkal-gray-100">Calculating fee…</span>
+          ) : (
+            feeDisplay && (
+              <span className="text-hinkal-gray-100">
+                Network fee: {feeDisplay}
+              </span>
+            )
+          )}
+          {hasInsufficientFunds && (
+            <p className="text-hinkal-red-100">
+              Insufficient balance for amount + fee
+            </p>
+          )}
         </div>
         <div className="w-[90%] mx-auto mb-4 mt-2 h-[1px] bg-hinkal-blue-900" />
         <div className="border-solid">

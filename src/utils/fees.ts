@@ -18,6 +18,9 @@ export type FeeStructure = {
   variableRate: string;
 };
 
+export const getFeeAmount = (feeStructure?: FeeStructure): bigint =>
+  feeStructure ? BigInt(feeStructure.flatFee) : 0n;
+
 export const getFeeStructure = async (
   auth: Auth,
   feeToken: string,
@@ -25,7 +28,7 @@ export const getFeeStructure = async (
   externalActionId: ExternalActionId,
   variableRate?: string,
   amounts?: bigint[],
-  mintFrom?: string,
+  mintFrom?: string
 ): Promise<FeeStructure> => {
   const { signature, nonce, address, chainId } = auth;
   const params = new URLSearchParams({
@@ -59,7 +62,7 @@ export const getFeeStructure = async (
 
   if (!res.ok || !("success" in data && data.success)) {
     throw new Error(
-      (data as { error?: string }).error ?? "Fee structure fetch failed",
+      (data as { error?: string }).error ?? "Fee structure fetch failed"
     );
   }
 
