@@ -6,6 +6,7 @@ import type { Connector } from "wagmi";
 import coinbaseLogo from "../assets/coinbaseWalletLogo.png";
 import metamaskLogo from "../assets/metamaskWalletLogo.png";
 import walletconnectLogo from "../assets/walletconnectWalletLogo.png";
+import SolflareLogo from "../assets/SolflareWalletLogo.jpeg";
 import { Modal } from "./Modal";
 import { Spinner } from "./Spinner";
 import { ToggleSwitch } from "./withdraw/ToggleSwitch";
@@ -36,6 +37,7 @@ export const ChooseWallet = ({
   setIsConnecting,
 }: ChooseWalletProps) => {
   const connectors = useConnectors();
+  console.log({ connectors });
   const config = useConfig();
 
   const {
@@ -73,7 +75,7 @@ export const ChooseWallet = ({
           signer,
           account,
           chainId,
-          writeAccessEnabled
+          writeAccessEnabled,
         );
 
         setWalletType("evm");
@@ -102,7 +104,7 @@ export const ChooseWallet = ({
       setWalletType,
       writeAccessEnabled,
       onHide,
-    ]
+    ],
   );
 
   const handleConnectSolana = useCallback(
@@ -115,7 +117,7 @@ export const ChooseWallet = ({
           address,
           chainId,
           provider,
-          writeAccessEnabled
+          writeAccessEnabled,
         );
         setRequestedWriteAccess(writeAccessEnabled);
         setWalletType("solana");
@@ -132,8 +134,8 @@ export const ChooseWallet = ({
             err,
             `${
               provider === "phantom" ? "Phantom" : "Solflare"
-            } connection failed`
-          )
+            } connection failed`,
+          ),
         );
       } finally {
         setConnectingId(null);
@@ -152,7 +154,7 @@ export const ChooseWallet = ({
       setSolanaProvider,
       onHide,
       writeAccessEnabled,
-    ]
+    ],
   );
 
   const handleConnectTronLink = useCallback(async () => {
@@ -163,7 +165,7 @@ export const ChooseWallet = ({
       const session = await createTronEnclaveSession(
         address,
         chainId,
-        writeAccessEnabled
+        writeAccessEnabled,
       );
       setRequestedWriteAccess(writeAccessEnabled);
       setWalletType("tron");
@@ -221,11 +223,11 @@ export const ChooseWallet = ({
           .filter((connector) =>
             isMobile
               ? connector.name === "WalletConnect"
-              : connector.name !== "Hinkal"
+              : connector.name !== "Hinkal",
           )
           .map((connector) => (
             <button
-              className="bg-modal px-4 py-2 min-w-[180px] w-[80%] rounded-lg border-[2.5px] border-hinkal-white-200 hover:border-hinkal-gray-100 font-bold transition-all duration-300 flex items-center justify-center gap-x-3"
+              className="bg-modal px-4 py-2 min-w-[180px] w-[80%] rounded-lg border-[2.5px] border-hinkal-white-200 hover:border-hinkal-gray-100 font-bold transition-all duration-300 flex items-center justify-start gap-x-3"
               type="button"
               disabled={!!connectingId}
               key={connector.id}
@@ -252,46 +254,70 @@ export const ChooseWallet = ({
                   className="w-[26px] h-[26px]"
                 />
               )}
+              {connector.name !== "Coinbase Wallet" &&
+                connector.name !== "MetaMask" &&
+                connector.name !== "WalletConnect" && (
+                  <img
+                    src={connector.icon}
+                    alt="Logo"
+                    className="w-[26px] h-[26px]"
+                  />
+                )}
               <span>{connector.name}</span>
               {connectingId === connector.id && <Spinner />}
             </button>
           ))}
         {!isMobile && (
           <button
-            className="bg-modal px-4 py-2 min-w-[180px] w-[80%] rounded-lg border-[2.5px] border-hinkal-white-200 hover:border-hinkal-gray-100 font-bold transition-all duration-300 flex items-center justify-center gap-x-3"
+            className="bg-modal px-4 py-2 min-w-[180px] w-[80%] rounded-lg border-[2.5px] border-hinkal-white-200 hover:border-hinkal-gray-100 font-bold transition-all duration-300 flex items-center justify-start gap-x-3"
             type="button"
             disabled={!!connectingId}
             onClick={handleConnectTronLink}
           >
+            <img
+              src={connectors.find((c) => c.name === "TronLink")?.icon}
+              alt="TronLink Logo"
+              className="w-[26px] h-[26px]"
+            />
             <span>TronLink (Tron)</span>
             {connectingId === "tronlink" && <Spinner />}
           </button>
         )}
         {!isMobile && (
           <button
-            className="bg-modal px-4 py-2 min-w-[180px] w-[80%] rounded-lg border-[2.5px] border-hinkal-white-200 hover:border-hinkal-gray-100 font-bold transition-all duration-300 flex items-center justify-center gap-x-3"
+            className="bg-modal px-4 py-2 min-w-[180px] w-[80%] rounded-lg border-[2.5px] border-hinkal-white-200 hover:border-hinkal-gray-100 font-bold transition-all duration-300 flex items-center justify-start gap-x-3"
             type="button"
             disabled={!!connectingId}
             onClick={() => handleConnectSolana("phantom")}
           >
+            <img
+              src={connectors.find((c) => c.name === "Phantom")?.icon}
+              alt="Phantom Logo"
+              className="w-[26px] h-[26px]"
+            />
             <span>Phantom (Solana)</span>
             {connectingId === "solana-phantom" && <Spinner />}
           </button>
         )}
         {!isMobile && (
           <button
-            className="bg-modal px-4 py-2 min-w-[180px] w-[80%] rounded-lg border-[2.5px] border-hinkal-white-200 hover:border-hinkal-gray-100 font-bold transition-all duration-300 flex items-center justify-center gap-x-3"
+            className="bg-modal px-4 py-2 min-w-[180px] w-[80%] rounded-lg border-[2.5px] border-hinkal-white-200 hover:border-hinkal-gray-100 font-bold transition-all duration-300 flex items-center justify-start gap-x-3"
             type="button"
             disabled={!!connectingId}
             onClick={() => handleConnectSolana("solflare")}
           >
+            <img
+              src={SolflareLogo}
+              alt="Solflare Logo"
+              className="w-[26px] h-[26px]"
+            />
             <span>Solflare (Solana)</span>
             {connectingId === "solana-solflare" && <Spinner />}
           </button>
         )}
         {!isMobile && (
           <button
-            className="bg-modal px-4 py-2 min-w-[180px] w-[80%] rounded-lg border-[2.5px] border-hinkal-white-200 hover:border-hinkal-gray-100 font-bold transition-all duration-300 flex items-center justify-center gap-x-3"
+            className="bg-modal px-4 py-2 min-w-[180px] w-[80%] rounded-lg border-[2.5px] border-hinkal-white-200 hover:border-hinkal-gray-100 font-bold transition-all duration-300 flex items-center justify-start gap-x-3"
             type="button"
             disabled={!!connectingId}
             onClick={() => handleConnectSolana("metamask")}
