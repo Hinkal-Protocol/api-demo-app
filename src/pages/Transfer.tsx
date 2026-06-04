@@ -25,7 +25,7 @@ export const Transfer = () => {
     balances,
   } = useAppContext();
   const [selectedToken, setSelectedToken] = useState<ERC20Token | undefined>(
-    undefined,
+    undefined
   );
 
   const tokenFilter = useMemo(() => {
@@ -54,7 +54,7 @@ export const Transfer = () => {
         [tokenAddress],
         ExternalActionId.Transact,
         undefined,
-        [amountInWei],
+        [amountInWei]
       );
 
       const signer = isTron || isSolana ? null : await getEthersSigner();
@@ -67,7 +67,7 @@ export const Transfer = () => {
                 chainId,
                 [tokenAddress],
                 [amountStr],
-                transferAddress,
+                transferAddress
               )
           : isTron
           ? () =>
@@ -75,7 +75,7 @@ export const Transfer = () => {
                 chainId,
                 [tokenAddress],
                 [amountStr],
-                transferAddress,
+                transferAddress
               )
           : undefined;
       await transfer(
@@ -88,7 +88,7 @@ export const Transfer = () => {
         transferAddress,
         tokenAddress,
         feeStructure,
-        buildReadOnlyAuth,
+        buildReadOnlyAuth
       );
 
       await refreshBalances();
@@ -111,7 +111,7 @@ export const Transfer = () => {
   ]);
 
   const setTransferAddressHandler = (
-    event: React.ChangeEvent<HTMLInputElement>,
+    event: React.ChangeEvent<HTMLInputElement>
   ) => {
     setTransferAddress(event.target.value);
   };
@@ -133,7 +133,7 @@ export const Transfer = () => {
       transferAmount,
       transferAddress,
       isProcessing,
-    ],
+    ]
   );
 
   return (
@@ -144,6 +144,7 @@ export const Transfer = () => {
         selectedToken={selectedToken}
         setSelectedToken={setSelectedToken}
         tokenFilter={tokenFilter}
+        withShieldedBalance
       />
       <div className="mt-[-3%]">
         <label

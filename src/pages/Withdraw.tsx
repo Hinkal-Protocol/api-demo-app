@@ -25,7 +25,7 @@ export const Withdraw = () => {
     balances,
   } = useAppContext();
   const [selectedToken, setSelectedToken] = useState<ERC20Token | undefined>(
-    undefined,
+    undefined
   );
 
   const tokenFilter = useMemo(() => {
@@ -56,7 +56,7 @@ export const Withdraw = () => {
             [tokenAddress],
             ExternalActionId.Transact,
             undefined,
-            [amountInWei],
+            [amountInWei]
           );
 
       console.log("Withdraw fee structure", feeStructure);
@@ -71,7 +71,7 @@ export const Withdraw = () => {
                 chainId,
                 [tokenAddress],
                 [amountStr],
-                recipientAddress,
+                recipientAddress
               )
           : isTron
           ? () =>
@@ -79,7 +79,7 @@ export const Withdraw = () => {
                 chainId,
                 [tokenAddress],
                 [amountStr],
-                recipientAddress,
+                recipientAddress
               )
           : undefined;
       await withdraw(
@@ -93,7 +93,7 @@ export const Withdraw = () => {
         isRelayerOff,
         tokenAddress,
         feeStructure,
-        buildReadOnlyAuth,
+        buildReadOnlyAuth
       );
 
       toast.success("Withdraw confirmed");
@@ -118,7 +118,7 @@ export const Withdraw = () => {
   ]);
 
   const setRecipientAddressHandler = (
-    event: React.ChangeEvent<HTMLInputElement>,
+    event: React.ChangeEvent<HTMLInputElement>
   ) => {
     setRecipientAddress(event.target.value);
   };
@@ -140,7 +140,7 @@ export const Withdraw = () => {
       withdrawAmount,
       recipientAddress,
       isProcessing,
-    ],
+    ]
   );
 
   return (
@@ -152,6 +152,7 @@ export const Withdraw = () => {
           selectedToken={selectedToken}
           setSelectedToken={setSelectedToken}
           tokenFilter={tokenFilter}
+          withShieldedBalance
         />
         <div className="mt-[-15px] text-white">
           <label

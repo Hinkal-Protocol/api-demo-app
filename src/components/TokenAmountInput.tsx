@@ -6,6 +6,7 @@ import VectorDown from "../assets/VectorDown.svg";
 import { useAppContext } from "../AppContext";
 import { zeroAddress } from "../constants";
 import { ERC20Token } from "../types";
+import { getTokenBalanceDisplay } from "../utils/amount.utils";
 import { getErc20Balance, getNativeBalance } from "../utils/ethers-wallet";
 import {
   getTronErc20Balance,
@@ -26,6 +27,7 @@ interface TokenAmountInputInterface {
   selectedToken: ERC20Token | undefined;
   setSelectedToken: (param: SetStateAction<ERC20Token | undefined>) => void;
   withWalletBalance?: boolean;
+  withShieldedBalance?: boolean;
   tokenFilter?: (token: ERC20Token) => boolean;
   isTokensLoading?: boolean;
 }
@@ -37,10 +39,11 @@ export const TokenAmountInput = ({
   selectedToken,
   setSelectedToken,
   withWalletBalance = false,
+  withShieldedBalance = false,
   tokenFilter,
   isTokensLoading = false,
 }: TokenAmountInputInterface) => {
-  const { erc20List, walletAddress, chainId, isSolana } = useAppContext();
+  const { erc20List, walletAddress, chainId, balances } = useAppContext();
   const [walletBalanceDisplay, setWalletBalanceDisplay] = useState<
     string | null
   >(null);
@@ -62,6 +65,12 @@ export const TokenAmountInput = ({
         : filteredTokens[0]
     );
   }, [filteredTokens, setSelectedToken]);
+
+  const shieldedBalanceDisplay = useMemo(
+    () =>
+      selectedToken ? getTokenBalanceDisplay(balances, selectedToken) : null,
+    [balances, selectedToken]
+  );
 
   const isNative =
     selectedToken?.erc20TokenAddress.toLowerCase() === zeroAddress;
@@ -137,6 +146,16 @@ export const TokenAmountInput = ({
           {walletBalanceDisplay && (
             <span className="text-hinkal-gray-100 text-[12px]">
               Wallet: {walletBalanceDisplay}
+            </span>
+          )}
+        </div>
+      )}
+      {withShieldedBalance && (
+        <div className="flex justify-between items-center pl-[5%] pr-[5%]">
+          <label className="text-white text-[14px] font-[300]">Token</label>
+          {shieldedBalanceDisplay && (
+            <span className="text-hinkal-gray-100 text-[12px]">
+              Balance: {shieldedBalanceDisplay}
             </span>
           )}
         </div>

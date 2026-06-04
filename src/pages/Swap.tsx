@@ -6,20 +6,31 @@ import {
   useState,
 } from "react";
 import toast from "react-hot-toast";
-import { InfoPanel } from "../components/InfoPanel";
 import { Spinner } from "../components/Spinner";
 import { SelectToken } from "../components/swap/SelectToken";
 import { SwapInputTokensButton } from "../components/swap/SwapInputTokensButton";
 import { SwapSettings } from "../components/swap/SwapSettings";
 import { useAppContext } from "../AppContext";
-import { getAmountInToken } from "../utils/amount.utils";
+import {
+  getAmountInToken,
+  getTokenBalanceDisplay,
+} from "../utils/amount.utils";
 import { ERC20Token } from "../types";
 import { getSwapData, executeSwap, type SwapData } from "../utils/swap";
 import { getEthersSigner } from "../utils/ethers-wallet";
 
 export const Swap = () => {
-  const { walletAddress, refreshBalances, chainId, signature, nonce, hasWriteAccess, isSolana, solanaProvider, balances } =
-    useAppContext();
+  const {
+    walletAddress,
+    refreshBalances,
+    chainId,
+    signature,
+    nonce,
+    hasWriteAccess,
+    isSolana,
+    solanaProvider,
+    balances,
+  } = useAppContext();
   const [inSwapAmount, setInSwapAmount] = useState("");
   const [inSwapToken, setInSwapToken] = useState<ERC20Token | undefined>();
   const [outSwapToken, setOutSwapToken] = useState<ERC20Token | undefined>();
@@ -36,6 +47,11 @@ export const Swap = () => {
     return (token: ERC20Token) =>
       owned.has(token.erc20TokenAddress.toLowerCase());
   }, [balances]);
+
+  const inSwapBalanceDisplay = useMemo(
+    () => (inSwapToken ? getTokenBalanceDisplay(balances, inSwapToken) : null),
+    [balances, inSwapToken],
+  );
 
   useEffect(() => {
     setQuotedData(undefined);
@@ -212,6 +228,11 @@ export const Swap = () => {
                 disabled={isProcessing}
                 tokenFilter={inTokenFilter}
               />
+              {inSwapBalanceDisplay && (
+                <span className="text-hinkal-white-100 text-[12px] mr-[15px]">
+                  Balance: {inSwapBalanceDisplay}
+                </span>
+              )}
             </div>
           </div>
         </div>
