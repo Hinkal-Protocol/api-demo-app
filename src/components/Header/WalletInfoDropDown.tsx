@@ -153,7 +153,7 @@ export const WalletInfoDropDown = () => {
 
   return (
     <div className="absolute top-20 md:top-2 right-0 left-auto w-60 max-w-[90vw] bg-hinkal-blue-900 rounded-xl shadow-metamask font-generalSans p-4 items-center">
-      <p className="text-hinkal-white-300 text-[12px] text-left">
+      <p className="text-hinkal-white-300 text-[12px] text-left mb-2">
         Private Balance
       </p>
       <div className="flex flex-col justify-center gap-4 mb-[10%]">
