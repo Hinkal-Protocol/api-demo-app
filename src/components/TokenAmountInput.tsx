@@ -6,7 +6,11 @@ import VectorDown from "../assets/VectorDown.svg";
 import { useAppContext } from "../AppContext";
 import { zeroAddress } from "../constants";
 import { ERC20Token } from "../types";
-import { getTokenBalanceDisplay } from "../utils/amount.utils";
+import {
+  getAmountInToken,
+  getTokenBalanceDisplay,
+  getTokenBalanceWei,
+} from "../utils/amount.utils";
 import { getErc20Balance, getNativeBalance } from "../utils/ethers-wallet";
 import {
   getTronErc20Balance,
@@ -28,6 +32,7 @@ interface TokenAmountInputInterface {
   setSelectedToken: (param: SetStateAction<ERC20Token | undefined>) => void;
   withWalletBalance?: boolean;
   withShieldedBalance?: boolean;
+  optionBalances?: Record<string, bigint>;
   tokenFilter?: (token: ERC20Token) => boolean;
   isTokensLoading?: boolean;
 }
@@ -40,6 +45,7 @@ export const TokenAmountInput = ({
   setSelectedToken,
   withWalletBalance = false,
   withShieldedBalance = false,
+  optionBalances,
   tokenFilter,
   isTokensLoading = false,
 }: TokenAmountInputInterface) => {
@@ -50,7 +56,7 @@ export const TokenAmountInput = ({
 
   const filteredTokens = useMemo(
     () => (tokenFilter ? erc20List.filter(tokenFilter) : erc20List),
-    [erc20List, tokenFilter]
+    [erc20List, tokenFilter],
   );
 
   useEffect(() => {
@@ -69,7 +75,7 @@ export const TokenAmountInput = ({
   const shieldedBalanceDisplay = useMemo(
     () =>
       selectedToken ? getTokenBalanceDisplay(balances, selectedToken) : null,
-    [balances, selectedToken]
+    [balances, selectedToken],
   );
 
   const isNative =
@@ -94,28 +100,28 @@ export const TokenAmountInput = ({
             ? await getTronNativeBalance(walletAddress)
             : await getTronErc20Balance(
                 selectedToken.erc20TokenAddress,
-                walletAddress
+                walletAddress,
               )
           : isSolanaNet
           ? solanaIsNative
             ? await getSolanaNativeBalance(walletAddress)
             : await getSolanaTokenBalance(
                 selectedToken.erc20TokenAddress,
-                walletAddress
+                walletAddress,
               )
           : isNative
           ? await getNativeBalance(chainId, walletAddress)
           : await getErc20Balance(
               chainId,
               selectedToken.erc20TokenAddress,
-              walletAddress
+              walletAddress,
             );
 
         if (!cancelled) {
           setWalletBalanceDisplay(
             `${Number(
-              ethers.formatUnits(balance, selectedToken.decimals)
-            ).toFixed(4)} ${selectedToken.symbol}`
+              ethers.formatUnits(balance, selectedToken.decimals),
+            ).toFixed(4)} ${selectedToken.symbol}`,
           );
         }
       } catch {
@@ -130,12 +136,26 @@ export const TokenAmountInput = ({
   }, [walletAddress, selectedToken, chainId, isNative]);
 
   const setTokenAmountHandler = (
-    event: React.ChangeEvent<HTMLInputElement>
+    event: React.ChangeEvent<HTMLInputElement>,
   ) => {
     const regExp = /^[0-9]*[.]?[0-9]*$/;
     if (regExp.test(event.target.value)) {
       setTokenAmount(event.target.value);
     }
+  };
+
+  const renderOptionBalance = (token: ERC20Token) => {
+    const balanceWei = optionBalances
+      ? optionBalances[token.erc20TokenAddress.toLowerCase()] ?? 0n
+      : withShieldedBalance
+      ? getTokenBalanceWei(balances, token)
+      : null;
+    if (balanceWei === null) return null;
+    return (
+      <span className="ml-auto mr-3 text-[12px] text-white">
+        {Number(getAmountInToken(token, balanceWei)).toFixed(4)}
+      </span>
+    );
   };
 
   return (
@@ -173,7 +193,7 @@ export const TokenAmountInput = ({
           {({ open }) => (
             <>
               <Listbox.Button
-                className={`h-10 px-2 md:px-0 text-white bg-hinkal-blue-900 rounded-l-lg ${
+                className={`h-10 px-2 md:px-0 hover:bg-hinkal-gray-300/50 transition-all duration-300 text-white bg-hinkal-blue-900 rounded-l-lg ${
                   open ? "rounded-l-[0px] rounded-tl-lg" : ""
                 } outline-none flex items-center justify-center gap-x-2 w-full ${
                   true ? "cursor-pointer" : "cursor-not-allowed"
@@ -230,9 +250,9 @@ export const TokenAmountInput = ({
                       <Listbox.Option
                         key={token.name + token.erc20TokenAddress}
                         value={token}
-                        className={`cursor-pointer py-2 flex items-center gap-x-2 pl-[8px] ${
+                        className={`cursor-pointer hover:bg-hinkal-gray-300/50 transition-all duration-300 py-2 flex items-center gap-x-2 pl-[8px] ${
                           token?.name === selectedToken?.name
-                            ? "bg-hinkal-gray-300"
+                            ? "bg-hinkal-gray-300/50"
                             : ""
                         } ${
                           index === filteredTokens.length - 1
@@ -246,6 +266,7 @@ export const TokenAmountInput = ({
                           className="w-[26px]"
                         />{" "}
                         <span>{token?.symbol}</span>
+                        {token && renderOptionBalance(token)}
                       </Listbox.Option>
                     ))
                   )}

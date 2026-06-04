@@ -41,11 +41,15 @@ export const Deposit = () => {
   const [depositAmount, setDepositAmount] = useState<string>("");
   const [isProcessing, setIsProcessing] = useState(false);
   const [ownedTokens, setOwnedTokens] = useState<Set<string>>(new Set());
+  const [walletBalances, setWalletBalances] = useState<Record<string, bigint>>(
+    {}
+  );
   const [isLoadingTokens, setIsLoadingTokens] = useState(false);
 
   useEffect(() => {
     if (!walletAddress || !chainId || !walletType || erc20List.length === 0) {
       setOwnedTokens(new Set());
+      setWalletBalances({});
       setIsLoadingTokens(false);
       return;
     }
@@ -60,6 +64,14 @@ export const Deposit = () => {
             balances
               .filter((b) => b.balance > 0n)
               .map((b) => b.token.erc20TokenAddress.toLowerCase())
+          )
+        );
+        setWalletBalances(
+          Object.fromEntries(
+            balances.map((b) => [
+              b.token.erc20TokenAddress.toLowerCase(),
+              b.balance,
+            ])
           )
         );
       })
@@ -202,6 +214,7 @@ export const Deposit = () => {
           setSelectedToken={setSelectedToken}
           withWalletBalance
           tokenFilter={tokenFilter}
+          optionBalances={walletBalances}
           isTokensLoading={isLoadingTokens}
         />
         <div className="w-[90%] mx-auto mb-6 mt-6 h-[1px] bg-hinkal-blue-900" />
