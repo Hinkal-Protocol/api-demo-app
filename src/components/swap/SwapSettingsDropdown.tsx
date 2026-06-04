@@ -21,7 +21,7 @@ export const SwapSettingsDropdown = ({
 
   const setTokenAmountHandler = (
     event: React.ChangeEvent<HTMLInputElement>,
-    setValue: (param: SetStateAction<string>) => void
+    setValue: (param: SetStateAction<string>) => void,
   ) => {
     const regExp = /^[0-9]*[.]?[0-9]*$/;
     if (regExp.test(event.target.value)) {
@@ -34,8 +34,7 @@ export const SwapSettingsDropdown = ({
     <Modal
       isOpen={swapSettingsDropdownShown}
       xBtnAction={() => setSwapSettingsDropdownShown(false)}
-      styleProps="md:w-[24.9%] md:left-[22%] top-[50%] rounded-[13px] bg-transparent "
-      stylePropsBg=" bg-transparent "
+      styleProps="md:w-[24.9%] md:left-1/2 -translate-x-1/2 top-[50%] rounded-[13px] bg-transparent "
     >
       <div className="text-white font-poppins bg-hinkal-blue-300 rounded-[13px] p-2">
         <p className="pl-2 text-[16px] font-[600]">Settings</p>
