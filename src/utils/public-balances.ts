@@ -18,7 +18,7 @@ const getTokenWalletBalance = (
   token: ERC20Token,
   walletAddress: string,
   chainId: number,
-  walletType: WalletType,
+  walletType: WalletType
 ): Promise<bigint> => {
   const address = token.erc20TokenAddress;
 
@@ -39,12 +39,11 @@ const getTokenWalletBalance = (
     : getErc20Balance(chainId, address, walletAddress);
 };
 
-
 export const getPublicBalances = (
   tokens: ERC20Token[],
   walletAddress: string,
   chainId: number,
-  walletType: WalletType,
+  walletType: WalletType
 ): Promise<PublicBalance[]> =>
   Promise.all(
     tokens.map(async (token) => ({
@@ -53,7 +52,7 @@ export const getPublicBalances = (
         token,
         walletAddress,
         chainId,
-        walletType,
+        walletType
       ).catch(() => 0n),
-    })),
+    }))
   );

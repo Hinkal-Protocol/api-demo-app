@@ -1,4 +1,4 @@
-import { ReactNode, SetStateAction, useEffect, useState } from "react";
+import { SetStateAction } from "react";
 import { Modal } from "../Modal";
 import { TokenDropdownButton } from "./TokenDropdownButton";
 import { useAppContext } from "../../AppContext";
@@ -12,18 +12,6 @@ interface TokenDropdownProps {
   tokenFilter?: (arg: ERC20Token) => boolean;
 }
 
-const splitTokenButtonsIntoRows = (
-  tokenButtons: ReactNode[],
-  itemsPerRow: number,
-) =>
-  tokenButtons.reduce(
-    (arr: ReactNode[][], button, index) =>
-      index % itemsPerRow
-        ? [...arr.slice(0, -1), [...arr[arr.length - 1], button]]
-        : [...arr, [button]],
-    [[]],
-  );
-
 export const TokenDropdown = ({
   isTokenSelectShown,
   setIsTokenSelectShown,
@@ -33,15 +21,6 @@ export const TokenDropdown = ({
 }: TokenDropdownProps) => {
   const { erc20List } = useAppContext();
   const filteredTokens = (erc20List ?? []).filter(tokenFilter);
-  const [itemsPerRow, setItemsPerRow] = useState(
-    window.innerWidth <= 500 ? 2 : 4,
-  );
-  useEffect(() => {
-    const onWindowSizeUpdate = () =>
-      setItemsPerRow(window.innerWidth <= 500 ? 2 : 3);
-    window.addEventListener("resize", onWindowSizeUpdate);
-    return () => window.removeEventListener("resize", onWindowSizeUpdate);
-  }, []);
 
   return (
     <Modal
@@ -50,35 +29,26 @@ export const TokenDropdown = ({
       xBtnAction={() => setIsTokenSelectShown(false)}
       styleProps="md:!w-[70%] md:!left-[15%] !top-[10%] xl:!w-[50%] xl:!left-[25%]"
       stylePropsBg=" opacity-[0.5] "
+      scrollBody={false}
     >
-      <div className="text-white font-poppins bg-hinkal-blue-300 ">
-        <p className="pt-3 pl-5 text-xl">Select a token</p>
-        <div className="w-full h-[1px] my-2 bg-[#525151b4]" />
-        <div className="p-8 pt-0">
-          <div className="flex flex-col item-center justify-center gap-2 mt-5">
+      <div className="text-white font-poppins bg-hinkal-blue-300 flex flex-col min-h-0">
+        <p className="pt-3 pl-5 text-xl shrink-0">Select a token</p>
+        <div className="w-full h-[1px] mt-2 bg-[#525151b4] shrink-0" />
+        <div className="p-8 pt-0 overflow-y-auto min-h-0">
+          <div className="flex flex-wrap items-center justify-center gap-2 mt-5">
             {filteredTokens.length === 0 ? (
               <p className="text-hinkal-white-300 text-sm text-center py-6">
                 No tokens available
               </p>
             ) : (
-              splitTokenButtonsIntoRows(
-                filteredTokens.map((token, jndex) => (
-                  <TokenDropdownButton
-                    key={jndex}
-                    token={token}
-                    swapToken={swapToken}
-                    onTokenChange={onTokenChange}
-                    setIsTokenSelectShown={setIsTokenSelectShown}
-                  />
-                )),
-                itemsPerRow,
-              ).map((buttons, index) => (
-                <div
-                  key={index}
-                  className="flex flex-row items-center justify-center gap-2"
-                >
-                  {buttons}
-                </div>
+              filteredTokens.map((token) => (
+                <TokenDropdownButton
+                  key={token.name + token.erc20TokenAddress}
+                  token={token}
+                  swapToken={swapToken}
+                  onTokenChange={onTokenChange}
+                  setIsTokenSelectShown={setIsTokenSelectShown}
+                />
               ))
             )}
           </div>

@@ -1,6 +1,7 @@
 import { Listbox } from "@headlessui/react";
 import { SetStateAction, useEffect, useMemo, useState } from "react";
 import { ethers } from "ethers";
+import { Spinner } from "./Spinner";
 import VectorDown from "../assets/VectorDown.svg";
 import { useAppContext } from "../AppContext";
 import { zeroAddress } from "../constants";
@@ -26,6 +27,7 @@ interface TokenAmountInputInterface {
   setSelectedToken: (param: SetStateAction<ERC20Token | undefined>) => void;
   withWalletBalance?: boolean;
   tokenFilter?: (token: ERC20Token) => boolean;
+  isTokensLoading?: boolean;
 }
 
 export const TokenAmountInput = ({
@@ -36,6 +38,7 @@ export const TokenAmountInput = ({
   setSelectedToken,
   withWalletBalance = false,
   tokenFilter,
+  isTokensLoading = false,
 }: TokenAmountInputInterface) => {
   const { erc20List, walletAddress, chainId, isSolana } = useAppContext();
   const [walletBalanceDisplay, setWalletBalanceDisplay] = useState<
@@ -44,7 +47,7 @@ export const TokenAmountInput = ({
 
   const filteredTokens = useMemo(
     () => (tokenFilter ? erc20List.filter(tokenFilter) : erc20List),
-    [erc20List, tokenFilter],
+    [erc20List, tokenFilter]
   );
 
   useEffect(() => {
@@ -53,9 +56,10 @@ export const TokenAmountInput = ({
       return;
     }
     setSelectedToken((prev) =>
-      prev && filteredTokens.some((t) => t.erc20TokenAddress === prev.erc20TokenAddress)
+      prev &&
+      filteredTokens.some((t) => t.erc20TokenAddress === prev.erc20TokenAddress)
         ? prev
-        : filteredTokens[0],
+        : filteredTokens[0]
     );
   }, [filteredTokens, setSelectedToken]);
 
@@ -81,28 +85,28 @@ export const TokenAmountInput = ({
             ? await getTronNativeBalance(walletAddress)
             : await getTronErc20Balance(
                 selectedToken.erc20TokenAddress,
-                walletAddress,
+                walletAddress
               )
           : isSolanaNet
           ? solanaIsNative
             ? await getSolanaNativeBalance(walletAddress)
             : await getSolanaTokenBalance(
                 selectedToken.erc20TokenAddress,
-                walletAddress,
+                walletAddress
               )
           : isNative
           ? await getNativeBalance(chainId, walletAddress)
           : await getErc20Balance(
               chainId,
               selectedToken.erc20TokenAddress,
-              walletAddress,
+              walletAddress
             );
 
         if (!cancelled) {
           setWalletBalanceDisplay(
             `${Number(
-              ethers.formatUnits(balance, selectedToken.decimals),
-            ).toFixed(4)} ${selectedToken.symbol}`,
+              ethers.formatUnits(balance, selectedToken.decimals)
+            ).toFixed(4)} ${selectedToken.symbol}`
           );
         }
       } catch {
@@ -117,7 +121,7 @@ export const TokenAmountInput = ({
   }, [walletAddress, selectedToken, chainId, isNative]);
 
   const setTokenAmountHandler = (
-    event: React.ChangeEvent<HTMLInputElement>,
+    event: React.ChangeEvent<HTMLInputElement>
   ) => {
     const regExp = /^[0-9]*[.]?[0-9]*$/;
     if (regExp.test(event.target.value)) {
@@ -167,6 +171,10 @@ export const TokenAmountInput = ({
                     )}
                     <span>{selectedToken.symbol}</span>
                   </>
+                ) : isTokensLoading ? (
+                  <span className="flex items-center gap-x-1 text-hinkal-gray-100 text-sm">
+                    <Spinner /> Loading
+                  </span>
                 ) : (
                   <span className="text-hinkal-gray-100 text-sm">
                     {walletAddress ? "Select token" : "Connect to select"}
@@ -181,24 +189,38 @@ export const TokenAmountInput = ({
                 )}
               </Listbox.Button>
               <Listbox.Options className="absolute w-full top-10 text-white flex flex-col bg-hinkal-blue-900 rounded-b-lg z-20 max-h-80 overflow-y-auto">
-                {filteredTokens.map((token, index) => (
-                  <Listbox.Option
-                    key={token.name + token.erc20TokenAddress}
-                    value={token}
-                    className={`cursor-pointer py-2 flex items-center gap-x-2 pl-[8px] ${
-                      token?.name === selectedToken?.name ? "bg-hinkal-gray-300" : ""
-                    } ${
-                      index === filteredTokens.length - 1 ? " rounded-b-lg" : ""
-                    }  `}
-                  >
-                    <img
-                      src={token?.logoURI}
-                      alt="tokenIcon"
-                      className="w-[26px]"
-                    />{" "}
-                    <span>{token?.symbol}</span>
-                  </Listbox.Option>
-                ))}
+                {isTokensLoading ? (
+                  <div className="flex items-center justify-center gap-x-2 py-3 text-sm text-hinkal-gray-100">
+                    <Spinner /> <span>Loading tokens</span>
+                  </div>
+                ) : filteredTokens.length === 0 ? (
+                  <div className="py-3 text-center text-sm text-hinkal-gray-100">
+                    No tokens available
+                  </div>
+                ) : (
+                  filteredTokens.map((token, index) => (
+                    <Listbox.Option
+                      key={token.name + token.erc20TokenAddress}
+                      value={token}
+                      className={`cursor-pointer py-2 flex items-center gap-x-2 pl-[8px] ${
+                        token?.name === selectedToken?.name
+                          ? "bg-hinkal-gray-300"
+                          : ""
+                      } ${
+                        index === filteredTokens.length - 1
+                          ? " rounded-b-lg"
+                          : ""
+                      }  `}
+                    >
+                      <img
+                        src={token?.logoURI}
+                        alt="tokenIcon"
+                        className="w-[26px]"
+                      />{" "}
+                      <span>{token?.symbol}</span>
+                    </Listbox.Option>
+                  ))
+                )}
               </Listbox.Options>
             </>
           )}

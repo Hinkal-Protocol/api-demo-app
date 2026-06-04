@@ -36,31 +36,36 @@ export const Deposit = () => {
   } = useAppContext();
 
   const [selectedToken, setSelectedToken] = useState<ERC20Token | undefined>(
-    undefined,
+    undefined
   );
   const [depositAmount, setDepositAmount] = useState<string>("");
   const [isProcessing, setIsProcessing] = useState(false);
   const [ownedTokens, setOwnedTokens] = useState<Set<string>>(new Set());
+  const [isLoadingTokens, setIsLoadingTokens] = useState(false);
 
   useEffect(() => {
     if (!walletAddress || !chainId || !walletType || erc20List.length === 0) {
       setOwnedTokens(new Set());
+      setIsLoadingTokens(false);
       return;
     }
 
     let cancelled = false;
-    getPublicBalances(erc20List, walletAddress, chainId, walletType).then(
-      (balances) => {
+    setIsLoadingTokens(true);
+    getPublicBalances(erc20List, walletAddress, chainId, walletType)
+      .then((balances) => {
         if (cancelled) return;
         setOwnedTokens(
           new Set(
             balances
               .filter((b) => b.balance > 0n)
-              .map((b) => b.token.erc20TokenAddress.toLowerCase()),
-          ),
+              .map((b) => b.token.erc20TokenAddress.toLowerCase())
+          )
         );
-      },
-    );
+      })
+      .finally(() => {
+        if (!cancelled) setIsLoadingTokens(false);
+      });
 
     return () => {
       cancelled = true;
@@ -70,7 +75,7 @@ export const Deposit = () => {
   const tokenFilter = useCallback(
     (token: ERC20Token) =>
       ownedTokens.has(token.erc20TokenAddress.toLowerCase()),
-    [ownedTokens],
+    [ownedTokens]
   );
 
   const handleDeposit = useCallback(async () => {
@@ -91,7 +96,7 @@ export const Deposit = () => {
             solanaProvider,
             chainId,
             [tokenAddr],
-            [amountStr],
+            [amountStr]
           );
         const serializedTx = await deposit(
           null,
@@ -100,11 +105,11 @@ export const Deposit = () => {
           chainId,
           [tokenAddr],
           [amountStr],
-          buildReadOnlyAuth,
+          buildReadOnlyAuth
         );
         await broadcastSolanaTransaction(
           solanaProvider,
-          serializedTx as string,
+          serializedTx as string
         );
       } else if (isTron) {
         const tokenAddr = selectedToken.erc20TokenAddress;
@@ -118,13 +123,13 @@ export const Deposit = () => {
           chainId,
           [tokenAddr],
           [amountStr],
-          buildReadOnlyAuth,
+          buildReadOnlyAuth
         );
         await approveAndBroadcastTronDepositTx(
           txData,
           amountInWei,
           selectedToken.erc20TokenAddress,
-          walletAddress,
+          walletAddress
         );
       } else {
         const signer = await getEthersSigner();
@@ -134,14 +139,14 @@ export const Deposit = () => {
           walletAddress,
           chainId,
           [selectedToken.erc20TokenAddress],
-          [amountInWei.toString()],
+          [amountInWei.toString()]
         );
         if (selectedToken.erc20TokenAddress !== zeroAddress) {
           await approveErc20(
             signer,
             selectedToken.erc20TokenAddress,
             (txData as { to: string }).to,
-            amountInWei,
+            amountInWei
           );
         }
         await sendTx(signer, {
@@ -177,7 +182,7 @@ export const Deposit = () => {
 
   const isDisabled = useMemo(
     () => !walletAddress || !selectedToken || !depositAmount || isProcessing,
-    [walletAddress, selectedToken, depositAmount, isProcessing],
+    [walletAddress, selectedToken, depositAmount, isProcessing]
   );
 
   return (
@@ -191,6 +196,7 @@ export const Deposit = () => {
           setSelectedToken={setSelectedToken}
           withWalletBalance
           tokenFilter={tokenFilter}
+          isTokensLoading={isLoadingTokens}
         />
         <div className="w-[90%] mx-auto mb-6 mt-6 h-[1px] bg-hinkal-blue-900" />
         <div className="border-solid">
