@@ -58,7 +58,7 @@ export const Swap = () => {
 
   const inSwapBalanceDisplay = useMemo(
     () => (inSwapToken ? getTokenBalanceDisplay(balances, inSwapToken) : null),
-    [balances, inSwapToken]
+    [balances, inSwapToken],
   );
 
   const [feeStructure, setFeeStructure] = useState<FeeStructure | undefined>();
@@ -90,7 +90,7 @@ export const Swap = () => {
       feeToken,
       [inSwapToken.erc20TokenAddress, outSwapToken.erc20TokenAddress],
       quotedData.externalActionId,
-      HINKAL_SWAP_VARIABLE_RATE.toString()
+      HINKAL_SWAP_VARIABLE_RATE.toString(),
     )
       .then((fee) => {
         if (!cancelled) setFeeStructure(fee);
@@ -165,7 +165,7 @@ export const Swap = () => {
           inSwapToken.erc20TokenAddress,
           outSwapToken.erc20TokenAddress,
           inSwapAmount,
-          parseFloat(slippageTolerance)
+          parseFloat(slippageTolerance),
         );
         if (!cancelled) {
           setQuotedData(result);
@@ -173,7 +173,7 @@ export const Swap = () => {
       } catch (err) {
         if (!cancelled) {
           toast.error(
-            err instanceof Error ? err.message : "Quote fetch failed"
+            err instanceof Error ? err.message : "Quote fetch failed",
           );
         }
       } finally {
@@ -201,7 +201,7 @@ export const Swap = () => {
       outSwapToken && quotedData
         ? getAmountInToken(outSwapToken, quotedData.outSwapAmount)
         : "",
-    [outSwapToken, quotedData]
+    [outSwapToken, quotedData],
   );
 
   const isReadyForSwap = useMemo(
@@ -211,7 +211,7 @@ export const Swap = () => {
       !!inSwapToken &&
       !!outSwapToken &&
       !!quotedData,
-    [inSwapAmount, inSwapToken, outSwapToken, quotedData]
+    [inSwapAmount, inSwapToken, outSwapToken, quotedData],
   );
 
   const handleReset = () => {
@@ -245,7 +245,7 @@ export const Swap = () => {
         outSwapToken,
         inSwapAmount,
         quotedData,
-        isSolana && solanaProvider ? solanaProvider : undefined
+        isSolana && solanaProvider ? solanaProvider : undefined,
       );
       handleReset();
       refreshBalancesSoon();
@@ -270,7 +270,7 @@ export const Swap = () => {
 
   const setTokenAmountHandler = (
     event: React.ChangeEvent<HTMLInputElement>,
-    setValue: (value: string) => void
+    setValue: (value: string) => void,
   ) => {
     if (/^[0-9]*[.]?[0-9]*$/.test(event.target.value)) {
       setValue(event.target.value);
@@ -303,7 +303,7 @@ export const Swap = () => {
           <input
             type="text"
             placeholder="0"
-            className="w-[96%] grow bg-transparent rounded-lg ml-[5%] text-[16px] pl-2 outline-none placeholder:text-[13.5px] text-white text-4xl placeholder:text-4xl"
+            className="w-[96%] grow bg-transparent rounded-lg ml-[5%] text-[20px] pl-2 outline-none placeholder:text-[20px] text-white text-4xl placeholder:text-4xl"
             disabled={isProcessing}
             onChange={(event) => setTokenAmountHandler(event, setInSwapAmount)}
             value={inSwapAmount}
