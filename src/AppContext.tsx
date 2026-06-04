@@ -14,6 +14,7 @@ import {
 import toast from "react-hot-toast";
 import { networkRegistry } from "./constants/chain.constants";
 import { fetchBalances, fetchStuckUtxoBalances } from "./utils/balance";
+import { getPublicBalances } from "./utils/public-balances";
 import { createEnclaveSession } from "./utils/session";
 import { getFriendlyErrorMessage } from "./utils/errors";
 import type { EnclaveSession } from "./utils/types";
@@ -53,6 +54,9 @@ type AppContextArgumnets = {
   stuckUtxoBalances: TokenBalance[];
   refreshBalances: () => Promise<void>;
   refreshBalancesSoon: (delaysMs?: number[]) => Promise<void>;
+  walletBalances: Record<string, bigint>;
+  isWalletBalancesLoading: boolean;
+  refreshWalletBalances: () => Promise<void>;
 };
 
 const BALANCE_REFRESH_INTERVAL = 100000;
@@ -86,6 +90,9 @@ const AppContext = createContext<AppContextArgumnets>({
   stuckUtxoBalances: [],
   refreshBalances: async () => {},
   refreshBalancesSoon: async () => {},
+  walletBalances: {},
+  isWalletBalancesLoading: false,
+  refreshWalletBalances: async () => {},
 });
 
 type AppContextProps = { children: ReactNode };
@@ -108,6 +115,10 @@ export const AppContextProvider: FC<AppContextProps> = ({
   const [stuckUtxoBalances, setStuckUtxoBalances] = useState<TokenBalance[]>(
     []
   );
+  const [walletBalances, setWalletBalances] = useState<Record<string, bigint>>(
+    {}
+  );
+  const [isWalletBalancesLoading, setIsWalletBalancesLoading] = useState(false);
   const abortControllerRef = useRef<AbortController | null>(null);
   const prevChainIdRef = useRef<number | undefined>();
 
@@ -248,6 +259,40 @@ export const AppContextProvider: FC<AppContextProps> = ({
     };
   }, [dataLoaded, chainId, refreshBalances]);
 
+  const refreshWalletBalances = useCallback(async () => {
+    if (!walletAddress || !chainId || !walletType || erc20List.length === 0) {
+      setWalletBalances({});
+      return;
+    }
+    setIsWalletBalancesLoading(true);
+    try {
+      const balances = await getPublicBalances(
+        erc20List,
+        walletAddress,
+        chainId,
+        walletType
+      );
+      setWalletBalances(
+        Object.fromEntries(
+          balances.map((b) => [
+            b.token.erc20TokenAddress.toLowerCase(),
+            b.balance,
+          ])
+        )
+      );
+    } finally {
+      setIsWalletBalancesLoading(false);
+    }
+  }, [walletAddress, chainId, walletType, erc20List]);
+
+  useEffect(() => {
+    if (!walletAddress || !chainId || !walletType || erc20List.length === 0) {
+      setWalletBalances({});
+      return;
+    }
+    refreshWalletBalances();
+  }, [walletAddress, chainId, walletType, erc20List, refreshWalletBalances]);
+
   return (
     <AppContext.Provider
       value={{
@@ -273,6 +318,9 @@ export const AppContextProvider: FC<AppContextProps> = ({
         stuckUtxoBalances,
         refreshBalances,
         refreshBalancesSoon,
+        walletBalances,
+        isWalletBalancesLoading,
+        refreshWalletBalances,
         walletType,
         setWalletType,
         isTron,
