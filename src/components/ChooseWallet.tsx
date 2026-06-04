@@ -199,15 +199,15 @@ export const ChooseWallet = ({
       xBtn
       xBtnAction={onHide}
       isOpen={isOpen}
-      styleProps="md:w-[30%] md:ml-[5%] !bg-white rounded-[10px]"
-      stylePropsBg="bg-[#000000b2]"
-      xBtnStyleProps="text-black font-black"
+      styleProps="md:w-[30%] md:ml-[5%] !bg-hinkal-blue-300 rounded-[10px]"
+      stylePropsBg="bg-[#000000cc]"
+      xBtnStyleProps="text-white font-black"
     >
-      <h1 className="font-[500] text-2xl p-5">Select Wallet</h1>
+      <h1 className="font-[500] text-2xl p-5 text-white">Select Wallet</h1>
       <div className="px-5 pb-2 flex items-center justify-between gap-3">
-        <div className="text-sm text-[#333]">
+        <div className="text-sm text-white">
           <p className="font-semibold">24h session for transactions</p>
-          <p className="text-[#666] text-xs mt-0.5">
+          <p className="text-hinkal-gray-100 text-xs mt-0.5">
             {writeAccessEnabled
               ? "Reuse one signature for txs for 24 hours"
               : "Read-only session; each tx requires a new signature"}
@@ -227,7 +227,7 @@ export const ChooseWallet = ({
           )
           .map((connector) => (
             <button
-              className="bg-modal px-4 py-2 min-w-[180px] w-[80%] rounded-lg border-[2.5px] border-hinkal-white-200 hover:border-hinkal-gray-100 font-bold transition-all duration-300 flex items-center justify-start gap-x-3"
+              className="bg-hinkal-blue-900 text-white px-4 py-2 min-w-[180px] w-[80%] rounded-lg border-[2.5px] border-hinkal-blue-200 hover:border-hinkal-lavender-200 hover:bg-hinkal-blue-200 font-bold transition-all duration-300 flex items-center justify-start gap-x-3"
               type="button"
               disabled={!!connectingId}
               key={connector.id}
@@ -269,7 +269,7 @@ export const ChooseWallet = ({
           ))}
         {!isMobile && (
           <button
-            className="bg-modal px-4 py-2 min-w-[180px] w-[80%] rounded-lg border-[2.5px] border-hinkal-white-200 hover:border-hinkal-gray-100 font-bold transition-all duration-300 flex items-center justify-start gap-x-3"
+            className="bg-hinkal-blue-900 text-white px-4 py-2 min-w-[180px] w-[80%] rounded-lg border-[2.5px] border-hinkal-blue-200 hover:border-hinkal-lavender-200 hover:bg-hinkal-blue-200 font-bold transition-all duration-300 flex items-center justify-start gap-x-3"
             type="button"
             disabled={!!connectingId}
             onClick={handleConnectTronLink}
@@ -285,7 +285,7 @@ export const ChooseWallet = ({
         )}
         {!isMobile && (
           <button
-            className="bg-modal px-4 py-2 min-w-[180px] w-[80%] rounded-lg border-[2.5px] border-hinkal-white-200 hover:border-hinkal-gray-100 font-bold transition-all duration-300 flex items-center justify-start gap-x-3"
+            className="bg-hinkal-blue-900 text-white px-4 py-2 min-w-[180px] w-[80%] rounded-lg border-[2.5px] border-hinkal-blue-200 hover:border-hinkal-lavender-200 hover:bg-hinkal-blue-200 font-bold transition-all duration-300 flex items-center justify-start gap-x-3"
             type="button"
             disabled={!!connectingId}
             onClick={() => handleConnectSolana("phantom")}
@@ -301,7 +301,7 @@ export const ChooseWallet = ({
         )}
         {!isMobile && (
           <button
-            className="bg-modal px-4 py-2 min-w-[180px] w-[80%] rounded-lg border-[2.5px] border-hinkal-white-200 hover:border-hinkal-gray-100 font-bold transition-all duration-300 flex items-center justify-start gap-x-3"
+            className="bg-hinkal-blue-900 text-white px-4 py-2 min-w-[180px] w-[80%] rounded-lg border-[2.5px] border-hinkal-blue-200 hover:border-hinkal-lavender-200 hover:bg-hinkal-blue-200 font-bold transition-all duration-300 flex items-center justify-start gap-x-3"
             type="button"
             disabled={!!connectingId}
             onClick={() => handleConnectSolana("solflare")}
@@ -317,7 +317,7 @@ export const ChooseWallet = ({
         )}
         {!isMobile && (
           <button
-            className="bg-modal px-4 py-2 min-w-[180px] w-[80%] rounded-lg border-[2.5px] border-hinkal-white-200 hover:border-hinkal-gray-100 font-bold transition-all duration-300 flex items-center justify-start gap-x-3"
+            className="bg-hinkal-blue-900 text-white px-4 py-2 min-w-[180px] w-[80%] rounded-lg border-[2.5px] border-hinkal-blue-200 hover:border-hinkal-lavender-200 hover:bg-hinkal-blue-200 font-bold transition-all duration-300 flex items-center justify-start gap-x-3"
             type="button"
             disabled={!!connectingId}
             onClick={() => handleConnectSolana("metamask")}
