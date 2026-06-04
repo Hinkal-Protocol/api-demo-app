@@ -22,7 +22,7 @@ export const NavigationBar = ({
     [chainId],
   );
   return (
-    <div className="mt-[4%] xl:flex h-12 mb-4 text-[15px] font-semibold border-b border-[#3e3c3c] block relative">
+    <div className="mt-[4%] xl:flex h-12 mb-4 text-[15px] font-semibold border-b border-hinkal-blue-200 block relative">
       <div className="flex xl:h-full h-1 xl:py-0 py-2 w-full align-top">
         <div className={buttonClassName}>
           <TabButton

@@ -6,7 +6,7 @@
 @tailwind utilities;
 
 body {
-  background-color: rgba(37, 37, 41, 255);
+  background-color: #14141f;
 }
 
 .landingPageDescriptionBG {

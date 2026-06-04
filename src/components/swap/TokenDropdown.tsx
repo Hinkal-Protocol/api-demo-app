@@ -50,7 +50,7 @@ export const TokenDropdown = ({
       styleProps="md:!w-[70%] md:!left-[15%] !top-[10%] xl:!w-[50%] xl:!left-[25%]"
       stylePropsBg=" opacity-[0.5] "
     >
-      <div className="text-white font-poppins bg-[#202426] ">
+      <div className="text-white font-poppins bg-hinkal-blue-300 ">
         <p className="pt-3 pl-5 text-xl">Select a token</p>
         <div className="w-full h-[1px] my-2 bg-[#525151b4]" />
         <div className="p-8 pt-0">

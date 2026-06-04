@@ -31,8 +31,8 @@ export const ButtonGroupWithLabel: React.FC<ButtonGroupWithLabelProps> = ({
           disabled={disabled}
           className={`px-4 py-2 rounded-lg text-sm font-[400] transition-colors ${
             selected === option
-              ? "bg-[#E8E6FF] text-[#1a1b1f]"
-              : "bg-[#272B30] text-white hover:bg-[#33383d]"
+              ? "bg-hinkal-white-400 text-hinkal-blue-400"
+              : "bg-hinkal-blue-900 text-white hover:bg-hinkal-blue-900"
           }`}
         >
           {option === "instantly" ? "Instantly" : option}

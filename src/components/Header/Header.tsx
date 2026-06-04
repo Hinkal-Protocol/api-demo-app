@@ -13,7 +13,7 @@ export const Header = () => {
   const { walletAddress } = useAppContext();
 
   return (
-    <header className="md:bg-[#1A1D1F] pt-4 md:pt-0 pb-4 relative z-20">
+    <header className="md:bg-hinkal-blue-200 pt-4 md:pt-0 pb-4 relative z-20">
       <ChooseWallet
         isOpen={chooseWalletShown}
         onHide={() => setChooseWalletShown(false)}

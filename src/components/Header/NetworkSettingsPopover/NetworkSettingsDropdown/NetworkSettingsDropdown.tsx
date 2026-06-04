@@ -51,7 +51,7 @@ export const NetworkSettingsDropdown = ({
             onSelect={() => switchNetwork?.(chainId)}
           />
           {index !== networkList.length - 1 && (
-            <div className="border-b-[1px] mt-1 border-[#36393D] mx-[0.6rem]" />
+            <div className="border-b-[1px] mt-1 border-hinkal-blue-900 mx-[0.6rem]" />
           )}
         </div>
       ))}

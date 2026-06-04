@@ -142,10 +142,10 @@ export const WalletInfoDropDown = () => {
   );
 
   return (
-    <div className="absolute min-w-max top-20 md:top-2 left-0 md:left-auto right-0 bg-[#272B30] rounded-xl shadow-metamask font-pubsans p-4 items-center max-content">
+    <div className="absolute min-w-max top-20 md:top-2 left-0 md:left-auto right-0 bg-hinkal-blue-900 rounded-xl shadow-metamask font-pubsans p-4 items-center max-content">
       <div className="flex items-center space-x-4">
         <div className="w-[26px]" />
-        <p className="text-[#abaeaf] text-[12px] text-left">Private Balance</p>
+        <p className="text-hinkal-white-300 text-[12px] text-left">Private Balance</p>
       </div>
       <div className="flex flex-col justify-center gap-4 mb-[10%]">
         {visibleBalances.length > 0 ? (
@@ -156,13 +156,13 @@ export const WalletInfoDropDown = () => {
             />
           ))
         ) : (
-          <p className="text-[#abaeaf] text-[13px]">No private balance</p>
+          <p className="text-hinkal-white-300 text-[13px]">No private balance</p>
         )}
       </div>
 
       {visibleStuckUtxoBalances.length > 0 && (
-        <div className="border-t-2 border-[#36393D] pt-3 mb-[10%]">
-          <p className="text-[#abaeaf] text-[12px] text-left mb-3">
+        <div className="border-t-2 border-hinkal-blue-900 pt-3 mb-[10%]">
+          <p className="text-hinkal-white-300 text-[12px] text-left mb-3">
             Stuck Balances
           </p>
           <div className="flex flex-col justify-center gap-4">
@@ -182,7 +182,7 @@ export const WalletInfoDropDown = () => {
                     onClick={() =>
                       handleWithdrawStuckUtxos(tokenBalance.tokenAddress)
                     }
-                    className="rounded-md bg-primary px-3 py-1 text-[12px] font-semibold text-white hover:bg-[#4d32fa] disabled:cursor-not-allowed disabled:opacity-50"
+                    className="rounded-md bg-primary px-3 py-1 text-[12px] font-semibold text-white hover:bg-hinkal-purple-200 disabled:cursor-not-allowed disabled:opacity-50"
                   >
                     {isWithdrawing ? (
                       <span className="flex items-center gap-x-1">
@@ -199,7 +199,7 @@ export const WalletInfoDropDown = () => {
         </div>
       )}
 
-      <div className="border-t-2 md:text-[15px] border-[#36393D]">
+      <div className="border-t-2 md:text-[15px] border-hinkal-blue-900">
         <button
           type="button"
           className="block w-full text-left"

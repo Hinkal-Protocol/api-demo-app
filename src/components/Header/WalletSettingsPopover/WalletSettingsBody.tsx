@@ -17,7 +17,7 @@ export const WalletSettingsBody = ({
       <Popover.Button
         as="button"
         type="button"
-        className="flex flex-row gap-2 items-center border-[2px] border-solid border-[#624BFF] rounded-xl text-white text-base py-3 px-4 relative z-20"
+        className="flex flex-row gap-2 items-center border-[2px] border-solid border-primary rounded-xl text-white text-base py-3 px-4 relative z-20"
       >
         <span>{shortenAddress(shieldedAddress ?? "")}</span>
 

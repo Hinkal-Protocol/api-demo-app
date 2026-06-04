@@ -30,7 +30,7 @@ export const NetworkDropdownItem = ({
       disabled={isPending}
       onClick={onSelect}
       className={
-        "py-1 px-2 hover:bg-[#4f4f4f] w-full md:w-[220px] flex flex-col"
+        "py-1 px-2 hover:bg-hinkal-gray-400 w-full md:w-[220px] flex flex-col"
       }
     >
       <div className="w-full flex items-center justify-between">
@@ -45,7 +45,7 @@ export const NetworkDropdownItem = ({
         </div>
       </div>
       {isCurrentChainPending && (
-        <p className="text-[12px] text-[#aaabac]">Approve in wallet</p>
+        <p className="text-[12px] text-hinkal-white-300">Approve in wallet</p>
       )}
     </button>
   );

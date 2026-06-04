@@ -116,7 +116,7 @@ export const TokenAmountInput = ({
         <div className="flex justify-between items-center pl-[5%] pr-[5%]">
           <label className="text-white text-[14px] font-[300]">Token</label>
           {walletBalanceDisplay && (
-            <span className="text-[#9ca3af] text-[12px]">
+            <span className="text-hinkal-gray-100 text-[12px]">
               Wallet: {walletBalanceDisplay}
             </span>
           )}
@@ -135,7 +135,7 @@ export const TokenAmountInput = ({
           {({ open }) => (
             <>
               <Listbox.Button
-                className={`h-10 px-2 md:px-0 text-white bg-[#353945] rounded-l-lg ${
+                className={`h-10 px-2 md:px-0 text-white bg-hinkal-blue-900 rounded-l-lg ${
                   open ? "rounded-l-[0px] rounded-tl-lg" : ""
                 } outline-none flex items-center justify-center gap-x-2 w-full ${
                   true ? "cursor-pointer" : "cursor-not-allowed"
@@ -153,7 +153,7 @@ export const TokenAmountInput = ({
                     <span>{selectedToken.symbol}</span>
                   </>
                 ) : (
-                  <span className="text-[#9ca3af] text-sm">
+                  <span className="text-hinkal-gray-100 text-sm">
                     {walletAddress ? "Select token" : "Connect to select"}
                   </span>
                 )}
@@ -165,13 +165,13 @@ export const TokenAmountInput = ({
                   </div>
                 )}
               </Listbox.Button>
-              <Listbox.Options className="absolute w-full top-10 text-white flex flex-col bg-[#272B30] rounded-b-lg z-20 max-h-80 overflow-y-auto">
+              <Listbox.Options className="absolute w-full top-10 text-white flex flex-col bg-hinkal-blue-900 rounded-b-lg z-20 max-h-80 overflow-y-auto">
                 {erc20List.map((token, index) => (
                   <Listbox.Option
                     key={token.name + token.erc20TokenAddress}
                     value={token}
                     className={`cursor-pointer py-2 flex items-center gap-x-2 pl-[8px] ${
-                      token?.name === selectedToken?.name ? "bg-[#64717d]" : ""
+                      token?.name === selectedToken?.name ? "bg-hinkal-gray-300" : ""
                     } ${
                       index === erc20List.length - 1 ? " rounded-b-lg" : ""
                     }  `}
@@ -193,7 +193,7 @@ export const TokenAmountInput = ({
           type="text"
           id="totalAmount"
           placeholder="Token amount"
-          className={`bg-[#272B30] h-10 w-[50%] min-[375px]:w-[60%] lg:w-[65%] text-white text-[14px] rounded-r-lg pl-[15px] outline-none ${
+          className={`bg-hinkal-blue-900 h-10 w-[50%] min-[375px]:w-[60%] lg:w-[65%] text-white text-[14px] rounded-r-lg pl-[15px] outline-none ${
             true ? "" : "cursor-not-allowed"
           } `}
           disabled={false}

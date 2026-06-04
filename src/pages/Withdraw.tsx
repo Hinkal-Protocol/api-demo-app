@@ -131,7 +131,7 @@ export const Withdraw = () => {
           <input
             type="text"
             placeholder="Please paste address here"
-            className="bg-[#272B30] h-10 w-[90%] ml-[5%] rounded-lg mb-4 pl-2 outline-none placeholder:text-[13.5px] mt-1"
+            className="bg-hinkal-blue-900 h-10 w-[90%] ml-[5%] rounded-lg mb-4 pl-2 outline-none placeholder:text-[13.5px] mt-1"
             disabled={isProcessing}
             onChange={setRecipientAddressHandler}
             value={recipientAddress}
@@ -153,7 +153,7 @@ export const Withdraw = () => {
             Withdraw without relayer
           </label>
         </div>
-        <div className="w-[90%] mx-auto mb-4 mt-2 h-[1px] bg-[#272B30]" />
+        <div className="w-[90%] mx-auto mb-4 mt-2 h-[1px] bg-hinkal-blue-900" />
         <div className="border-solid">
           <button
             type="submit"
@@ -161,8 +161,8 @@ export const Withdraw = () => {
             onClick={handleWithdraw}
             className={`w-[90%] mb-3 mx-[5%] rounded-lg h-10 mt-3 text-sm font-semibold outline-none ${
               !isDisabled
-                ? "bg-primary text-white hover:bg-[#4d32fa] duration-200"
-                : "bg-[#37363d] text-[#848688] cursor-not-allowed"
+                ? "bg-primary text-white hover:bg-hinkal-purple-200 duration-200"
+                : "bg-hinkal-blue-900 text-hinkal-gray-200 cursor-not-allowed"
             } `}
           >
             {isProcessing ? (

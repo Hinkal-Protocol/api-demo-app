@@ -28,7 +28,7 @@ export const Modal = ({
       onClick={xBtnAction}
     />
     <div
-      className={`fixed w-[90%] bg-black border-[1px] border-solid border-[#4d4d4d] rounded md:w-2/5 left-[5%] top-[20%] md:left-[30%] z-[100]
+      className={`fixed w-[90%] bg-black border-[1px] border-solid border-hinkal-gray-400 rounded md:w-2/5 left-[5%] top-[20%] md:left-[30%] z-[100]
     max-h-[80vh] overflow-y-auto
     ${styleProps}
     ${
@@ -44,7 +44,7 @@ export const Modal = ({
           onClick={xBtnAction}
         >
           <i
-            className={`bi bi-x text-[26px] hover:text-[#acaaaa] ${xBtnStyleProps} `}
+            className={`bi bi-x text-[26px] hover:text-hinkal-white-300 ${xBtnStyleProps} `}
           />
         </button>
       )}

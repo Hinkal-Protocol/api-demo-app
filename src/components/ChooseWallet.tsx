@@ -221,7 +221,7 @@ export const ChooseWallet = ({
           )
           .map((connector) => (
             <button
-              className="bg-modal px-4 py-2 min-w-[180px] w-[80%] rounded-lg border-[2.5px] border-[#f0f0f0] hover:border-[#9c9c9c] font-bold duration-150 flex items-center justify-center gap-x-3"
+              className="bg-modal px-4 py-2 min-w-[180px] w-[80%] rounded-lg border-[2.5px] border-hinkal-white-200 hover:border-hinkal-gray-100 font-bold duration-150 flex items-center justify-center gap-x-3"
               type="button"
               disabled={!!connectingId}
               key={connector.id}
@@ -254,7 +254,7 @@ export const ChooseWallet = ({
           ))}
         {!isMobile && (
           <button
-            className="bg-modal px-4 py-2 min-w-[180px] w-[80%] rounded-lg border-[2.5px] border-[#f0f0f0] hover:border-[#9c9c9c] font-bold duration-150 flex items-center justify-center gap-x-3"
+            className="bg-modal px-4 py-2 min-w-[180px] w-[80%] rounded-lg border-[2.5px] border-hinkal-white-200 hover:border-hinkal-gray-100 font-bold duration-150 flex items-center justify-center gap-x-3"
             type="button"
             disabled={!!connectingId}
             onClick={handleConnectTronLink}
@@ -265,7 +265,7 @@ export const ChooseWallet = ({
         )}
         {!isMobile && (
           <button
-            className="bg-modal px-4 py-2 min-w-[180px] w-[80%] rounded-lg border-[2.5px] border-[#f0f0f0] hover:border-[#9c9c9c] font-bold duration-150 flex items-center justify-center gap-x-3"
+            className="bg-modal px-4 py-2 min-w-[180px] w-[80%] rounded-lg border-[2.5px] border-hinkal-white-200 hover:border-hinkal-gray-100 font-bold duration-150 flex items-center justify-center gap-x-3"
             type="button"
             disabled={!!connectingId}
             onClick={() => handleConnectSolana("phantom")}
@@ -276,7 +276,7 @@ export const ChooseWallet = ({
         )}
         {!isMobile && (
           <button
-            className="bg-modal px-4 py-2 min-w-[180px] w-[80%] rounded-lg border-[2.5px] border-[#f0f0f0] hover:border-[#9c9c9c] font-bold duration-150 flex items-center justify-center gap-x-3"
+            className="bg-modal px-4 py-2 min-w-[180px] w-[80%] rounded-lg border-[2.5px] border-hinkal-white-200 hover:border-hinkal-gray-100 font-bold duration-150 flex items-center justify-center gap-x-3"
             type="button"
             disabled={!!connectingId}
             onClick={() => handleConnectSolana("solflare")}
@@ -287,7 +287,7 @@ export const ChooseWallet = ({
         )}
         {!isMobile && (
           <button
-            className="bg-modal px-4 py-2 min-w-[180px] w-[80%] rounded-lg border-[2.5px] border-[#f0f0f0] hover:border-[#9c9c9c] font-bold duration-150 flex items-center justify-center gap-x-3"
+            className="bg-modal px-4 py-2 min-w-[180px] w-[80%] rounded-lg border-[2.5px] border-hinkal-white-200 hover:border-hinkal-gray-100 font-bold duration-150 flex items-center justify-center gap-x-3"
             type="button"
             disabled={!!connectingId}
             onClick={() => handleConnectSolana("metamask")}

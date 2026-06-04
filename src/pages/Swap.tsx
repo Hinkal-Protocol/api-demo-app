@@ -183,7 +183,7 @@ export const Swap = () => {
         />
       </div>
       <div className="flex flex-col gap-y-1 mb-4">
-        <div className="flex items-center justify-center bg-[#272B30] w-[96%] mx-auto rounded-xl py-5">
+        <div className="flex items-center justify-center bg-hinkal-blue-900 w-[96%] mx-auto rounded-xl py-5">
           <input
             type="text"
             placeholder="0"
@@ -214,7 +214,7 @@ export const Swap = () => {
             setOutSwapToken(inSwapToken);
           }}
         />
-        <div className="bg-[#272B30] flex w-[96%] mx-auto rounded-xl py-5">
+        <div className="bg-hinkal-blue-900 flex w-[96%] mx-auto rounded-xl py-5">
           <input
             type="text"
             placeholder="0"
@@ -241,7 +241,7 @@ export const Swap = () => {
         {(isReadyForSwap || isPriceLoading) && (
           <div
             onClick={() => setPriceDetailsShown((prev) => !prev)}
-            className="bg-[#272B30] w-[96%] mx-auto rounded-xl py-5"
+            className="bg-hinkal-blue-900 w-[96%] mx-auto rounded-xl py-5"
           >
             <div className="flex justify-between items-center mr-[6%]">
               <div className="mx-[6%] flex items-center gap-x-2">
@@ -266,7 +266,7 @@ export const Swap = () => {
           </div>
         )}
       </div>
-      <div className="w-[90%] mx-auto mb-4 mt-[20px] h-[1px] bg-[#272B30]" />
+      <div className="w-[90%] mx-auto mb-4 mt-[20px] h-[1px] bg-hinkal-blue-900" />
       <div className="border-solid">
         <button
           type="button"
@@ -274,8 +274,8 @@ export const Swap = () => {
           onClick={handleSwap}
           className={`w-[90%] ml-[5%] mb-3 md:mx-[5%] rounded-lg h-10 mt-3 text-sm font-semibold outline-none ${
             swapButtonText() === "Swap" && !isProcessing
-              ? "bg-primary text-white hover:bg-[#4d32fa] duration-200"
-              : "bg-[#37363d] text-[#848688] cursor-not-allowed"
+              ? "bg-primary text-white hover:bg-hinkal-purple-200 duration-200"
+              : "bg-hinkal-blue-900 text-hinkal-gray-200 cursor-not-allowed"
           }`}
         >
           {isProcessing ? (

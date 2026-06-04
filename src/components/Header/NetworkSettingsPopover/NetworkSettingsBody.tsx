@@ -10,7 +10,7 @@ export const NetworkSettingsBody = ({ open }: NetworkSettingsBodyProps) => {
   const { selectedNetwork, isTron } = useAppContext();
   if (isTron) {
     return (
-      <div className="rounded-[12px] text-white font-semibold flex items-center gap-2 px-3 min-[375px]:px-4 py-[0.875rem] text-base bg-[#2c2a2a]">
+      <div className="rounded-[12px] text-white font-semibold flex items-center gap-2 px-3 min-[375px]:px-4 py-[0.875rem] text-base bg-hinkal-blue-200">
         <div>{selectedNetwork?.name || "Unsupported Network"}</div>
       </div>
     );
@@ -21,7 +21,7 @@ export const NetworkSettingsBody = ({ open }: NetworkSettingsBodyProps) => {
       <Popover.Button
         as="button"
         type="button"
-        className="rounded-[12px] text-white font-semibold flex items-center gap-2 cursor-pointer duration-500 px-3 min-[375px]:px-4 py-[0.875rem] text-base bg-[#2c2a2a] relative z-20"
+        className="rounded-[12px] text-white font-semibold flex items-center gap-2 cursor-pointer duration-500 px-3 min-[375px]:px-4 py-[0.875rem] text-base bg-hinkal-blue-200 relative z-20"
       >
         {!selectedNetwork && (
           <i className="bi bi-exclamation-triangle text-white" />
