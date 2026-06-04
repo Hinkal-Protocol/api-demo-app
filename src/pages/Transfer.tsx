@@ -38,6 +38,12 @@ export const Transfer = () => {
   const [transferAddress, setTransferAddress] = useState<string>("");
   const [isProcessing, setIsProcessing] = useState(false);
 
+  const handleReset = () => {
+    setSelectedToken(undefined);
+    setTransferAmount("");
+    setTransferAddress("");
+  };
+
   const handleTransfer = useCallback(async () => {
     try {
       if (!chainId || !selectedToken || !walletAddress || !signature || !nonce)
@@ -92,6 +98,7 @@ export const Transfer = () => {
       );
 
       await refreshBalances();
+      handleReset();
     } catch (err) {
       const message = err instanceof Error ? err.message : "Transfer failed";
       toast.error(message);

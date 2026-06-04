@@ -25,7 +25,7 @@ export const Withdraw = () => {
     balances,
   } = useAppContext();
   const [selectedToken, setSelectedToken] = useState<ERC20Token | undefined>(
-    undefined
+    undefined,
   );
 
   const tokenFilter = useMemo(() => {
@@ -37,6 +37,13 @@ export const Withdraw = () => {
   const [recipientAddress, setRecipientAddress] = useState("");
   const [isProcessing, setIsProcessing] = useState(false);
   const [isRelayerOff, setIsRelayerOff] = useState(false);
+
+  const handleReset = () => {
+    setSelectedToken(undefined);
+    setWithdrawAmount("");
+    setRecipientAddress("");
+    setIsRelayerOff(false);
+  };
 
   const handleWithdraw = useCallback(async () => {
     try {
@@ -56,7 +63,7 @@ export const Withdraw = () => {
             [tokenAddress],
             ExternalActionId.Transact,
             undefined,
-            [amountInWei]
+            [amountInWei],
           );
 
       console.log("Withdraw fee structure", feeStructure);
@@ -71,7 +78,7 @@ export const Withdraw = () => {
                 chainId,
                 [tokenAddress],
                 [amountStr],
-                recipientAddress
+                recipientAddress,
               )
           : isTron
           ? () =>
@@ -79,7 +86,7 @@ export const Withdraw = () => {
                 chainId,
                 [tokenAddress],
                 [amountStr],
-                recipientAddress
+                recipientAddress,
               )
           : undefined;
       await withdraw(
@@ -93,11 +100,12 @@ export const Withdraw = () => {
         isRelayerOff,
         tokenAddress,
         feeStructure,
-        buildReadOnlyAuth
+        buildReadOnlyAuth,
       );
 
       toast.success("Withdraw confirmed");
       await refreshBalances();
+      handleReset();
     } catch (err) {
       const message = err instanceof Error ? err.message : "Withdraw failed";
       toast.error(message);
@@ -118,7 +126,7 @@ export const Withdraw = () => {
   ]);
 
   const setRecipientAddressHandler = (
-    event: React.ChangeEvent<HTMLInputElement>
+    event: React.ChangeEvent<HTMLInputElement>,
   ) => {
     setRecipientAddress(event.target.value);
   };
@@ -140,7 +148,7 @@ export const Withdraw = () => {
       withdrawAmount,
       recipientAddress,
       isProcessing,
-    ]
+    ],
   );
 
   return (

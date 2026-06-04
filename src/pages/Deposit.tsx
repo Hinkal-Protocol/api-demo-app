@@ -78,6 +78,11 @@ export const Deposit = () => {
     [ownedTokens]
   );
 
+  const handleReset = () => {
+    setSelectedToken(undefined);
+    setDepositAmount("");
+  };
+
   const handleDeposit = useCallback(async () => {
     try {
       if (!chainId || !selectedToken || !walletAddress || !signature || !nonce)
@@ -158,6 +163,7 @@ export const Deposit = () => {
         });
       }
       await refreshBalances();
+      handleReset();
     } catch (err) {
       const errorMessage =
         err instanceof Error ? err.message : "Deposit failed";
