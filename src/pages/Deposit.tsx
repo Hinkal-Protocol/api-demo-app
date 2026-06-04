@@ -24,7 +24,7 @@ import { buildTronDepositAuthFields } from "../utils/tron-auth";
 export const Deposit = () => {
   const {
     walletAddress,
-    refreshBalances,
+    refreshBalancesSoon,
     chainId,
     signature,
     nonce,
@@ -37,13 +37,13 @@ export const Deposit = () => {
   } = useAppContext();
 
   const [selectedToken, setSelectedToken] = useState<ERC20Token | undefined>(
-    undefined
+    undefined,
   );
   const [depositAmount, setDepositAmount] = useState<string>("");
   const [isProcessing, setIsProcessing] = useState(false);
   const [ownedTokens, setOwnedTokens] = useState<Set<string>>(new Set());
   const [walletBalances, setWalletBalances] = useState<Record<string, bigint>>(
-    {}
+    {},
   );
   const [isLoadingTokens, setIsLoadingTokens] = useState(false);
 
@@ -64,16 +64,16 @@ export const Deposit = () => {
           new Set(
             balances
               .filter((b) => b.balance > 0n)
-              .map((b) => b.token.erc20TokenAddress.toLowerCase())
-          )
+              .map((b) => b.token.erc20TokenAddress.toLowerCase()),
+          ),
         );
         setWalletBalances(
           Object.fromEntries(
             balances.map((b) => [
               b.token.erc20TokenAddress.toLowerCase(),
               b.balance,
-            ])
-          )
+            ]),
+          ),
         );
       })
       .finally(() => {
@@ -88,7 +88,7 @@ export const Deposit = () => {
   const tokenFilter = useCallback(
     (token: ERC20Token) =>
       ownedTokens.has(token.erc20TokenAddress.toLowerCase()),
-    [ownedTokens]
+    [ownedTokens],
   );
 
   const handleReset = () => {
@@ -114,7 +114,7 @@ export const Deposit = () => {
             solanaProvider,
             chainId,
             [tokenAddr],
-            [amountStr]
+            [amountStr],
           );
         const serializedTx = await deposit(
           null,
@@ -123,11 +123,11 @@ export const Deposit = () => {
           chainId,
           [tokenAddr],
           [amountStr],
-          buildReadOnlyAuth
+          buildReadOnlyAuth,
         );
         await broadcastSolanaTransaction(
           solanaProvider,
-          serializedTx as string
+          serializedTx as string,
         );
       } else if (isTron) {
         const tokenAddr = selectedToken.erc20TokenAddress;
@@ -141,13 +141,13 @@ export const Deposit = () => {
           chainId,
           [tokenAddr],
           [amountStr],
-          buildReadOnlyAuth
+          buildReadOnlyAuth,
         );
         await approveAndBroadcastTronDepositTx(
           txData,
           amountInWei,
           selectedToken.erc20TokenAddress,
-          walletAddress
+          walletAddress,
         );
       } else {
         const signer = await getEthersSigner();
@@ -157,14 +157,14 @@ export const Deposit = () => {
           walletAddress,
           chainId,
           [selectedToken.erc20TokenAddress],
-          [amountInWei.toString()]
+          [amountInWei.toString()],
         );
         if (selectedToken.erc20TokenAddress !== zeroAddress) {
           await approveErc20(
             signer,
             selectedToken.erc20TokenAddress,
             (txData as { to: string }).to,
-            amountInWei
+            amountInWei,
           );
         }
         await sendTx(signer, {
@@ -175,8 +175,8 @@ export const Deposit = () => {
             : undefined,
         });
       }
-      await refreshBalances();
       handleReset();
+      refreshBalancesSoon();
     } catch (err) {
       toast.error(getFriendlyErrorMessage(err, "Deposit failed"));
     } finally {
@@ -185,7 +185,7 @@ export const Deposit = () => {
   }, [
     depositAmount,
     selectedToken,
-    refreshBalances,
+    refreshBalancesSoon,
     chainId,
     walletAddress,
     signature,
@@ -199,7 +199,7 @@ export const Deposit = () => {
 
   const isDisabled = useMemo(
     () => !walletAddress || !selectedToken || !depositAmount || isProcessing,
-    [walletAddress, selectedToken, depositAmount, isProcessing]
+    [walletAddress, selectedToken, depositAmount, isProcessing],
   );
 
   return (
