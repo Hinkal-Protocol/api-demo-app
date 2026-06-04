@@ -17,6 +17,7 @@ export const SwapSettings = ({
     <>
       <button
         type="button"
+        className="text-white hover:text-hinkal-purple-200 transition-colors duration-300"
         onClick={() => {
           setSwapSettingsDropdownShown(true);
         }}

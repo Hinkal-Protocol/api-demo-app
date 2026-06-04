@@ -29,10 +29,10 @@ export const ButtonGroupWithLabel: React.FC<ButtonGroupWithLabelProps> = ({
           type="button"
           onClick={() => onSelect(option)}
           disabled={disabled}
-          className={`px-4 py-2 rounded-lg text-sm font-[400] transition-colors ${
+          className={`px-4 py-2 rounded-lg text-sm font-[400] transition-colors duration-300 ${
             selected === option
               ? "bg-hinkal-white-400 text-hinkal-blue-400"
-              : "bg-hinkal-blue-900 text-white hover:bg-hinkal-blue-900"
+              : "bg-hinkal-blue-900 text-white hover:bg-hinkal-gray-300/40"
           }`}
         >
           {option === "instantly" ? "Instantly" : option}

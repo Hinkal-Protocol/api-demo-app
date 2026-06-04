@@ -225,7 +225,7 @@ export const Deposit = () => {
             onClick={handleDeposit}
             className={`w-[90%] ml-[5%] mb-3 md:mx-[5%] rounded-lg h-10 text-sm font-semibold outline-none ${
               !isDisabled
-                ? "bg-primary text-white hover:bg-hinkal-purple-200 duration-200"
+                ? "bg-primary text-white hover:bg-hinkal-purple-200 transition-all duration-300"
                 : "bg-hinkal-blue-900 text-hinkal-gray-200 cursor-not-allowed"
             } `}
           >

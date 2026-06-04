@@ -30,7 +30,7 @@ export const NetworkDropdownItem = ({
       disabled={isPending}
       onClick={onSelect}
       className={
-        "py-1 px-2 hover:bg-hinkal-gray-400 w-full md:w-[220px] flex flex-col"
+        "py-1 px-2 hover:bg-hinkal-gray-400 transition-colors duration-300 w-full md:w-[220px] flex flex-col"
       }
     >
       <div className="w-full flex items-center justify-between">

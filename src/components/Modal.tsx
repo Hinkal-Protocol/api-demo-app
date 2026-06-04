@@ -46,7 +46,7 @@ export const Modal = ({
           onClick={xBtnAction}
         >
           <i
-            className={`bi bi-x text-[26px] hover:text-hinkal-white-300 ${xBtnStyleProps} `}
+            className={`bi bi-x text-[26px] hover:text-hinkal-white-300 transition-colors duration-300 ${xBtnStyleProps} `}
           />
         </button>
       )}

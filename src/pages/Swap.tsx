@@ -401,7 +401,7 @@ export const Swap = () => {
           onClick={handleSwap}
           className={`w-[90%] ml-[5%] mb-3 md:mx-[5%] rounded-lg h-10 mt-3 text-sm font-semibold outline-none ${
             swapButtonText() === "Swap" && !isProcessing
-              ? "bg-primary text-white hover:bg-hinkal-purple-200 duration-200"
+              ? "bg-primary text-white hover:bg-hinkal-purple-200 transition-all duration-300"
               : "bg-hinkal-blue-900 text-hinkal-gray-200 cursor-not-allowed"
           }`}
         >

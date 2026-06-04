@@ -375,7 +375,7 @@ export const MultiSend = () => {
             type="button"
             onClick={addRecipient}
             disabled={isProcessing}
-            className="text-sm text-hinkal-gray-100 hover:text-white disabled:opacity-40 duration-200"
+            className="text-sm text-hinkal-gray-100 hover:text-white disabled:opacity-40 transition-colors duration-300"
           >
             + Add recipient
           </button>
@@ -399,7 +399,7 @@ export const MultiSend = () => {
             onClick={handleMultiSend}
             className={`w-[90%] mb-3 mx-[5%] rounded-lg h-10 text-sm font-semibold outline-none ${
               !isDisabled
-                ? "bg-primary text-white hover:bg-hinkal-purple-200 duration-200"
+                ? "bg-primary text-white hover:bg-hinkal-purple-200 transition-all duration-300"
                 : "bg-hinkal-blue-900 text-hinkal-gray-200 cursor-not-allowed"
             }`}
           >

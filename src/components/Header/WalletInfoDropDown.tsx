@@ -42,11 +42,11 @@ export const WalletInfoDropDown = () => {
   const config = useConfig();
   const visibleBalances = useMemo(
     () => sortTokenBalances(balances),
-    [balances],
+    [balances]
   );
   const visibleStuckUtxoBalances = useMemo(
     () => filterNonZeroTokenBalances(stuckUtxoBalances),
-    [stuckUtxoBalances],
+    [stuckUtxoBalances]
   );
   const [withdrawingStuckTokenAddress, setWithdrawingStuckTokenAddress] =
     useState<string | null>(null);
@@ -118,14 +118,14 @@ export const WalletInfoDropDown = () => {
                   solanaProvider,
                   chainId,
                   tokenAddress,
-                  walletAddress,
+                  walletAddress
                 )
             : isTron
             ? () =>
                 buildTronWithdrawStuckUtxosAuthFields(
                   chainId,
                   tokenAddress,
-                  walletAddress,
+                  walletAddress
                 )
             : undefined;
         const txHashes = await withdrawStuckUtxos(
@@ -135,7 +135,7 @@ export const WalletInfoDropDown = () => {
           chainId,
           tokenAddress,
           walletAddress,
-          buildReadOnlyAuth,
+          buildReadOnlyAuth
         );
 
         toast.success(`Withdraw sent (${txHashes.length} txs)`);
@@ -148,7 +148,7 @@ export const WalletInfoDropDown = () => {
         setWithdrawingStuckTokenAddress(null);
       }
     },
-    [walletAddress, chainId, signature, nonce, hasWriteAccess, refreshBalances],
+    [walletAddress, chainId, signature, nonce, hasWriteAccess, refreshBalances]
   );
 
   return (
@@ -193,7 +193,7 @@ export const WalletInfoDropDown = () => {
                     onClick={() =>
                       handleWithdrawStuckUtxos(tokenBalance.tokenAddress)
                     }
-                    className="rounded-md bg-primary px-3 py-1 text-[12px] font-semibold text-white hover:bg-hinkal-purple-200 disabled:cursor-not-allowed disabled:opacity-50"
+                    className="rounded-md bg-primary px-3 py-1 text-[12px] font-semibold text-white hover:bg-hinkal-purple-200 transition-all duration-300 disabled:cursor-not-allowed disabled:opacity-50"
                   >
                     {isWithdrawing ? (
                       <span className="flex items-center gap-x-1">
@@ -213,7 +213,7 @@ export const WalletInfoDropDown = () => {
       <div className="border-t-2 md:text-[15px] border-hinkal-blue-900">
         <button
           type="button"
-          className="block w-full text-left"
+          className="block w-full text-left hover:opacity-70 transition-opacity duration-300"
           onClick={handleCopyShieldedAddress}
         >
           <div className="flex items-center mt-2 text-white text-[14px] md:w-[12.5rem]">
@@ -226,7 +226,7 @@ export const WalletInfoDropDown = () => {
         <button
           type="button"
           disabled={isCopyingPrivate}
-          className="block w-full text-left"
+          className="block w-full text-left hover:opacity-70 transition-opacity duration-300"
           onClick={handleCopyPrivateAddress}
         >
           <div className="flex items-center mt-2 text-white text-[14px] md:w-[12.5rem]">
@@ -239,7 +239,7 @@ export const WalletInfoDropDown = () => {
         <div>
           <button
             type="button"
-            className="cursor-pointer"
+            className="cursor-pointer hover:opacity-70 transition-opacity duration-300"
             onClick={handleDisconnect}
           >
             <div className="flex flex-row items-center text-white text-[14px] mt-2 ml-px w-[12.5rem]">

@@ -21,7 +21,7 @@ export const SwapSettingsDropdown = ({
 
   const setTokenAmountHandler = (
     event: React.ChangeEvent<HTMLInputElement>,
-    setValue: (param: SetStateAction<string>) => void,
+    setValue: (param: SetStateAction<string>) => void
   ) => {
     const regExp = /^[0-9]*[.]?[0-9]*$/;
     if (regExp.test(event.target.value)) {
@@ -85,7 +85,7 @@ export const SwapSettingsDropdown = ({
                 setIsAutoTolleranceSelected(true);
                 setSlippageTollerance("0.10");
               }}
-              className={` font-[400] border-[1px] border-solid border-primary text-[16px] rounded-xl h-full px-3 ${
+              className={` font-[400] border-[1px] border-solid border-primary text-[16px] rounded-xl h-full px-3 transition-all duration-300 hover:bg-hinkal-purple-200 ${
                 isAutoTolleranceSelected
                   ? "bg-primary"
                   : "bg-modalBG border-primary"

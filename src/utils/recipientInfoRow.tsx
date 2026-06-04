@@ -45,7 +45,7 @@ export const RecipientInputRow: React.FC<RecipientInputRowProps> = ({
         type="button"
         onClick={onRemove}
         disabled={disabled}
-        className="text-hinkal-gray-200 hover:text-white disabled:opacity-40 text-lg leading-none px-1"
+        className="text-hinkal-gray-200 hover:text-white disabled:opacity-40 text-lg leading-none px-1 transition-colors duration-300"
       >
         ×
       </button>
