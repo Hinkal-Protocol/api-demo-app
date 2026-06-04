@@ -11,6 +11,7 @@ import {
   getTokenBalanceDisplay,
   getTokenBalanceWei,
 } from "../utils/amount.utils";
+import { getTokenPrices } from "../utils/prices";
 import { getErc20Balance, getNativeBalance } from "../utils/ethers-wallet";
 import {
   getTronErc20Balance,
@@ -53,11 +54,50 @@ export const TokenAmountInput = ({
   const [walletBalanceDisplay, setWalletBalanceDisplay] = useState<
     string | null
   >(null);
+  const [prices, setPrices] = useState<Record<string, number>>({});
+  const [isPricesLoading, setIsPricesLoading] = useState(false);
 
   const filteredTokens = useMemo(
     () => (tokenFilter ? erc20List.filter(tokenFilter) : erc20List),
     [erc20List, tokenFilter],
   );
+
+  const addressesKey = useMemo(
+    () =>
+      filteredTokens
+        .map((t) => t.erc20TokenAddress.toLowerCase())
+        .sort()
+        .join(","),
+    [filteredTokens],
+  );
+
+  useEffect(() => {
+    if (!chainId || filteredTokens.length === 0) {
+      setPrices({});
+      return;
+    }
+    let cancelled = false;
+    setIsPricesLoading(true);
+    const addresses = filteredTokens.map((t) => t.erc20TokenAddress);
+    getTokenPrices(chainId, addresses)
+      .then((priceArr) => {
+        if (cancelled) return;
+        const map: Record<string, number> = {};
+        addresses.forEach((a, i) => {
+          map[a.toLowerCase()] = priceArr[i] ?? 0;
+        });
+        setPrices(map);
+      })
+      .catch(() => {
+        if (!cancelled) setPrices({});
+      })
+      .finally(() => {
+        if (!cancelled) setIsPricesLoading(false);
+      });
+    return () => {
+      cancelled = true;
+    };
+  }, [chainId, addressesKey]);
 
   useEffect(() => {
     if (filteredTokens.length === 0) {
@@ -151,9 +191,20 @@ export const TokenAmountInput = ({
       ? getTokenBalanceWei(balances, token)
       : null;
     if (balanceWei === null) return null;
+    const amount = Number(getAmountInToken(token, balanceWei));
+    const price = prices[token.erc20TokenAddress.toLowerCase()] ?? 0;
     return (
-      <span className="ml-auto mr-3 text-[12px] text-white">
-        {Number(getAmountInToken(token, balanceWei)).toFixed(4)}
+      <span className="ml-auto mr-3 flex flex-col items-end">
+        <span className="text-[12px] text-white">{amount.toFixed(4)}</span>
+        {isPricesLoading ? (
+          <span className="mt-1 h-3 w-10 rounded bg-hinkal-gray-300/50 animate-pulse" />
+        ) : (
+          price > 0 && (
+            <span className="text-[11px] text-white/70">
+              ${(amount * price).toFixed(2)}
+            </span>
+          )
+        )}
       </span>
     );
   };
