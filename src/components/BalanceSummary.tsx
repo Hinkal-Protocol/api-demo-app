@@ -10,8 +10,10 @@ const formatUsd = (value: number) =>
   })}`;
 
 export const BalanceSummary = () => {
-  const { walletAddress } = useAppContext();
-  const { items, totalUsd, isLoading } = useShieldedUsdBalances();
+  const { walletAddress, isBalancesRefreshing } = useAppContext();
+  const { items, totalUsd, isLoading: isPricesLoading } =
+    useShieldedUsdBalances();
+  const isLoading = isPricesLoading || isBalancesRefreshing;
   const [open, setOpen] = useState(false);
   const [query, setQuery] = useState("");
 

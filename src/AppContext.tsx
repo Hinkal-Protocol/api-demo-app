@@ -54,6 +54,7 @@ type AppContextArgumnets = {
   stuckUtxoBalances: TokenBalance[];
   refreshBalances: () => Promise<void>;
   refreshBalancesSoon: (delaysMs?: number[]) => Promise<void>;
+  isBalancesRefreshing: boolean;
   walletBalances: Record<string, bigint>;
   isWalletBalancesLoading: boolean;
   refreshWalletBalances: () => Promise<void>;
@@ -90,6 +91,7 @@ const AppContext = createContext<AppContextArgumnets>({
   stuckUtxoBalances: [],
   refreshBalances: async () => {},
   refreshBalancesSoon: async () => {},
+  isBalancesRefreshing: false,
   walletBalances: {},
   isWalletBalancesLoading: false,
   refreshWalletBalances: async () => {},
@@ -119,6 +121,8 @@ export const AppContextProvider: FC<AppContextProps> = ({
     {}
   );
   const [isWalletBalancesLoading, setIsWalletBalancesLoading] = useState(false);
+  const [isBalancesRefreshing, setIsBalancesRefreshing] = useState(false);
+  const balancesRef = useRef<TokenBalance[]>([]);
   const abortControllerRef = useRef<AbortController | null>(null);
   const prevChainIdRef = useRef<number | undefined>();
 
@@ -224,6 +228,7 @@ export const AppContextProvider: FC<AppContextProps> = ({
         fetchStuckUtxoBalances(auth, controller.signal),
       ]);
       if (!controller.signal.aborted) {
+        balancesRef.current = bals;
         setBalances(bals);
         setStuckUtxoBalances(stuckBals);
       }
@@ -239,9 +244,23 @@ export const AppContextProvider: FC<AppContextProps> = ({
   // well before the periodic interval would.
   const refreshBalancesSoon = useCallback(
     async (delaysMs: number[] = [2000, 5000, 9000]) => {
-      for (const ms of delaysMs) {
-        await new Promise((resolve) => setTimeout(resolve, ms));
-        await refreshBalances();
+      const snapshot = (bals: TokenBalance[]) =>
+        bals
+          .map((b) => `${b.tokenAddress.toLowerCase()}:${b.balance}`)
+          .sort()
+          .join(",");
+
+      const before = snapshot(balancesRef.current);
+      setIsBalancesRefreshing(true);
+      try {
+        for (const ms of delaysMs) {
+          await new Promise((resolve) => setTimeout(resolve, ms));
+          await refreshBalances();
+          
+          if (snapshot(balancesRef.current) !== before) break;
+        }
+      } finally {
+        setIsBalancesRefreshing(false);
       }
     },
     [refreshBalances]
@@ -318,6 +337,7 @@ export const AppContextProvider: FC<AppContextProps> = ({
         stuckUtxoBalances,
         refreshBalances,
         refreshBalancesSoon,
+        isBalancesRefreshing,
         walletBalances,
         isWalletBalancesLoading,
         refreshWalletBalances,
