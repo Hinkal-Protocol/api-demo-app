@@ -31,7 +31,7 @@ export const Transfer = () => {
     balances,
   } = useAppContext();
   const [selectedToken, setSelectedToken] = useState<ERC20Token | undefined>(
-    undefined
+    undefined,
   );
 
   const tokenFilter = useMemo(() => {
@@ -98,7 +98,7 @@ export const Transfer = () => {
                 chainId,
                 [tokenAddress],
                 [amountStr],
-                transferAddress
+                transferAddress,
               )
           : isTron
           ? () =>
@@ -106,7 +106,7 @@ export const Transfer = () => {
                 chainId,
                 [tokenAddress],
                 [amountStr],
-                transferAddress
+                transferAddress,
               )
           : undefined;
       await transfer(
@@ -119,7 +119,7 @@ export const Transfer = () => {
         transferAddress,
         tokenAddress,
         feeStructure,
-        buildReadOnlyAuth
+        buildReadOnlyAuth,
       );
 
       toast.success("Transfer confirmed");
@@ -144,7 +144,7 @@ export const Transfer = () => {
   ]);
 
   const setTransferAddressHandler = (
-    event: React.ChangeEvent<HTMLInputElement>
+    event: React.ChangeEvent<HTMLInputElement>,
   ) => {
     setTransferAddress(event.target.value);
   };
@@ -172,7 +172,7 @@ export const Transfer = () => {
       isFeeLoading,
       feeStructure,
       hasInsufficientFunds,
-    ]
+    ],
   );
 
   return (
@@ -202,7 +202,7 @@ export const Transfer = () => {
         />
         <br />
       </div>
-      <div className="px-[5%] mb-2 text-[13px]">
+      <div className="px-[5%] mb-2 text-[13px] mt-1.5">
         {isFeeLoading ? (
           <span className="text-hinkal-gray-100">Calculating fee…</span>
         ) : (

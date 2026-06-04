@@ -59,7 +59,7 @@ export const Swap = () => {
 
   const inSwapBalanceDisplay = useMemo(
     () => (inSwapToken ? getTokenBalanceDisplay(balances, inSwapToken) : null),
-    [balances, inSwapToken]
+    [balances, inSwapToken],
   );
 
   const [feeStructure, setFeeStructure] = useState<FeeStructure | undefined>();
@@ -91,7 +91,7 @@ export const Swap = () => {
       feeToken,
       [inSwapToken.erc20TokenAddress, outSwapToken.erc20TokenAddress],
       quotedData.externalActionId,
-      HINKAL_SWAP_VARIABLE_RATE.toString()
+      HINKAL_SWAP_VARIABLE_RATE.toString(),
     )
       .then((fee) => {
         if (!cancelled) setFeeStructure(fee);
@@ -166,7 +166,7 @@ export const Swap = () => {
           inSwapToken.erc20TokenAddress,
           outSwapToken.erc20TokenAddress,
           inSwapAmount,
-          parseFloat(slippageTolerance)
+          parseFloat(slippageTolerance),
         );
         if (!cancelled) {
           setQuotedData(result);
@@ -200,7 +200,7 @@ export const Swap = () => {
       outSwapToken && quotedData
         ? getAmountInToken(outSwapToken, quotedData.outSwapAmount)
         : "",
-    [outSwapToken, quotedData]
+    [outSwapToken, quotedData],
   );
 
   const isReadyForSwap = useMemo(
@@ -210,7 +210,7 @@ export const Swap = () => {
       !!inSwapToken &&
       !!outSwapToken &&
       !!quotedData,
-    [inSwapAmount, inSwapToken, outSwapToken, quotedData]
+    [inSwapAmount, inSwapToken, outSwapToken, quotedData],
   );
 
   const handleReset = () => {
@@ -244,7 +244,7 @@ export const Swap = () => {
         outSwapToken,
         inSwapAmount,
         quotedData,
-        isSolana && solanaProvider ? solanaProvider : undefined
+        isSolana && solanaProvider ? solanaProvider : undefined,
       );
       toast.success("Swap confirmed");
       handleReset();
@@ -270,7 +270,7 @@ export const Swap = () => {
 
   const setTokenAmountHandler = (
     event: React.ChangeEvent<HTMLInputElement>,
-    setValue: (value: string) => void
+    setValue: (value: string) => void,
   ) => {
     if (/^[0-9]*[.]?[0-9]*$/.test(event.target.value)) {
       setValue(event.target.value);
@@ -379,11 +379,6 @@ export const Swap = () => {
                   </span>
                 )}
               </div>
-              <i
-                className={`bi bi-chevron-${
-                  priceDetailsShown ? "up" : "down"
-                } font-bold`}
-              />
             </div>
           </div>
         )}
