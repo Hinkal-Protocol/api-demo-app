@@ -3,6 +3,7 @@ import { Toaster } from "react-hot-toast";
 import { Footer } from "./components/Footer";
 import { Header } from "./components/Header";
 import { NavigationBar } from "./components/NavigationBar";
+import { BalanceSummary } from "./components/BalanceSummary";
 import { Deposit } from "./pages/Deposit";
 import { AppTab } from "./types";
 import "./App.css";
@@ -22,6 +23,7 @@ const App = () => {
             className={"flex justify-center md:gap-x-[9%] flex-col md:flex-row"}
           >
             <section className="bg-modalBgColor rounded-xl w-[87%] md:w-[40%] min-w-[300px] md:mt-[120px] md:h-fit mx-auto md:mx-0 md:mb-20 pt-2">
+              <BalanceSummary />
               <NavigationBar
                 activeTab={activeTab}
                 setActiveTab={setActiveTab}

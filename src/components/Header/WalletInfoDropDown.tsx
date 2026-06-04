@@ -16,15 +16,11 @@ import { WalletInfoBalance } from "./WalletInfoBalance";
 import { useAppContext } from "../../AppContext";
 import { TokenBalance } from "../../types";
 
-const sortTokenBalances = (tokenBalances: TokenBalance[]) =>
-  [...tokenBalances].sort((a, b) => (a.tokenAddress < b.tokenAddress ? -1 : 1));
-
 const filterNonZeroTokenBalances = (tokenBalances: TokenBalance[]) =>
   tokenBalances.filter((b) => b.balance !== "0");
 
 export const WalletInfoDropDown = () => {
   const {
-    balances,
     stuckUtxoBalances,
     walletAddress,
     chainId,
@@ -41,10 +37,6 @@ export const WalletInfoDropDown = () => {
     solanaProvider,
   } = useAppContext();
   const config = useConfig();
-  const visibleBalances = useMemo(
-    () => sortTokenBalances(balances),
-    [balances]
-  );
   const visibleStuckUtxoBalances = useMemo(
     () => filterNonZeroTokenBalances(stuckUtxoBalances),
     [stuckUtxoBalances]
@@ -158,24 +150,6 @@ export const WalletInfoDropDown = () => {
 
   return (
     <div className="absolute top-20 md:top-2 right-0 left-auto w-60 max-w-[90vw] bg-hinkal-blue-900 rounded-xl shadow-metamask font-generalSans p-4 items-center">
-      <p className="text-hinkal-white-300 text-[12px] text-left mb-2">
-        Private Balance
-      </p>
-      <div className="flex flex-col justify-center gap-4 mb-[10%]">
-        {visibleBalances.length > 0 ? (
-          visibleBalances.map((tokenBalance) => (
-            <WalletInfoBalance
-              tokenBalance={tokenBalance}
-              key={tokenBalance.tokenAddress}
-            />
-          ))
-        ) : (
-          <p className="text-hinkal-white-300 text-[13px]">
-            No private balance
-          </p>
-        )}
-      </div>
-
       {visibleStuckUtxoBalances.length > 0 && (
         <div className="border-t-2 border-hinkal-blue-900 pt-3 mb-[10%]">
           <p className="text-hinkal-white-300 text-[12px] text-left mb-3">
