@@ -246,6 +246,7 @@ export const Swap = () => {
         quotedData,
         isSolana && solanaProvider ? solanaProvider : undefined
       );
+      toast.success("Swap confirmed");
       handleReset();
       refreshBalancesSoon();
     } catch (err) {

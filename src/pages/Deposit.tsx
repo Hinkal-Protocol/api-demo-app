@@ -175,6 +175,7 @@ export const Deposit = () => {
             : undefined,
         });
       }
+      toast.success("Deposit confirmed");
       handleReset();
       refreshBalancesSoon();
     } catch (err) {

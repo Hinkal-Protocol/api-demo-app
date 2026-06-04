@@ -122,6 +122,7 @@ export const Transfer = () => {
         buildReadOnlyAuth
       );
 
+      toast.success("Transfer confirmed");
       handleReset();
       refreshBalancesSoon();
     } catch (err) {
