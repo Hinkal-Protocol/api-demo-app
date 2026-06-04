@@ -16,9 +16,7 @@ import { useAppContext } from "../../AppContext";
 import { TokenBalance } from "../../types";
 
 const sortTokenBalances = (tokenBalances: TokenBalance[]) =>
-  [...tokenBalances].sort((a, b) =>
-    a.tokenAddress < b.tokenAddress ? -1 : 1,
-  );
+  [...tokenBalances].sort((a, b) => (a.tokenAddress < b.tokenAddress ? -1 : 1));
 
 const filterNonZeroTokenBalances = (tokenBalances: TokenBalance[]) =>
   tokenBalances.filter((b) => b.balance !== "0");
@@ -113,11 +111,23 @@ export const WalletInfoDropDown = () => {
 
         setWithdrawingStuckTokenAddress(tokenAddress);
         const signer = isTron || isSolana ? null : await getEthersSigner();
-        const buildReadOnlyAuth = isSolana && solanaProvider
-          ? () => buildSolanaWithdrawStuckUtxosAuthFields(solanaProvider, chainId, tokenAddress, walletAddress)
-          : isTron
-          ? () => buildTronWithdrawStuckUtxosAuthFields(chainId, tokenAddress, walletAddress)
-          : undefined;
+        const buildReadOnlyAuth =
+          isSolana && solanaProvider
+            ? () =>
+                buildSolanaWithdrawStuckUtxosAuthFields(
+                  solanaProvider,
+                  chainId,
+                  tokenAddress,
+                  walletAddress,
+                )
+            : isTron
+            ? () =>
+                buildTronWithdrawStuckUtxosAuthFields(
+                  chainId,
+                  tokenAddress,
+                  walletAddress,
+                )
+            : undefined;
         const txHashes = await withdrawStuckUtxos(
           signer,
           { signature, nonce, hasWriteAccess },
@@ -142,10 +152,12 @@ export const WalletInfoDropDown = () => {
   );
 
   return (
-    <div className="absolute min-w-max top-20 md:top-2 left-0 md:left-auto right-0 bg-hinkal-blue-900 rounded-xl shadow-metamask font-pubsans p-4 items-center max-content">
+    <div className="absolute min-w-max top-20 md:top-2 left-0 md:left-auto right-0 bg-hinkal-blue-900 rounded-xl shadow-metamask font-generalSans p-4 items-center max-content">
       <div className="flex items-center space-x-4">
         <div className="w-[26px]" />
-        <p className="text-hinkal-white-300 text-[12px] text-left">Private Balance</p>
+        <p className="text-hinkal-white-300 text-[12px] text-left">
+          Private Balance
+        </p>
       </div>
       <div className="flex flex-col justify-center gap-4 mb-[10%]">
         {visibleBalances.length > 0 ? (
@@ -156,7 +168,9 @@ export const WalletInfoDropDown = () => {
             />
           ))
         ) : (
-          <p className="text-hinkal-white-300 text-[13px]">No private balance</p>
+          <p className="text-hinkal-white-300 text-[13px]">
+            No private balance
+          </p>
         )}
       </div>
 
@@ -222,7 +236,7 @@ export const WalletInfoDropDown = () => {
             <div className="flex justify-center items-center w-[25px] h-[25px]">
               {isCopyingPrivate ? <Spinner /> : <Copy />}
             </div>
-            <div className="pl-2">Copy Private Address</div>
+            <div className="pl-2 text-nowrap">Copy Private Address</div>
           </div>
         </button>
         <div>

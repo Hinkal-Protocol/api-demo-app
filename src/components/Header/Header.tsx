@@ -27,7 +27,7 @@ export const Header = () => {
       >
         <div className="flex items-center justify-between gap-2.5">
           <img src={HinkalLogo} alt="" className="w-9 h-9 md:w-10 md:h-10" />
-          <p className="text-[20px] md:text-2xl font-bold text-white font-libFranklin">
+          <p className="text-[20px] md:text-2xl font-bold text-white font-generalSans">
             HINKAL
           </p>
         </div>
@@ -39,7 +39,7 @@ export const Header = () => {
             type="button"
             onClick={() => setChooseWalletShown(true)}
             disabled={isConnecting}
-            className="text-white font-[700] md:font-[500] text-[16px] rounded-[12px] px-4 py-3 border-[2px] bg-primary md:bg-transparent border-primary font-pubsans flex items-center justify-center gap-2 w-[160px] h-12"
+            className="text-white font-[700] md:font-[500] text-[16px] rounded-[12px] px-4 py-3 border-[2px] bg-primary md:bg-transparent border-primary font-generalSans flex items-center justify-center gap-2 w-[160px] h-12"
           >
             {isConnecting ? <Spinner /> : "Connect"}
           </button>
