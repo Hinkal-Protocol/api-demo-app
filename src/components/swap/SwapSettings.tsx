@@ -17,20 +17,19 @@ export const SwapSettings = ({
     <>
       <button
         type="button"
+        className="text-white hover:text-hinkal-purple-200 transition-colors duration-300"
         onClick={() => {
           setSwapSettingsDropdownShown(true);
         }}
       >
         <i className="bi bi-gear" />
       </button>
-      {swapSettingsDropdownShown && (
-        <SwapSettingsDropdown
-          slippageTolerance={slippageTolerance}
-          setSlippageTollerance={setSlippageTollerance}
-          swapSettingsDropdownShown={swapSettingsDropdownShown}
-          setSwapSettingsDropdownShown={setSwapSettingsDropdownShown}
-        />
-      )}
+      <SwapSettingsDropdown
+        slippageTolerance={slippageTolerance}
+        setSlippageTollerance={setSlippageTollerance}
+        swapSettingsDropdownShown={swapSettingsDropdownShown}
+        setSwapSettingsDropdownShown={setSwapSettingsDropdownShown}
+      />
     </>
   );
 };

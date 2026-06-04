@@ -10,7 +10,7 @@ interface ToggleSwitchInterface {
 export const ToggleSwitch = ({ wrapperStyles, innerStyles, isOff, setIsOff }: ToggleSwitchInterface) => (
   <div
     className={`w-10 h-5 rounded-[16px] flex items-center gap-x-1 cursor-pointer child:rounded-md ${
-      isOff ? 'bg-[#404040] ' : 'bg-primary'
+      isOff ? 'bg-hinkal-blue-900 ' : 'bg-primary'
     } duration-500 px-[2px] ${wrapperStyles} `}
     onClick={() => setIsOff((prev) => !prev)}
   >
