@@ -7,6 +7,7 @@ import { zeroAddress } from "../constants";
 import { ERC20Token } from "../types";
 import { getAmountInWei } from "../utils/amount.utils";
 import { deposit } from "../utils/deposit";
+import { getFriendlyErrorMessage } from "../utils/errors";
 import { approveErc20, getEthersSigner, sendTx } from "../utils/ethers-wallet";
 import { approveAndBroadcastTronDepositTx } from "../utils/tron-wallet";
 import { broadcastSolanaTransaction } from "../utils/solana-wallet";
@@ -16,7 +17,7 @@ import { buildTronDepositAuthFields } from "../utils/tron-auth";
 export const Deposit = () => {
   const {
     walletAddress,
-    refreshBalances,
+    refreshBalancesSoon,
     chainId,
     signature,
     nonce,
@@ -24,6 +25,9 @@ export const Deposit = () => {
     isTron,
     isSolana,
     solanaProvider,
+    walletBalances,
+    isWalletBalancesLoading,
+    refreshWalletBalances,
   } = useAppContext();
 
   const [selectedToken, setSelectedToken] = useState<ERC20Token | undefined>(
@@ -31,6 +35,17 @@ export const Deposit = () => {
   );
   const [depositAmount, setDepositAmount] = useState<string>("");
   const [isProcessing, setIsProcessing] = useState(false);
+
+  const tokenFilter = useCallback(
+    (token: ERC20Token) =>
+      (walletBalances[token.erc20TokenAddress.toLowerCase()] ?? 0n) > 0n,
+    [walletBalances],
+  );
+
+  const handleReset = () => {
+    setSelectedToken(undefined);
+    setDepositAmount("");
+  };
 
   const handleDeposit = useCallback(async () => {
     try {
@@ -111,18 +126,20 @@ export const Deposit = () => {
             : undefined,
         });
       }
-      await refreshBalances();
+      toast.success("Deposit confirmed");
+      handleReset();
+      refreshBalancesSoon();
+      refreshWalletBalances();
     } catch (err) {
-      const errorMessage =
-        err instanceof Error ? err.message : "Deposit failed";
-      toast.error(errorMessage);
+      toast.error(getFriendlyErrorMessage(err, "Deposit failed"));
     } finally {
       setIsProcessing(false);
     }
   }, [
     depositAmount,
     selectedToken,
-    refreshBalances,
+    refreshBalancesSoon,
+    refreshWalletBalances,
     chainId,
     walletAddress,
     signature,
@@ -149,8 +166,11 @@ export const Deposit = () => {
           selectedToken={selectedToken}
           setSelectedToken={setSelectedToken}
           withWalletBalance
+          tokenFilter={tokenFilter}
+          optionBalances={walletBalances}
+          isTokensLoading={isWalletBalancesLoading}
         />
-        <div className="w-[90%] mx-auto mb-6 mt-6 h-[1px] bg-[#272B30]" />
+        <div className="w-[90%] mx-auto mb-6 mt-6 h-[1px] bg-hinkal-blue-900" />
         <div className="border-solid">
           <button
             type="submit"
@@ -158,8 +178,8 @@ export const Deposit = () => {
             onClick={handleDeposit}
             className={`w-[90%] ml-[5%] mb-3 md:mx-[5%] rounded-lg h-10 text-sm font-semibold outline-none ${
               !isDisabled
-                ? "bg-primary text-white hover:bg-[#4d32fa] duration-200"
-                : "bg-[#37363d] text-[#848688] cursor-not-allowed"
+                ? "bg-primary text-white hover:bg-hinkal-purple-200 transition-all duration-300"
+                : "bg-hinkal-blue-900 text-hinkal-gray-200 cursor-not-allowed"
             } `}
           >
             {isProcessing ? (

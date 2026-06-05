@@ -25,7 +25,7 @@ export const SelectToken = ({
         onClick={() => setIsTokenSelectShown((prev) => !prev)}
         className={`rounded-lg ${
           swapToken ? "bg-modalBgColor" : "bg-primary"
-        } px-3 py-2 w-fit mr-[15px] flex items-center justify-center`}
+        } px-3 py-2 w-fit mr-[15px] flex items-center justify-center transition-all duration-300 hover:opacity-80`}
       >
         <span className="text-xl font-[600]">
           {swapToken ? (
@@ -53,15 +53,13 @@ export const SelectToken = ({
           </div>
         )}
       </button>
-      {isTokenSelectShown && (
-        <TokenDropdown
-          isTokenSelectShown={isTokenSelectShown}
-          setIsTokenSelectShown={setIsTokenSelectShown}
-          swapToken={swapToken}
-          onTokenChange={onTokenChange}
-          tokenFilter={tokenFilter}
-        />
-      )}
+      <TokenDropdown
+        isTokenSelectShown={isTokenSelectShown}
+        setIsTokenSelectShown={setIsTokenSelectShown}
+        swapToken={swapToken}
+        onTokenChange={onTokenChange}
+        tokenFilter={tokenFilter}
+      />
     </>
   );
 };

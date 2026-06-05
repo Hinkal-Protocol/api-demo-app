@@ -6,20 +6,40 @@ import {
   useState,
 } from "react";
 import toast from "react-hot-toast";
-import { InfoPanel } from "../components/InfoPanel";
 import { Spinner } from "../components/Spinner";
 import { SelectToken } from "../components/swap/SelectToken";
 import { SwapInputTokensButton } from "../components/swap/SwapInputTokensButton";
 import { SwapSettings } from "../components/swap/SwapSettings";
 import { useAppContext } from "../AppContext";
-import { getAmountInToken } from "../utils/amount.utils";
+import {
+  getAmountInToken,
+  getAmountInWei,
+  getTokenBalanceDisplay,
+  getTokenBalanceWei,
+} from "../utils/amount.utils";
 import { ERC20Token } from "../types";
-import { getSwapData, executeSwap, type SwapData } from "../utils/swap";
+import {
+  getSwapData,
+  executeSwap,
+  HINKAL_SWAP_VARIABLE_RATE,
+  type SwapData,
+} from "../utils/swap";
+import { FeeStructure, getFeeAmount, getFeeStructure } from "../utils/fees";
+import { getFriendlyErrorMessage } from "../utils/errors";
 import { getEthersSigner } from "../utils/ethers-wallet";
 
 export const Swap = () => {
-  const { walletAddress, refreshBalances, chainId, signature, nonce, hasWriteAccess } =
-    useAppContext();
+  const {
+    walletAddress,
+    refreshBalancesSoon,
+    chainId,
+    signature,
+    nonce,
+    hasWriteAccess,
+    isSolana,
+    solanaProvider,
+    balances,
+  } = useAppContext();
   const [inSwapAmount, setInSwapAmount] = useState("");
   const [inSwapToken, setInSwapToken] = useState<ERC20Token | undefined>();
   const [outSwapToken, setOutSwapToken] = useState<ERC20Token | undefined>();
@@ -30,6 +50,96 @@ export const Swap = () => {
   const [isPriceLoading, setIsPriceLoading] = useState(false);
   const [isProcessing, setIsProcessing] = useState(false);
   const [slippageTolerance, setSlippageTolerance] = useState("0.10");
+
+  const inTokenFilter = useMemo(() => {
+    const owned = new Set(balances.map((b) => b.tokenAddress.toLowerCase()));
+    return (token: ERC20Token) =>
+      owned.has(token.erc20TokenAddress.toLowerCase());
+  }, [balances]);
+
+  const inSwapBalanceDisplay = useMemo(
+    () => (inSwapToken ? getTokenBalanceDisplay(balances, inSwapToken) : null),
+    [balances, inSwapToken],
+  );
+
+  const [feeStructure, setFeeStructure] = useState<FeeStructure | undefined>();
+  const [isFeeLoading, setIsFeeLoading] = useState(false);
+
+  useEffect(() => {
+    if (
+      !quotedData ||
+      !inSwapToken ||
+      !outSwapToken ||
+      !chainId ||
+      !walletAddress ||
+      !signature ||
+      !nonce
+    ) {
+      setFeeStructure(undefined);
+      setIsFeeLoading(false);
+      return;
+    }
+
+    let cancelled = false;
+    setIsFeeLoading(true);
+    const auth = { signature, nonce, address: walletAddress, chainId };
+    const feeToken = isSolana
+      ? outSwapToken.erc20TokenAddress
+      : inSwapToken.erc20TokenAddress;
+    getFeeStructure(
+      auth,
+      feeToken,
+      [inSwapToken.erc20TokenAddress, outSwapToken.erc20TokenAddress],
+      quotedData.externalActionId,
+      HINKAL_SWAP_VARIABLE_RATE.toString(),
+    )
+      .then((fee) => {
+        if (!cancelled) setFeeStructure(fee);
+      })
+      .catch(() => {
+        if (!cancelled) setFeeStructure(undefined);
+      })
+      .finally(() => {
+        if (!cancelled) setIsFeeLoading(false);
+      });
+
+    return () => {
+      cancelled = true;
+    };
+  }, [
+    quotedData,
+    inSwapToken,
+    outSwapToken,
+    chainId,
+    walletAddress,
+    signature,
+    nonce,
+    isSolana,
+  ]);
+
+  const feeAmount = getFeeAmount(feeStructure);
+  const feeToken = isSolana ? outSwapToken : inSwapToken;
+  const feeDisplay =
+    feeToken && feeStructure
+      ? `${Number(getAmountInToken(feeToken, feeAmount)).toFixed(6)} ${
+          feeToken.symbol
+        }`
+      : null;
+
+  const inAmountWei = useMemo(() => {
+    if (!inSwapToken || !inSwapAmount) return 0n;
+    try {
+      return getAmountInWei(inSwapToken, inSwapAmount);
+    } catch {
+      return 0n;
+    }
+  }, [inSwapToken, inSwapAmount]);
+
+  const hasInsufficientFunds = useMemo(() => {
+    if (!inSwapToken || inAmountWei <= 0n) return false;
+    const required = inAmountWei + (isSolana ? 0n : feeAmount);
+    return getTokenBalanceWei(balances, inSwapToken) < required;
+  }, [inSwapToken, inAmountWei, isSolana, feeAmount, balances]);
 
   useEffect(() => {
     setQuotedData(undefined);
@@ -63,9 +173,7 @@ export const Swap = () => {
         }
       } catch (err) {
         if (!cancelled) {
-          toast.error(
-            err instanceof Error ? err.message : "Quote fetch failed",
-          );
+          toast.error(getFriendlyErrorMessage(err, "Quote fetch failed"));
         }
       } finally {
         if (!cancelled) setIsPriceLoading(false);
@@ -105,6 +213,11 @@ export const Swap = () => {
     [inSwapAmount, inSwapToken, outSwapToken, quotedData],
   );
 
+  const handleReset = () => {
+    setInSwapAmount("");
+    setQuotedData(undefined);
+  };
+
   const handleSwap = useCallback(async () => {
     if (
       !isReadyForSwap ||
@@ -121,7 +234,7 @@ export const Swap = () => {
     try {
       setIsProcessing(true);
       const getterAuth = { signature, nonce, address: walletAddress, chainId };
-      const signer = await getEthersSigner(chainId);
+      const signer = isSolana ? null : await getEthersSigner(chainId);
       await executeSwap(
         signer,
         { signature, nonce, hasWriteAccess },
@@ -131,11 +244,13 @@ export const Swap = () => {
         outSwapToken,
         inSwapAmount,
         quotedData,
+        isSolana && solanaProvider ? solanaProvider : undefined,
       );
-      setInSwapAmount("");
-      await refreshBalances();
+      toast.success("Swap confirmed");
+      handleReset();
+      refreshBalancesSoon();
     } catch (err) {
-      toast.error(err instanceof Error ? err.message : "Swap failed");
+      toast.error(getFriendlyErrorMessage(err, "Swap failed"));
     } finally {
       setIsProcessing(false);
     }
@@ -149,7 +264,7 @@ export const Swap = () => {
     walletAddress,
     chainId,
     inSwapAmount,
-    refreshBalances,
+    refreshBalancesSoon,
     hasWriteAccess,
   ]);
 
@@ -167,6 +282,8 @@ export const Swap = () => {
     if (!inSwapToken || !outSwapToken) return "Select a token";
     if (!inSwapAmount || Number(inSwapAmount) === 0) return "Enter an amount";
     if (isPriceLoading) return "Fetching price";
+    if (isFeeLoading) return "Calculating fee";
+    if (hasInsufficientFunds) return "Insufficient balance";
     return isReadyForSwap ? "Swap" : "Enter an amount";
   };
 
@@ -182,11 +299,11 @@ export const Swap = () => {
         />
       </div>
       <div className="flex flex-col gap-y-1 mb-4">
-        <div className="flex items-center justify-center bg-[#272B30] w-[96%] mx-auto rounded-xl py-5">
+        <div className="flex items-center justify-center bg-hinkal-blue-900 w-[96%] mx-auto rounded-xl py-5">
           <input
             type="text"
             placeholder="0"
-            className="w-[96%] grow bg-transparent rounded-lg ml-[5%] text-[16px] pl-2 outline-none placeholder:text-[13.5px] text-white text-4xl placeholder:text-4xl"
+            className="w-[96%] grow bg-transparent rounded-lg ml-[5%] text-[20px] pl-2 outline-none placeholder:text-[20px] text-white text-4xl placeholder:text-4xl"
             disabled={isProcessing}
             onChange={(event) => setTokenAmountHandler(event, setInSwapAmount)}
             value={inSwapAmount}
@@ -203,7 +320,13 @@ export const Swap = () => {
                     setOutSwapToken(prev);
                 }}
                 disabled={isProcessing}
+                tokenFilter={inTokenFilter}
               />
+              {inSwapBalanceDisplay && (
+                <span className="text-hinkal-white-100 text-[12px] mr-[15px]">
+                  Balance: {inSwapBalanceDisplay}
+                </span>
+              )}
             </div>
           </div>
         </div>
@@ -213,7 +336,7 @@ export const Swap = () => {
             setOutSwapToken(inSwapToken);
           }}
         />
-        <div className="bg-[#272B30] flex w-[96%] mx-auto rounded-xl py-5">
+        <div className="bg-hinkal-blue-900 flex w-[96%] mx-auto rounded-xl py-5">
           <input
             type="text"
             placeholder="0"
@@ -240,7 +363,7 @@ export const Swap = () => {
         {(isReadyForSwap || isPriceLoading) && (
           <div
             onClick={() => setPriceDetailsShown((prev) => !prev)}
-            className="bg-[#272B30] w-[96%] mx-auto rounded-xl py-5"
+            className="bg-hinkal-blue-900 w-[96%] mx-auto rounded-xl py-5"
           >
             <div className="flex justify-between items-center mr-[6%]">
               <div className="mx-[6%] flex items-center gap-x-2">
@@ -256,16 +379,16 @@ export const Swap = () => {
                   </span>
                 )}
               </div>
-              <i
-                className={`bi bi-chevron-${
-                  priceDetailsShown ? "up" : "down"
-                } font-bold`}
-              />
             </div>
           </div>
         )}
+        {feeDisplay && (
+          <div className="w-[96%] mx-auto px-[2%] text-[12px] text-hinkal-gray-100">
+            Network fee: {feeDisplay}
+          </div>
+        )}
       </div>
-      <div className="w-[90%] mx-auto mb-4 mt-[20px] h-[1px] bg-[#272B30]" />
+      <div className="w-[90%] mx-auto mb-4 mt-[20px] h-[1px] bg-hinkal-blue-900" />
       <div className="border-solid">
         <button
           type="button"
@@ -273,8 +396,8 @@ export const Swap = () => {
           onClick={handleSwap}
           className={`w-[90%] ml-[5%] mb-3 md:mx-[5%] rounded-lg h-10 mt-3 text-sm font-semibold outline-none ${
             swapButtonText() === "Swap" && !isProcessing
-              ? "bg-primary text-white hover:bg-[#4d32fa] duration-200"
-              : "bg-[#37363d] text-[#848688] cursor-not-allowed"
+              ? "bg-primary text-white hover:bg-hinkal-purple-200 transition-all duration-300"
+              : "bg-hinkal-blue-900 text-hinkal-gray-200 cursor-not-allowed"
           }`}
         >
           {isProcessing ? (
