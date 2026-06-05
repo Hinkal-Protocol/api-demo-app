@@ -292,7 +292,7 @@ export const ChooseWallet = ({
           disabled={!!connectingId || !privyReady}
           onClick={handleConnectPrivy}
         >
-          <span>Privy</span>
+          <span className="text-white">Privy</span>
           {connectingId?.startsWith("privy") && <Spinner />}
         </button>
         {connectors
