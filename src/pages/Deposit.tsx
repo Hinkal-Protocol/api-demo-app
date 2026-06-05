@@ -86,7 +86,7 @@ export const Deposit = () => {
           walletAddress,
         );
       } else {
-        const signer = await getEthersSigner();
+        const signer = await getEthersSigner(chainId);
         const txData = await deposit(
           signer,
           session,

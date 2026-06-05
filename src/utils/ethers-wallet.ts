@@ -1,9 +1,21 @@
 import { ethers } from "ethers";
 import type { Account, Chain, Client, Transport } from "viem";
-import { getConnectorClient } from "wagmi/actions";
+import { getConnectorClient, switchChain } from "wagmi/actions";
 import { ERC20_ABI } from "../constants/erc20.constants";
 import { networkRegistry } from "../constants/chain.constants";
 import { wagmiConfig } from "../wagmi.config";
+
+export interface PrivyEvmWallet {
+  address: string;
+  switchChain: (chainId: number | `0x${string}`) => Promise<void>;
+  getEthereumProvider: () => Promise<ethers.Eip1193Provider>;
+}
+
+let activePrivyWallet: PrivyEvmWallet | null = null;
+
+export const setActivePrivyWallet = (wallet: PrivyEvmWallet | null): void => {
+  activePrivyWallet = wallet;
+};
 
 const clientToSigner = (
   client: Client<Transport, Chain, Account>,
@@ -21,6 +33,20 @@ const clientToSigner = (
 export const getEthersSigner = async (
   chainId?: number,
 ): Promise<ethers.JsonRpcSigner> => {
+  if (activePrivyWallet) {
+    if (chainId) await activePrivyWallet.switchChain(chainId);
+    const provider = await activePrivyWallet.getEthereumProvider();
+    const browserProvider = new ethers.BrowserProvider(provider);
+    return browserProvider.getSigner();
+  }
+
+  if (chainId) {
+    try {
+      await switchChain(wagmiConfig, { chainId: chainId as any });
+    } catch (err) {
+      console.error("switchChain in getEthersSigner failed", err);
+    }
+  }
   const client = await getConnectorClient(
     wagmiConfig,
     chainId ? { chainId: chainId as any, assertChainId: false } : undefined,

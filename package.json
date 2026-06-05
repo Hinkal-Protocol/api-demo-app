@@ -5,7 +5,8 @@
   "scripts": {
     "dev": "vite",
     "build": "vite build",
-    "preview": "vite preview"
+    "preview": "vite preview",
+    "postinstall": "node -e \"require('fs').rmSync('node_modules/@solana/transaction-confirmation/node_modules/@solana/codecs-numbers',{recursive:true,force:true})\""
   },
   "devDependencies": {
     "@types/jest": "^29.4.0",
@@ -51,6 +52,8 @@
   },
   "dependencies": {
     "@headlessui/react": "^1.7.5",
+    "@privy-io/react-auth": "^3",
+    "@privy-io/wagmi": "^4",
     "@solana/wallet-adapter-base": "^0.9.27",
     "@solana/wallet-adapter-react": "^0.15.39",
     "@solana/wallet-adapter-wallets": "^0.19.38",

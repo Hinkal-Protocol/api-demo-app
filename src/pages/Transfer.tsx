@@ -40,7 +40,7 @@ export const Transfer = () => {
         [amountInWei.toString()],
       );
 
-      const signer = isTron || isSolana ? null : await getEthersSigner();
+      const signer = isTron || isSolana ? null : await getEthersSigner(chainId);
       const amountStr = amountInWei.toString();
       const buildReadOnlyAuth = isSolana && solanaProvider
         ? () => buildSolanaTransferAuthFields(solanaProvider, chainId, [tokenAddress], [amountStr], transferAddress)

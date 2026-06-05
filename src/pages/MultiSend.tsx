@@ -213,7 +213,7 @@ export const MultiSend = () => {
         return;
       setIsProcessing(true);
 
-      const signer = isTron || isSolana ? null : await getEthersSigner();
+      const signer = isTron || isSolana ? null : await getEthersSigner(chainId);
 
       const recipientsWei: Recipient[] = recipients.map((r) => ({
         address: r.address,

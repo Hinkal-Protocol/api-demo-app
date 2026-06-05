@@ -43,7 +43,7 @@ export const Withdraw = () => {
             [amountInWei.toString()],
           );
 
-      const signer = isTron || isSolana ? null : await getEthersSigner();
+      const signer = isTron || isSolana ? null : await getEthersSigner(chainId);
       const amountStr = amountInWei.toString();
       const buildReadOnlyAuth = isSolana && solanaProvider
         ? () => buildSolanaWithdrawAuthFields(solanaProvider, chainId, [tokenAddress], [amountStr], recipientAddress)
