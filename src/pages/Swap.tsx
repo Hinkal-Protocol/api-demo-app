@@ -49,7 +49,7 @@ export const Swap = () => {
   const [quotedData, setQuotedData] = useState<SwapData | undefined>();
   const [isPriceLoading, setIsPriceLoading] = useState(false);
   const [isProcessing, setIsProcessing] = useState(false);
-  const [slippageTolerance, setSlippageTolerance] = useState("0.10");
+  const [slippageTolerance, setSlippageTolerance] = useState("0.30");
 
   const inTokenFilter = useMemo(() => {
     const owned = new Set(balances.map((b) => b.tokenAddress.toLowerCase()));

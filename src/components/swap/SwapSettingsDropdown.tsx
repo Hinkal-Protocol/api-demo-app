@@ -19,14 +19,26 @@ export const SwapSettingsDropdown = ({
   const [isAutoTolleranceSelected, setIsAutoTolleranceSelected] =
     useState(true);
 
+  const MIN_SLIPPAGE = 0.3;
+  const MAX_SLIPPAGE = 3;
+
   const setTokenAmountHandler = (
     event: React.ChangeEvent<HTMLInputElement>,
-    setValue: (param: SetStateAction<string>) => void
+    setValue: (param: SetStateAction<string>) => void,
   ) => {
     const regExp = /^[0-9]*[.]?[0-9]*$/;
-    if (regExp.test(event.target.value)) {
-      setValue(event.target.value);
-      if (isAutoTolleranceSelected) setIsAutoTolleranceSelected(false);
+    const next = event.target.value;
+    if (!regExp.test(next)) return;
+    // Block values above the cap while typing; min is enforced on blur so
+    // partial input like "0." isn't rejected mid-typing.
+    if (next !== "" && Number(next) > MAX_SLIPPAGE) return;
+    setValue(next);
+    if (isAutoTolleranceSelected) setIsAutoTolleranceSelected(false);
+  };
+
+  const clampMinOnBlur = () => {
+    if (slippageTolerance === "" || Number(slippageTolerance) < MIN_SLIPPAGE) {
+      setSlippageTollerance(MIN_SLIPPAGE.toFixed(2));
     }
   };
 
@@ -34,7 +46,7 @@ export const SwapSettingsDropdown = ({
     <Modal
       isOpen={swapSettingsDropdownShown}
       xBtnAction={() => setSwapSettingsDropdownShown(false)}
-      styleProps="md:w-[24.9%] md:left-1/2 -translate-x-1/2 top-[50%] rounded-[13px] bg-transparent "
+      styleProps="md:w-[24.9%] left-[50%] md:left-[50%] -translate-x-1/2 top-[50%] rounded-[13px] bg-transparent "
     >
       <div className="text-white font-poppins bg-hinkal-blue-300 rounded-[13px] p-2">
         <p className="pl-2 text-[16px] font-[600]">Settings</p>
@@ -43,7 +55,7 @@ export const SwapSettingsDropdown = ({
             <p className="text-[15px] font-[400]">Slippage tolerance</p>
             <div className="flex-1 flex items-center gap-x-3 relative">
               {showTolleranceDetails ? (
-                <div className="absolute z-[99] top-[32px] text-white font-[300] text-[10px] md:text-[11px] w-[120%] left-[-20px] mb-8 flex items-start">
+                <div className="absolute z-[99] top-[32px] text-white font-[300] text-[10px] md:text-[11px] mb-8 flex items-start">
                   <button
                     type="button"
                     onMouseEnter={() => {
@@ -83,7 +95,7 @@ export const SwapSettingsDropdown = ({
               type="button"
               onClick={() => {
                 setIsAutoTolleranceSelected(true);
-                setSlippageTollerance("0.10");
+                setSlippageTollerance("0.30");
               }}
               className={` font-[400] border-[1px] border-solid border-primary text-[16px] rounded-xl h-full px-3 transition-all duration-300 hover:bg-hinkal-purple-200 ${
                 isAutoTolleranceSelected
