@@ -16,7 +16,7 @@ ReactDOM.createRoot(document.getElementById("root") as HTMLElement).render(
     <PrivyProvider
       appId={PRIVY_APP_ID}
       config={{
-        loginMethods: ["email", "google"],
+        loginMethods: ["email"],
         supportedChains: [...SUPPORTED_CHAINS],
         embeddedWallets: {
           ethereum: { createOnLogin: "users-without-wallets" },
