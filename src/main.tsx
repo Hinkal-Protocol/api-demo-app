@@ -1,7 +1,7 @@
 import React from "react";
 import ReactDOM from "react-dom/client";
 import { PrivyProvider } from "@privy-io/react-auth";
-import { WagmiProvider } from "@privy-io/wagmi";
+import { WagmiProvider } from "wagmi";
 import App from "./App";
 import { wagmiConfig } from "./wagmi.config";
 import { AppContextProvider } from "./AppContext";

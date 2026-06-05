@@ -10,7 +10,6 @@ import { useConfig, useConnectors } from "wagmi";
 import { connect } from "wagmi/actions";
 import type { Connector } from "wagmi";
 import { usePrivy, useWallets } from "@privy-io/react-auth";
-import { useSetActiveWallet } from "@privy-io/wagmi";
 import coinbaseLogo from "../assets/coinbaseWalletLogo.png";
 import metamaskLogo from "../assets/metamaskWalletLogo.png";
 import walletconnectLogo from "../assets/walletconnectWalletLogo.png";
@@ -49,7 +48,6 @@ export const ChooseWallet = ({
   const config = useConfig();
   const { login, authenticated, ready: privyReady } = usePrivy();
   const { wallets } = useWallets();
-  const { setActiveWallet } = useSetActiveWallet();
 
   const {
     setChainId,
@@ -132,7 +130,6 @@ export const ChooseWallet = ({
 
     (async () => {
       try {
-        await setActiveWallet(embedded);
         const account = embedded.address;
         const chainId = Number(embedded.chainId.split(":")[1]);
         const signer = await getEthersSigner();
@@ -161,7 +158,6 @@ export const ChooseWallet = ({
     connectingId,
     authenticated,
     wallets,
-    setActiveWallet,
     setIsConnecting,
     setShieldedAddress,
     setChainId,
