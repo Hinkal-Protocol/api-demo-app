@@ -15,7 +15,14 @@ ReactDOM.createRoot(document.getElementById("root") as HTMLElement).render(
   <React.StrictMode>
     <PrivyProvider
       appId={PRIVY_APP_ID}
-      config={{ loginMethods: ["email", "google"], supportedChains: [...SUPPORTED_CHAINS] }}
+      config={{
+        loginMethods: ["email", "google"],
+        supportedChains: [...SUPPORTED_CHAINS],
+        embeddedWallets: {
+          ethereum: { createOnLogin: "users-without-wallets" },
+          showWalletUIs: true,
+        },
+      }}
     >
       <QueryClientProvider client={queryClient}>
         <WagmiProvider config={wagmiConfig}>
