@@ -1,4 +1,5 @@
-import { http, createConfig } from "wagmi";
+import { http } from "wagmi";
+import { createConfig } from "@privy-io/wagmi";
 import { metaMask, walletConnect } from "wagmi/connectors";
 import { SUPPORTED_CHAINS } from "./constants/supported-chain-ids.constants";
 
