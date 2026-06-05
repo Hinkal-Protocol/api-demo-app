@@ -32,7 +32,7 @@ export const Withdraw = () => {
     balances,
   } = useAppContext();
   const [selectedToken, setSelectedToken] = useState<ERC20Token | undefined>(
-    undefined
+    undefined,
   );
 
   const tokenFilter = useMemo(() => {
@@ -91,7 +91,7 @@ export const Withdraw = () => {
       const amountInWei = getAmountInWei(selectedToken, withdrawAmount);
       const tokenAddress = selectedToken.erc20TokenAddress;
 
-      const signer = isTron || isSolana ? null : await getEthersSigner();
+      const signer = isTron || isSolana ? null : await getEthersSigner(chainId);
       const amountStr = amountInWei.toString();
       const buildReadOnlyAuth =
         isSolana && solanaProvider
@@ -101,7 +101,7 @@ export const Withdraw = () => {
                 chainId,
                 [tokenAddress],
                 [amountStr],
-                recipientAddress
+                recipientAddress,
               )
           : isTron
           ? () =>
@@ -109,7 +109,7 @@ export const Withdraw = () => {
                 chainId,
                 [tokenAddress],
                 [amountStr],
-                recipientAddress
+                recipientAddress,
               )
           : undefined;
       await withdraw(
@@ -123,7 +123,7 @@ export const Withdraw = () => {
         isRelayerOff,
         tokenAddress,
         feeStructure,
-        buildReadOnlyAuth
+        buildReadOnlyAuth,
       );
 
       toast.success("Withdraw confirmed");
@@ -150,7 +150,7 @@ export const Withdraw = () => {
   ]);
 
   const setRecipientAddressHandler = (
-    event: React.ChangeEvent<HTMLInputElement>
+    event: React.ChangeEvent<HTMLInputElement>,
   ) => {
     setRecipientAddress(event.target.value);
   };
@@ -179,7 +179,7 @@ export const Withdraw = () => {
       hasInsufficientFunds,
       isRelayerOff,
       feeStructure,
-    ]
+    ],
   );
 
   return (

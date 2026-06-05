@@ -88,7 +88,7 @@ export const Transfer = () => {
       const amountInWei = getAmountInWei(selectedToken, transferAmount);
       const tokenAddress = selectedToken.erc20TokenAddress;
 
-      const signer = isTron || isSolana ? null : await getEthersSigner();
+      const signer = isTron || isSolana ? null : await getEthersSigner(chainId);
       const amountStr = amountInWei.toString();
       const buildReadOnlyAuth =
         isSolana && solanaProvider

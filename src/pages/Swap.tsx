@@ -234,7 +234,7 @@ export const Swap = () => {
     try {
       setIsProcessing(true);
       const getterAuth = { signature, nonce, address: walletAddress, chainId };
-      const signer = isSolana ? null : await getEthersSigner();
+      const signer = isSolana ? null : await getEthersSigner(chainId);
       await executeSwap(
         signer,
         { signature, nonce, hasWriteAccess },

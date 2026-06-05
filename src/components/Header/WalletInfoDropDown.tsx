@@ -2,13 +2,14 @@ import { useCallback, useMemo, useState } from "react";
 import toast from "react-hot-toast";
 import { useConfig } from "wagmi";
 import { disconnect } from "wagmi/actions";
+import { usePrivy } from "@privy-io/react-auth";
 import Copy from "../../assets/Copy.svg";
 import Disconnect from "../../assets/Disconnect.svg";
 import { Spinner } from "../Spinner";
 import { copyToClipboard } from "../../utils/copyToClipboard";
 import { getFriendlyErrorMessage } from "../../utils/errors";
 import { fetchRecipientInfo } from "../../utils/recipientInfo";
-import { getEthersSigner } from "../../utils/ethers-wallet";
+import { getEthersSigner, setActivePrivyWallet } from "../../utils/ethers-wallet";
 import { withdrawStuckUtxos } from "../../utils/withdraw";
 import { buildSolanaWithdrawStuckUtxosAuthFields } from "../../utils/solana-auth";
 import { buildTronWithdrawStuckUtxosAuthFields } from "../../utils/tron-auth";
@@ -37,6 +38,7 @@ export const WalletInfoDropDown = () => {
     solanaProvider,
   } = useAppContext();
   const config = useConfig();
+  const { authenticated, logout } = usePrivy();
   const visibleStuckUtxoBalances = useMemo(
     () => filterNonZeroTokenBalances(stuckUtxoBalances),
     [stuckUtxoBalances]
@@ -55,6 +57,14 @@ export const WalletInfoDropDown = () => {
         console.error("disconnect failed", err);
       }
     }
+    if (authenticated) {
+      try {
+        await logout();
+      } catch (err) {
+        console.error("privy logout failed", err);
+      }
+    }
+    setActivePrivyWallet(null);
     setWalletAddress(null);
     clearEnclaveSession();
     setRequestedWriteAccess(false);

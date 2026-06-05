@@ -6,3 +6,5 @@ export const mediaUrls = {
 };
 
 export const zeroAddress = `0x${"00".repeat(20)}`;
+
+export const PRIVY_APP_ID = "cmpzcz5re00et0cjmajy6q25y";

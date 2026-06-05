@@ -1,8 +1,15 @@
-import { Dispatch, SetStateAction, useCallback, useState } from "react";
+import {
+  Dispatch,
+  SetStateAction,
+  useCallback,
+  useEffect,
+  useState,
+} from "react";
 import { isMobile } from "react-device-detect";
 import { useConfig, useConnectors } from "wagmi";
 import { connect } from "wagmi/actions";
 import type { Connector } from "wagmi";
+import { usePrivy, useWallets } from "@privy-io/react-auth";
 import coinbaseLogo from "../assets/coinbaseWalletLogo.png";
 import metamaskLogo from "../assets/metamaskWalletLogo.png";
 import walletconnectLogo from "../assets/walletconnectWalletLogo.png";
@@ -39,6 +46,8 @@ export const ChooseWallet = ({
   const connectors = useConnectors();
   console.log({ connectors });
   const config = useConfig();
+  const { login, authenticated, ready: privyReady } = usePrivy();
+  const { wallets } = useWallets();
 
   const {
     setChainId,
@@ -106,6 +115,60 @@ export const ChooseWallet = ({
       onHide,
     ],
   );
+
+  const handleConnectPrivy = useCallback(() => {
+    setIsConnecting?.(true);
+    setConnectingId("privy");
+    if (!authenticated) login();
+  }, [authenticated, login, setIsConnecting]);
+
+  useEffect(() => {
+    if (connectingId !== "privy" || !authenticated) return;
+    const embedded = wallets.find((w) => w.walletClientType === "privy");
+    if (!embedded) return;
+    setConnectingId("privy-signing");
+
+    (async () => {
+      try {
+        const account = embedded.address;
+        const chainId = Number(embedded.chainId.split(":")[1]);
+        const signer = await getEthersSigner();
+        setRequestedWriteAccess(writeAccessEnabled);
+        const session = await createEnclaveSession(
+          signer,
+          account,
+          chainId,
+          writeAccessEnabled,
+        );
+        setWalletType("evm");
+        setWalletAddress(account);
+        applyEnclaveSession(session);
+        setShieldedAddress(undefined);
+        setChainId(chainId);
+        setDataLoaded(true);
+        onHide();
+      } catch (err) {
+        toast.error(`Privy connection failed: ${err || "Unknown error"}`);
+      } finally {
+        setConnectingId(null);
+        setIsConnecting?.(false);
+      }
+    })();
+  }, [
+    connectingId,
+    authenticated,
+    wallets,
+    setIsConnecting,
+    setShieldedAddress,
+    setChainId,
+    setDataLoaded,
+    setWalletAddress,
+    setRequestedWriteAccess,
+    applyEnclaveSession,
+    setWalletType,
+    writeAccessEnabled,
+    onHide,
+  ]);
 
   const handleConnectSolana = useCallback(
     async (provider: SolanaWalletProvider) => {
@@ -219,11 +282,21 @@ export const ChooseWallet = ({
         />
       </div>
       <div className="p-5 pb-10 flex flex-col items-center gap-y-5">
+        <button
+          className="bg-modal px-4 py-2 min-w-[180px] w-[80%] rounded-lg border-[2.5px] border-[#f0f0f0] hover:border-[#9c9c9c] font-bold duration-150 flex items-center justify-center gap-x-3"
+          type="button"
+          disabled={!!connectingId || !privyReady}
+          onClick={handleConnectPrivy}
+        >
+          <span className="text-white">Privy</span>
+          {connectingId?.startsWith("privy") && <Spinner />}
+        </button>
         {connectors
           .filter((connector) =>
             isMobile
               ? connector.name === "WalletConnect"
-              : connector.name !== "Hinkal",
+              : connector.name !== "Hinkal" &&
+                !connector.id.startsWith("io.privy.wallet"),
           )
           .map((connector) => (
             <button
