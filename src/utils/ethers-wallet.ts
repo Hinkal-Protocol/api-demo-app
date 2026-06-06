@@ -74,6 +74,17 @@ export const getEthersSigner = async (
   return clientToSigner(client);
 };
 
+export const switchActiveWalletChain = async (
+  chainId: number,
+): Promise<void> => {
+  if (activeTurnkeyParams) return;
+  if (activePrivyWallet) {
+    await activePrivyWallet.switchChain(chainId);
+    return;
+  }
+  await switchChain(wagmiConfig, { chainId: chainId as any });
+};
+
 export const getJsonRpcProvider = (chainId: number): ethers.JsonRpcProvider => {
   const rpcUrl = networkRegistry[chainId]?.fetchRpcUrl;
   if (!rpcUrl) {

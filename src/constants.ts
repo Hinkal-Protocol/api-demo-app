@@ -11,8 +11,8 @@ export const zeroAddress = `0x${"00".repeat(20)}`;
 
 export const PRIVY_APP_ID = "cmpzcz5re00et0cjmajy6q25y";
 
-const TURNKEY_ORGANIZATION_ID = "bcf49c16-5d81-4ab7-938c-5673526cf69f";
-const TURNKEY_AUTH_PROXY_CONFIG_ID = "bcf49c16-5d81-4ab7-938c-5673526cf69f";
+const TURNKEY_ORGANIZATION_ID = "63efc457-ac49-457c-9ab3-ea672e8324f6";
+const TURNKEY_AUTH_PROXY_CONFIG_ID = "63efc457-ac49-457c-9ab3-ea672e8324f6";
 
 export const turnkeyConfig: TurnkeyProviderConfig = {
   apiBaseUrl: "https://api.turnkey.com",

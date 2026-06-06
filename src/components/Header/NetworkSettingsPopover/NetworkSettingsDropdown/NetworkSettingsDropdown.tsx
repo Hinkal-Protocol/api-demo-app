@@ -1,7 +1,6 @@
 import { NetworkDropdownItem } from "./NetworkDropdownItem";
 import { useCallback, useMemo } from "react";
-import { useConfig } from "wagmi";
-import { switchChain } from "wagmi/actions";
+import { switchActiveWalletChain } from "../../../../utils/ethers-wallet";
 import { useAppContext } from "../../../../AppContext";
 import { SUPPORTED_CHAIN_IDS } from "../../../../constants/supported-chain-ids.constants";
 import { networkRegistry } from "../../../../constants/chain.constants";
@@ -14,7 +13,6 @@ export const NetworkSettingsDropdown = ({
   close,
 }: NetworkSettingsDropdownProps) => {
   const { setChainId } = useAppContext();
-  const config = useConfig();
 
   const networkList = useMemo(
     () =>
@@ -29,7 +27,7 @@ export const NetworkSettingsDropdown = ({
       const network = networkList.find((net) => net.chainId === chainId);
       if (!network) return;
       try {
-        await switchChain(config, { chainId: network.chainId as any });
+        await switchActiveWalletChain(network.chainId);
       } catch (err) {
         console.error("switchChain failed", err);
         return;
@@ -37,7 +35,7 @@ export const NetworkSettingsDropdown = ({
       setChainId(network.chainId);
       close();
     },
-    [networkList, config, setChainId, close],
+    [networkList, setChainId, close],
   );
 
   return (

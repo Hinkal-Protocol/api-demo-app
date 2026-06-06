@@ -8,7 +8,7 @@ import {
 } from "react";
 import { isMobile } from "react-device-detect";
 import { useConfig, useConnectors } from "wagmi";
-import { connect } from "wagmi/actions";
+import { connect, disconnect } from "wagmi/actions";
 import type { Connector } from "wagmi";
 import { usePrivy, useWallets } from "@privy-io/react-auth";
 import { AuthState, ClientState, useTurnkey } from "@turnkey/react-wallet-kit"; // + added
@@ -133,8 +133,9 @@ export const ChooseWallet = ({
   const handleConnectPrivy = useCallback(() => {
     setIsConnecting?.(true);
     setConnectingId("privy");
+    void disconnect(config);
     if (!authenticated) login();
-  }, [authenticated, login, setIsConnecting]);
+  }, [authenticated, login, setIsConnecting, config]);
 
   useEffect(() => {
     if (connectingId !== "privy" || !authenticated) return;
@@ -187,26 +188,44 @@ export const ChooseWallet = ({
   const handleConnectTurnkey = useCallback(() => {
     setIsConnecting?.(true);
     setConnectingId("turnkey");
+    void disconnect(config);
     if (turnkeyAuthState !== AuthState.Authenticated) void turnkeyLogin();
-  }, [turnkeyAuthState, turnkeyLogin, setIsConnecting]);
+  }, [turnkeyAuthState, turnkeyLogin, setIsConnecting, config]);
 
   useEffect(() => {
     if (connectingId !== "turnkey" && connectingId !== "turnkey-signing")
       return;
     if (turnkeyAuthState !== AuthState.Authenticated) return;
 
-    const evmAccount = turnkeyWallets
-      .flatMap((w) => w.accounts)
-      .find((a) => a.addressFormat === "ADDRESS_FORMAT_ETHEREUM");
-
-    if (!evmAccount) return;
-
-    if (connectingId === "turnkey") setConnectingId("turnkey-signing");
     if (turnkeySessionStarted.current) return;
     turnkeySessionStarted.current = true;
 
+    if (connectingId === "turnkey") setConnectingId("turnkey-signing");
+
     (async () => {
       try {
+        const findEvm = () =>
+          turnkeyWallets
+            .flatMap((w) => w.accounts)
+            .find((a) => a.addressFormat === "ADDRESS_FORMAT_ETHEREUM");
+        let evmAccount = findEvm();
+        if (!evmAccount) {
+          await (turnkeyHttpClient as any).createWallet({
+            walletName: "Default Wallet",
+            accounts: [
+              {
+                curve: "CURVE_SECP256K1",
+                pathFormat: "PATH_FORMAT_BIP32",
+                path: "m/44'/60'/0'/0/0",
+                addressFormat: "ADDRESS_FORMAT_ETHEREUM",
+              },
+            ],
+          });
+          evmAccount = (await turnkeyRefreshWallets())
+            .flatMap((w) => w.accounts)
+            .find((a) => a.addressFormat === "ADDRESS_FORMAT_ETHEREUM");
+          if (!evmAccount) throw new Error("No Turnkey wallet available");
+        }
         const account = evmAccount.address;
         const chainId = SUPPORTED_CHAINS[0].id;
         setActiveTurnkeyParams({
@@ -242,6 +261,7 @@ export const ChooseWallet = ({
     turnkeyAuthState,
     turnkeyWallets,
     turnkeyHttpClient,
+    turnkeyRefreshWallets,
     setIsConnecting,
     setShieldedAddress,
     setChainId,
