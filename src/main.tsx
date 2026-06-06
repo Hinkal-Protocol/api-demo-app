@@ -9,6 +9,11 @@ import { AppContextProvider } from "./AppContext";
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
 import { SUPPORTED_CHAINS } from "./constants/supported-chain-ids.constants";
 import { PRIVY_APP_ID, turnkeyConfig } from "./constants";
+import turnkeyStyles from "@turnkey/react-wallet-kit/styles.css?raw";
+
+const style = document.createElement("style");
+style.textContent = turnkeyStyles;
+document.head.appendChild(style);
 
 const queryClient = new QueryClient();
 
