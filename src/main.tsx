@@ -1,13 +1,14 @@
 import React from "react";
 import ReactDOM from "react-dom/client";
 import { PrivyProvider } from "@privy-io/react-auth";
+import { TurnkeyProvider } from "@turnkey/react-wallet-kit";
 import { WagmiProvider } from "wagmi";
 import App from "./App";
 import { wagmiConfig } from "./wagmi.config";
 import { AppContextProvider } from "./AppContext";
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
 import { SUPPORTED_CHAINS } from "./constants/supported-chain-ids.constants";
-import { PRIVY_APP_ID } from "./constants";
+import { PRIVY_APP_ID, turnkeyConfig } from "./constants";
 
 const queryClient = new QueryClient();
 
@@ -24,13 +25,15 @@ ReactDOM.createRoot(document.getElementById("root") as HTMLElement).render(
         },
       }}
     >
-      <QueryClientProvider client={queryClient}>
-        <WagmiProvider config={wagmiConfig}>
-          <AppContextProvider>
-            <App />
-          </AppContextProvider>
-        </WagmiProvider>
-      </QueryClientProvider>
+      <TurnkeyProvider config={turnkeyConfig}>
+        <QueryClientProvider client={queryClient}>
+          <WagmiProvider config={wagmiConfig}>
+            <AppContextProvider>
+              <App />
+            </AppContextProvider>
+          </WagmiProvider>
+        </QueryClientProvider>
+      </TurnkeyProvider>
     </PrivyProvider>
   </React.StrictMode>,
 );

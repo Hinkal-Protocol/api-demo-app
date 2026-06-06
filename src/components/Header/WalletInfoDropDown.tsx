@@ -3,13 +3,18 @@ import toast from "react-hot-toast";
 import { useConfig } from "wagmi";
 import { disconnect } from "wagmi/actions";
 import { usePrivy } from "@privy-io/react-auth";
+import { AuthState, useTurnkey } from "@turnkey/react-wallet-kit";
 import Copy from "../../assets/Copy.svg";
 import Disconnect from "../../assets/Disconnect.svg";
 import { Spinner } from "../Spinner";
 import { copyToClipboard } from "../../utils/copyToClipboard";
 import { getFriendlyErrorMessage } from "../../utils/errors";
 import { fetchRecipientInfo } from "../../utils/recipientInfo";
-import { getEthersSigner, setActivePrivyWallet } from "../../utils/ethers-wallet";
+import {
+  getEthersSigner,
+  setActivePrivyWallet,
+  setActiveTurnkeyParams,
+} from "../../utils/ethers-wallet";
 import { withdrawStuckUtxos } from "../../utils/withdraw";
 import { buildSolanaWithdrawStuckUtxosAuthFields } from "../../utils/solana-auth";
 import { buildTronWithdrawStuckUtxosAuthFields } from "../../utils/tron-auth";
@@ -39,9 +44,10 @@ export const WalletInfoDropDown = () => {
   } = useAppContext();
   const config = useConfig();
   const { authenticated, logout } = usePrivy();
+  const { authState: turnkeyAuthState, logout: turnkeyLogout } = useTurnkey();
   const visibleStuckUtxoBalances = useMemo(
     () => filterNonZeroTokenBalances(stuckUtxoBalances),
-    [stuckUtxoBalances]
+    [stuckUtxoBalances],
   );
   const [withdrawingStuckTokenAddress, setWithdrawingStuckTokenAddress] =
     useState<string | null>(null);
@@ -64,7 +70,15 @@ export const WalletInfoDropDown = () => {
         console.error("privy logout failed", err);
       }
     }
+    if (turnkeyAuthState === AuthState.Authenticated) {
+      try {
+        await turnkeyLogout();
+      } catch (err) {
+        console.error("turnkey logout failed", err);
+      }
+    }
     setActivePrivyWallet(null);
+    setActiveTurnkeyParams(null);
     setWalletAddress(null);
     clearEnclaveSession();
     setRequestedWriteAccess(false);
@@ -82,7 +96,7 @@ export const WalletInfoDropDown = () => {
       toast.success("Wallet address copied to clipboard");
     } catch (err: any) {
       toast.error(
-        getFriendlyErrorMessage(err, "Failed to copy wallet address")
+        getFriendlyErrorMessage(err, "Failed to copy wallet address"),
       );
     }
   };
@@ -104,7 +118,7 @@ export const WalletInfoDropDown = () => {
       toast.success("Private address copied to clipboard");
     } catch (err: any) {
       toast.error(
-        getFriendlyErrorMessage(err, "Failed to copy private address")
+        getFriendlyErrorMessage(err, "Failed to copy private address"),
       );
     } finally {
       setIsCopyingPrivate(false);
@@ -125,14 +139,14 @@ export const WalletInfoDropDown = () => {
                   solanaProvider,
                   chainId,
                   tokenAddress,
-                  walletAddress
+                  walletAddress,
                 )
             : isTron
             ? () =>
                 buildTronWithdrawStuckUtxosAuthFields(
                   chainId,
                   tokenAddress,
-                  walletAddress
+                  walletAddress,
                 )
             : undefined;
         const txHashes = await withdrawStuckUtxos(
@@ -142,20 +156,20 @@ export const WalletInfoDropDown = () => {
           chainId,
           tokenAddress,
           walletAddress,
-          buildReadOnlyAuth
+          buildReadOnlyAuth,
         );
 
         toast.success(`Withdraw sent (${txHashes.length} txs)`);
         await refreshBalances();
       } catch (err) {
         toast.error(
-          getFriendlyErrorMessage(err, "Withdraw stuck UTXOs failed")
+          getFriendlyErrorMessage(err, "Withdraw stuck UTXOs failed"),
         );
       } finally {
         setWithdrawingStuckTokenAddress(null);
       }
     },
-    [walletAddress, chainId, signature, nonce, hasWriteAccess, refreshBalances]
+    [walletAddress, chainId, signature, nonce, hasWriteAccess, refreshBalances],
   );
 
   return (

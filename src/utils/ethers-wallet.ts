@@ -1,6 +1,8 @@
 import { ethers } from "ethers";
 import type { Account, Chain, Client, Transport } from "viem";
 import { getConnectorClient, switchChain } from "wagmi/actions";
+import { TurnkeySigner } from "@turnkey/ethers";
+import type { TurnkeyClient } from "@turnkey/http";
 import { ERC20_ABI } from "../constants/erc20.constants";
 import { networkRegistry } from "../constants/chain.constants";
 import { wagmiConfig } from "../wagmi.config";
@@ -15,6 +17,18 @@ let activePrivyWallet: PrivyEvmWallet | null = null;
 
 export const setActivePrivyWallet = (wallet: PrivyEvmWallet | null): void => {
   activePrivyWallet = wallet;
+};
+
+interface TurnkeySignerParams {
+  client: TurnkeyClient;
+  organizationId: string;
+  signWith: string;
+}
+let activeTurnkeyParams: TurnkeySignerParams | null = null;
+export const setActiveTurnkeyParams = (
+  params: TurnkeySignerParams | null,
+): void => {
+  activeTurnkeyParams = params;
 };
 
 const clientToSigner = (
@@ -32,7 +46,13 @@ const clientToSigner = (
 
 export const getEthersSigner = async (
   chainId?: number,
-): Promise<ethers.JsonRpcSigner> => {
+): Promise<ethers.Signer> => {
+  if (activeTurnkeyParams) {
+    const targetChainId = chainId ?? wagmiConfig.chains[0].id;
+    const provider = getJsonRpcProvider(targetChainId);
+    return new TurnkeySigner(activeTurnkeyParams, provider);
+  }
+
   if (activePrivyWallet) {
     if (chainId) await activePrivyWallet.switchChain(chainId);
     const provider = await activePrivyWallet.getEthereumProvider();
@@ -81,15 +101,18 @@ export const getErc20Balance = async (
 };
 
 const sendViaWallet = async (
-  signer: ethers.JsonRpcSigner,
+  signer: ethers.Signer,
   tx: { to: string; data?: string; value?: bigint },
 ): Promise<ethers.TransactionReceipt> => {
-  const hash = await signer.sendUncheckedTransaction({
+  const txRequest = {
     to: tx.to,
     data: tx.data ?? "0x",
     ...(tx.value && tx.value > 0n ? { value: tx.value } : {}),
-  });
-  const { chainId } = await signer.provider.getNetwork();
+  };
+  const hash = (signer as any).sendUncheckedTransaction
+    ? await (signer as ethers.JsonRpcSigner).sendUncheckedTransaction(txRequest)
+    : (await signer.sendTransaction(txRequest)).hash;
+  const { chainId } = await signer.provider!.getNetwork();
   const receipt = await getJsonRpcProvider(Number(chainId)).waitForTransaction(
     hash,
     1,
@@ -101,7 +124,7 @@ const sendViaWallet = async (
 };
 
 export const approveErc20 = async (
-  signer: ethers.JsonRpcSigner,
+  signer: ethers.Signer,
   tokenAddress: string,
   spender: string,
   amount: bigint,
@@ -115,12 +138,12 @@ export const approveErc20 = async (
   });
 
 export const sendTx = async (
-  signer: ethers.JsonRpcSigner,
+  signer: ethers.Signer,
   tx: { to: string; data?: string; value?: bigint },
 ): Promise<ethers.TransactionReceipt> => sendViaWallet(signer, tx);
 
 export const broadcastDepositTx = async (
-  signer: ethers.JsonRpcSigner,
+  signer: ethers.Signer,
   serializedTxBase64: string,
 ): Promise<ethers.TransactionReceipt> => {
   const rlpHex = ethers.hexlify(ethers.decodeBase64(serializedTxBase64));

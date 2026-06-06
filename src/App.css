@@ -1,4 +1,5 @@
 @import "bootstrap-icons/font/bootstrap-icons.css";
+@import "@turnkey/react-wallet-kit/styles.css";
 
 @tailwind base;
 @tailwind components;
