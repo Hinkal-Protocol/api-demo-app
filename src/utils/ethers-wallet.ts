@@ -57,7 +57,16 @@ export const getEthersSigner = async (
     if (chainId) await activePrivyWallet.switchChain(chainId);
     const provider = await activePrivyWallet.getEthereumProvider();
     const browserProvider = new ethers.BrowserProvider(provider);
-    return browserProvider.getSigner();
+    const signer = await browserProvider.getSigner();
+    const signerAddress = await signer.getAddress();
+    if (
+      signerAddress.toLowerCase() !== activePrivyWallet.address.toLowerCase()
+    ) {
+      throw new Error(
+        `Wallet mismatch: expected ${activePrivyWallet.address}, got ${signerAddress}. Disable other wallet extensions and reconnect.`,
+      );
+    }
+    return signer;
   }
 
   if (chainId) {

@@ -50,7 +50,6 @@ export const ChooseWallet = ({
   setIsConnecting,
 }: ChooseWalletProps) => {
   const connectors = useConnectors();
-  console.log({ connectors });
   const config = useConfig();
   const { login, authenticated, ready: privyReady } = usePrivy();
   const { wallets } = useWallets();
@@ -82,6 +81,7 @@ export const ChooseWallet = ({
         setIsConnecting?.(true);
         setConnectingId(connector.id);
         try {
+          await disconnect(config);
           await connector.disconnect();
         } catch (disconnectError) {
           console.log("Disconnect cleanup:", disconnectError);
@@ -204,14 +204,15 @@ export const ChooseWallet = ({
 
     (async () => {
       try {
-        const findEvm = () =>
-          turnkeyWallets
+        const pickEvm = (wallets: typeof turnkeyWallets) =>
+          wallets
             .flatMap((w) => w.accounts)
             .find((a) => a.addressFormat === "ADDRESS_FORMAT_ETHEREUM");
-        let evmAccount = findEvm();
+        let evmAccount =
+          pickEvm(turnkeyWallets) ?? pickEvm(await turnkeyRefreshWallets());
         if (!evmAccount) {
           await (turnkeyHttpClient as any).createWallet({
-            walletName: "Default Wallet",
+            walletName: `Default Wallet ${Date.now()}`,
             accounts: [
               {
                 curve: "CURVE_SECP256K1",
@@ -221,9 +222,7 @@ export const ChooseWallet = ({
               },
             ],
           });
-          evmAccount = (await turnkeyRefreshWallets())
-            .flatMap((w) => w.accounts)
-            .find((a) => a.addressFormat === "ADDRESS_FORMAT_ETHEREUM");
+          evmAccount = pickEvm(await turnkeyRefreshWallets());
           if (!evmAccount) throw new Error("No Turnkey wallet available");
         }
         const account = evmAccount.address;
