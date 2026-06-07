@@ -3,13 +3,15 @@ import {
   SetStateAction,
   useCallback,
   useEffect,
+  useRef,
   useState,
 } from "react";
 import { isMobile } from "react-device-detect";
 import { useConfig, useConnectors } from "wagmi";
-import { connect } from "wagmi/actions";
+import { connect, disconnect } from "wagmi/actions";
 import type { Connector } from "wagmi";
 import { usePrivy, useWallets } from "@privy-io/react-auth";
+import { AuthState, ClientState, useTurnkey } from "@turnkey/react-wallet-kit"; // + added
 import coinbaseLogo from "../assets/coinbaseWalletLogo.png";
 import metamaskLogo from "../assets/metamaskWalletLogo.png";
 import walletconnectLogo from "../assets/walletconnectWalletLogo.png";
@@ -19,7 +21,10 @@ import { Spinner } from "./Spinner";
 import { ToggleSwitch } from "./withdraw/ToggleSwitch";
 import { useAppContext } from "../AppContext";
 import { createEnclaveSession } from "../utils/session";
-import { getEthersSigner } from "../utils/ethers-wallet";
+import {
+  getEthersSigner,
+  setActiveTurnkeyParams,
+} from "../utils/ethers-wallet";
 import { connectTronLink } from "../utils/tron-wallet";
 import { createTronEnclaveSession } from "../utils/tron-session";
 import {
@@ -27,6 +32,7 @@ import {
   SolanaWalletProvider,
 } from "../utils/solana-wallet";
 import { createSolanaEnclaveSession } from "../utils/solana-session";
+import { SUPPORTED_CHAINS } from "../constants/supported-chain-ids.constants";
 import { getFriendlyErrorMessage } from "../utils/errors";
 import toast from "react-hot-toast";
 
@@ -44,10 +50,17 @@ export const ChooseWallet = ({
   setIsConnecting,
 }: ChooseWalletProps) => {
   const connectors = useConnectors();
-  console.log({ connectors });
   const config = useConfig();
   const { login, authenticated, ready: privyReady } = usePrivy();
   const { wallets } = useWallets();
+  const {
+    handleLogin: turnkeyLogin,
+    authState: turnkeyAuthState,
+    clientState: turnkeyClientState,
+    wallets: turnkeyWallets,
+    refreshWallets: turnkeyRefreshWallets,
+    httpClient: turnkeyHttpClient,
+  } = useTurnkey();
 
   const {
     setChainId,
@@ -61,13 +74,14 @@ export const ChooseWallet = ({
 
   const [connectingId, setConnectingId] = useState<string | null>(null);
   const [writeAccessEnabled, setWriteAccessEnabled] = useState(false);
-
+  const turnkeySessionStarted = useRef(false);
   const handleSelectConnector = useCallback(
     async (connector: Connector) => {
       try {
         setIsConnecting?.(true);
         setConnectingId(connector.id);
         try {
+          await disconnect(config);
           await connector.disconnect();
         } catch (disconnectError) {
           console.log("Disconnect cleanup:", disconnectError);
@@ -119,8 +133,9 @@ export const ChooseWallet = ({
   const handleConnectPrivy = useCallback(() => {
     setIsConnecting?.(true);
     setConnectingId("privy");
+    void disconnect(config);
     if (!authenticated) login();
-  }, [authenticated, login, setIsConnecting]);
+  }, [authenticated, login, setIsConnecting, config]);
 
   useEffect(() => {
     if (connectingId !== "privy" || !authenticated) return;
@@ -158,6 +173,94 @@ export const ChooseWallet = ({
     connectingId,
     authenticated,
     wallets,
+    setIsConnecting,
+    setShieldedAddress,
+    setChainId,
+    setDataLoaded,
+    setWalletAddress,
+    setRequestedWriteAccess,
+    applyEnclaveSession,
+    setWalletType,
+    writeAccessEnabled,
+    onHide,
+  ]);
+
+  const handleConnectTurnkey = useCallback(() => {
+    setIsConnecting?.(true);
+    setConnectingId("turnkey");
+    void disconnect(config);
+    if (turnkeyAuthState !== AuthState.Authenticated) void turnkeyLogin();
+  }, [turnkeyAuthState, turnkeyLogin, setIsConnecting, config]);
+
+  useEffect(() => {
+    if (connectingId !== "turnkey" && connectingId !== "turnkey-signing")
+      return;
+    if (turnkeyAuthState !== AuthState.Authenticated) return;
+
+    if (turnkeySessionStarted.current) return;
+    turnkeySessionStarted.current = true;
+
+    if (connectingId === "turnkey") setConnectingId("turnkey-signing");
+
+    (async () => {
+      try {
+        const pickEvm = (wallets: typeof turnkeyWallets) =>
+          wallets
+            .flatMap((w) => w.accounts)
+            .find((a) => a.addressFormat === "ADDRESS_FORMAT_ETHEREUM");
+        let evmAccount =
+          pickEvm(turnkeyWallets) ?? pickEvm(await turnkeyRefreshWallets());
+        if (!evmAccount) {
+          await (turnkeyHttpClient as any).createWallet({
+            walletName: `Default Wallet ${Date.now()}`,
+            accounts: [
+              {
+                curve: "CURVE_SECP256K1",
+                pathFormat: "PATH_FORMAT_BIP32",
+                path: "m/44'/60'/0'/0/0",
+                addressFormat: "ADDRESS_FORMAT_ETHEREUM",
+              },
+            ],
+          });
+          evmAccount = pickEvm(await turnkeyRefreshWallets());
+          if (!evmAccount) throw new Error("No Turnkey wallet available");
+        }
+        const account = evmAccount.address;
+        const chainId = SUPPORTED_CHAINS[0].id;
+        setActiveTurnkeyParams({
+          client: turnkeyHttpClient as any,
+          organizationId: evmAccount.organizationId,
+          signWith: evmAccount.address,
+        });
+        const signer = await getEthersSigner(chainId);
+        setRequestedWriteAccess(writeAccessEnabled);
+        const session = await createEnclaveSession(
+          signer,
+          account,
+          chainId,
+          writeAccessEnabled,
+        );
+        setWalletType("evm");
+        setWalletAddress(account);
+        applyEnclaveSession(session);
+        setShieldedAddress(undefined);
+        setChainId(chainId);
+        setDataLoaded(true);
+        onHide();
+      } catch (err) {
+        toast.error(`Turnkey connection failed: ${err || "Unknown error"}`);
+      } finally {
+        turnkeySessionStarted.current = false;
+        setConnectingId(null);
+        setIsConnecting?.(false);
+      }
+    })();
+  }, [
+    connectingId,
+    turnkeyAuthState,
+    turnkeyWallets,
+    turnkeyHttpClient,
+    turnkeyRefreshWallets,
     setIsConnecting,
     setShieldedAddress,
     setChainId,
@@ -290,6 +393,17 @@ export const ChooseWallet = ({
         >
           <span className="text-white">Privy</span>
           {connectingId?.startsWith("privy") && <Spinner />}
+        </button>
+        <button
+          className="bg-modal px-4 py-2 min-w-[180px] w-[80%] rounded-lg border-[2.5px] border-[#f0f0f0] hover:border-[#9c9c9c] font-bold duration-150 flex items-center justify-center gap-x-3"
+          type="button"
+          disabled={
+            !!connectingId || turnkeyClientState === ClientState.Loading
+          }
+          onClick={handleConnectTurnkey}
+        >
+          <span className="text-white">Turnkey</span>
+          {connectingId?.startsWith("turnkey") && <Spinner />}
         </button>
         {connectors
           .filter((connector) =>

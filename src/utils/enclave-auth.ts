@@ -19,10 +19,12 @@ const normalizeTokenAmountPairs = (
   if (tokenAddresses.length !== amounts.length) {
     throw new Error("tokenAddresses and amounts must have the same length");
   }
-  return tokenAddresses.map((token, index) => ({
-    token,
-    amount: amounts[index],
-  }));
+  return tokenAddresses
+    .map((token, index) => ({
+      token: ethers.getAddress(token),
+      amount: amounts[index],
+    }))
+    .sort((a, b) => a.token.localeCompare(b.token));
 };
 
 const toTokenAmountValues = (pairs: TokenAmountPair[]) =>
@@ -124,12 +126,17 @@ export const buildWithdrawStuckUtxosAuthFields = (
     recipientAddress: string;
   },
 ) =>
-  signEnclaveTypedData(signer, "WithdrawStuckUtxos", params.chainId, (nonce) => ({
-    nonce,
-    chainId: BigInt(params.chainId),
-    tokenAddress: ethers.getAddress(params.tokenAddress),
-    recipient: ethers.getAddress(params.recipientAddress),
-  }));
+  signEnclaveTypedData(
+    signer,
+    "WithdrawStuckUtxos",
+    params.chainId,
+    (nonce) => ({
+      nonce,
+      chainId: BigInt(params.chainId),
+      tokenAddress: ethers.getAddress(params.tokenAddress),
+      recipient: ethers.getAddress(params.recipientAddress),
+    }),
+  );
 
 export const buildSwapAuthFields = (
   signer: ethers.Signer,
