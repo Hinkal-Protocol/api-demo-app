@@ -72,7 +72,7 @@ const waitForOrderTerminal = async (orderId: string): Promise<OrderStatus> => {
 const emptyRecipient = (): Recipient => ({ address: "", amount: "" });
 
 const TX_COMPLETION_TIME_LABELS = TX_COMPLETION_TIME_OPTIONS.map(
-  (o) => o.label
+  (o) => o.label,
 );
 
 const DEFAULT_TX_COMPLETION_TIME_LABEL: TxCompletionTimeLabel = "30 min";
@@ -97,13 +97,13 @@ export const MultiSend = () => {
       : zeroAddress;
     const nativeToken = getERC20Token(nativeAddress, chainId);
     const stablecoins = NON_NATIVE_GAS_TOKENS.map((symbol) =>
-      getERC20TokenBySymbol(symbol, chainId)
+      getERC20TokenBySymbol(symbol, chainId),
     ).filter((token): token is ERC20Token => token !== undefined);
     return nativeToken ? [nativeToken, ...stablecoins] : stablecoins;
   }, [chainId]);
 
   const [selectedToken, setSelectedToken] = useState<ERC20Token | undefined>(
-    undefined
+    undefined,
   );
   const [recipients, setRecipients] = useState<Recipient[]>([emptyRecipient()]);
   const [txCompletionTimeLabel, setTxCompletionTimeLabel] =
@@ -112,6 +112,7 @@ export const MultiSend = () => {
   const [walletBalanceDisplay, setWalletBalanceDisplay] = useState<
     string | null
   >(null);
+  const [walletBalanceWei, setWalletBalanceWei] = useState<bigint | null>(null);
 
   useEffect(() => {
     if (!chainId) {
@@ -122,7 +123,7 @@ export const MultiSend = () => {
       const stillValid = allowedTokens.some(
         (t) =>
           t.erc20TokenAddress.toLowerCase() ===
-          selectedToken.erc20TokenAddress.toLowerCase()
+          selectedToken.erc20TokenAddress.toLowerCase(),
       );
       if (!stillValid) setSelectedToken(allowedTokens[0]);
     } else if (allowedTokens.length > 0) {
@@ -138,6 +139,7 @@ export const MultiSend = () => {
     const loadBalance = async () => {
       if (!walletAddress || !selectedToken || !chainId) {
         setWalletBalanceDisplay(null);
+        setWalletBalanceWei(null);
         return;
       }
       try {
@@ -150,32 +152,36 @@ export const MultiSend = () => {
             ? await getTronNativeBalance(walletAddress)
             : await getTronErc20Balance(
                 selectedToken.erc20TokenAddress,
-                walletAddress
+                walletAddress,
               )
           : isSolanaNet
           ? solanaIsNative
             ? await getSolanaNativeBalance(walletAddress)
             : await getSolanaTokenBalance(
                 selectedToken.erc20TokenAddress,
-                walletAddress
+                walletAddress,
               )
           : isNative
           ? await getNativeBalance(chainId, walletAddress)
           : await getErc20Balance(
               chainId,
               selectedToken.erc20TokenAddress,
-              walletAddress
+              walletAddress,
             );
 
         if (!cancelled) {
+          setWalletBalanceWei(BigInt(balance));
           setWalletBalanceDisplay(
             `${Number(
-              ethers.formatUnits(balance, selectedToken.decimals)
-            ).toFixed(4)} ${selectedToken.symbol}`
+              ethers.formatUnits(balance, selectedToken.decimals),
+            ).toFixed(4)} ${selectedToken.symbol}`,
           );
         }
       } catch {
-        if (!cancelled) setWalletBalanceDisplay(null);
+        if (!cancelled) {
+          setWalletBalanceDisplay(null);
+          setWalletBalanceWei(null);
+        }
       }
     };
 
@@ -188,10 +194,10 @@ export const MultiSend = () => {
   const updateRecipient = (
     index: number,
     field: keyof Recipient,
-    value: string
+    value: string,
   ) => {
     setRecipients((prev) =>
-      prev.map((r, i) => (i === index ? { ...r, [field]: value } : r))
+      prev.map((r, i) => (i === index ? { ...r, [field]: value } : r)),
     );
   };
 
@@ -203,7 +209,7 @@ export const MultiSend = () => {
 
   const handleAmountChange = (
     index: number,
-    event: React.ChangeEvent<HTMLInputElement>
+    event: React.ChangeEvent<HTMLInputElement>,
   ) => {
     if (/^[0-9]*[.]?[0-9]*$/.test(event.target.value)) {
       updateRecipient(index, "amount", event.target.value);
@@ -229,7 +235,7 @@ export const MultiSend = () => {
       }));
 
       const delaySeconds = TX_COMPLETION_TIME_OPTIONS.find(
-        (o) => o.label === txCompletionTimeLabel
+        (o) => o.label === txCompletionTimeLabel,
       )!.delaySeconds;
       const txCompletionTime =
         delaySeconds > 0 ? resolveTxCompletionTime(delaySeconds) : undefined;
@@ -241,14 +247,14 @@ export const MultiSend = () => {
                 solanaProvider,
                 chainId,
                 selectedToken.erc20TokenAddress,
-                recipientsWei
+                recipientsWei,
               )
           : isTron
           ? () =>
               buildTronPrivateSendAuthFields(
                 chainId,
                 selectedToken.erc20TokenAddress,
-                recipientsWei
+                recipientsWei,
               )
           : undefined;
 
@@ -260,7 +266,7 @@ export const MultiSend = () => {
         selectedToken.erc20TokenAddress,
         recipientsWei,
         txCompletionTime,
-        buildReadOnlyAuth
+        buildReadOnlyAuth,
       );
 
       const isNative =
@@ -275,7 +281,7 @@ export const MultiSend = () => {
           isNative ? null : order.approvalAddress,
           BigInt(order.amountIn),
           selectedToken.erc20TokenAddress,
-          walletAddress
+          walletAddress,
         );
       } else {
         if (!isNative && order.approvalAddress) {
@@ -283,7 +289,7 @@ export const MultiSend = () => {
             signer!,
             selectedToken.erc20TokenAddress,
             order.approvalAddress,
-            BigInt(order.amountIn)
+            BigInt(order.amountIn),
           );
         }
         await broadcastDepositTx(signer!, order.serializedTx);
@@ -317,13 +323,28 @@ export const MultiSend = () => {
     event.preventDefault();
   };
 
+  const exceedsBalance = useMemo(() => {
+    if (!selectedToken || walletBalanceWei === null) return false;
+    try {
+      const total = recipients.reduce(
+        (sum, r) =>
+          r.amount ? sum + getAmountInWei(selectedToken, r.amount) : sum,
+        0n,
+      );
+      return total > walletBalanceWei;
+    } catch {
+      return false;
+    }
+  }, [selectedToken, recipients, walletBalanceWei]);
+
   const isDisabled = useMemo(
     () =>
       !walletAddress ||
       !selectedToken ||
       isProcessing ||
+      exceedsBalance ||
       recipients.some((r) => !r.address || !r.amount),
-    [walletAddress, selectedToken, isProcessing, recipients]
+    [walletAddress, selectedToken, isProcessing, exceedsBalance, recipients],
   );
 
   return (
@@ -347,7 +368,7 @@ export const MultiSend = () => {
                 allowedTokens.some(
                   (allowed) =>
                     allowed.erc20TokenAddress.toLowerCase() ===
-                    token.erc20TokenAddress.toLowerCase()
+                    token.erc20TokenAddress.toLowerCase(),
                 )
               }
             />
@@ -391,6 +412,12 @@ export const MultiSend = () => {
           disabled={isProcessing}
           showInfo={false}
         />
+
+        {exceedsBalance && (
+          <p className="w-[90%] mx-[5%] mb-2 text-sm text-red-500">
+            Insufficient balance
+          </p>
+        )}
 
         <div className="border-solid">
           <button
