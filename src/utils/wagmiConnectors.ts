@@ -5,4 +5,4 @@ export const isVisibleWagmiConnector = (connector: Connector) =>
   isMobile
     ? connector.name === "WalletConnect"
     : connector.name !== "Hinkal" &&
-      !connector.id.startsWith("io.privy.wallet");
+    !connector.id.startsWith("io.privy.wallet");
