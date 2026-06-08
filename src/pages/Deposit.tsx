@@ -163,9 +163,26 @@ export const Deposit = () => {
     event.preventDefault();
   };
 
+  const exceedsBalance = useMemo(() => {
+    if (!selectedToken || !depositAmount) return false;
+    try {
+      const amountInWei = getAmountInWei(selectedToken, depositAmount);
+      const balance =
+        walletBalances[selectedToken.erc20TokenAddress.toLowerCase()] ?? 0n;
+      return amountInWei > balance;
+    } catch {
+      return false;
+    }
+  }, [selectedToken, depositAmount, walletBalances]);
+
   const isDisabled = useMemo(
-    () => !walletAddress || !selectedToken || !depositAmount || isProcessing,
-    [walletAddress, selectedToken, depositAmount, isProcessing],
+    () =>
+      !walletAddress ||
+      !selectedToken ||
+      !depositAmount ||
+      isProcessing ||
+      exceedsBalance,
+    [walletAddress, selectedToken, depositAmount, isProcessing, exceedsBalance],
   );
 
   return (
@@ -182,6 +199,11 @@ export const Deposit = () => {
           optionBalances={walletBalances}
           isTokensLoading={isWalletBalancesLoading}
         />
+        {exceedsBalance && (
+          <p className="w-[90%] mx-auto mt-2 text-sm text-red-500">
+            Insufficient balance
+          </p>
+        )}
         <div className="w-[90%] mx-auto mb-6 mt-6 h-[1px] bg-hinkal-blue-900" />
         <div className="border-solid">
           <button
