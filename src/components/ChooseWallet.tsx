@@ -142,10 +142,10 @@ export const ChooseWallet = ({
     ],
   );
 
-  const handleConnectPrivy = useCallback(() => {
+  const handleConnectPrivy = useCallback(async () => {
     setIsConnecting?.(true);
     setConnectingId("privy");
-    void disconnect(config);
+    await disconnect(config);
     if (!authenticated) login();
   }, [authenticated, login, setIsConnecting, config]);
 
@@ -175,7 +175,12 @@ export const ChooseWallet = ({
         setDataLoaded(true);
         onHide();
       } catch (err) {
-        toast.error(`Privy connection failed: ${err || "Unknown error"}`);
+        toast.error(
+          `Privy connection failed: ${getFriendlyErrorMessage(
+            err,
+            "Privy connection failed",
+          )}`,
+        );
       } finally {
         setConnectingId(null);
         setIsConnecting?.(false);
@@ -197,11 +202,11 @@ export const ChooseWallet = ({
     onHide,
   ]);
 
-  const handleConnectTurnkey = useCallback(() => {
+  const handleConnectTurnkey = useCallback(async () => {
     setIsConnecting?.(true);
     setConnectingId("turnkey");
-    void disconnect(config);
-    if (turnkeyAuthState !== AuthState.Authenticated) void turnkeyLogin();
+    await disconnect(config);
+    if (turnkeyAuthState !== AuthState.Authenticated) await turnkeyLogin();
   }, [turnkeyAuthState, turnkeyLogin, setIsConnecting, config]);
 
   useEffect(() => {
@@ -268,7 +273,12 @@ export const ChooseWallet = ({
         setDataLoaded(true);
         onHide();
       } catch (err) {
-        toast.error(`Turnkey connection failed: ${err || "Unknown error"}`);
+        toast.error(
+          `Turnkey connection failed: ${getFriendlyErrorMessage(
+            err,
+            "Turnkey connection failed",
+          )}`,
+        );
       } finally {
         turnkeySessionStarted.current = false;
         setConnectingId(null);
