@@ -6,6 +6,7 @@ import {
   useRef,
   useState,
 } from "react";
+import { ethers } from "ethers";
 import { isMobile } from "react-device-detect";
 import { useConfig, useConnectors } from "wagmi";
 import { connect, disconnect } from "wagmi/actions";
@@ -60,6 +61,7 @@ export const ChooseWallet = ({
     wallets: turnkeyWallets,
     refreshWallets: turnkeyRefreshWallets,
     httpClient: turnkeyHttpClient,
+    session: turnkeySession,
   } = useTurnkey();
 
   const {
@@ -207,7 +209,11 @@ export const ChooseWallet = ({
         const pickEvm = (wallets: typeof turnkeyWallets) =>
           wallets
             .flatMap((w) => w.accounts)
-            .find((a) => a.addressFormat === "ADDRESS_FORMAT_ETHEREUM");
+            .find(
+              (a) =>
+                a.addressFormat === "ADDRESS_FORMAT_ETHEREUM" &&
+                (a as { source?: string }).source !== "connected",
+            );
         let evmAccount =
           pickEvm(turnkeyWallets) ?? pickEvm(await turnkeyRefreshWallets());
         if (!evmAccount) {
@@ -225,12 +231,16 @@ export const ChooseWallet = ({
           evmAccount = pickEvm(await turnkeyRefreshWallets());
           if (!evmAccount) throw new Error("No Turnkey wallet available");
         }
-        const account = evmAccount.address;
+        const account = ethers.getAddress(evmAccount.address);
         const chainId = SUPPORTED_CHAINS[0].id;
+        const signingOrgId =
+          turnkeySession?.organizationId ?? evmAccount.organizationId;
+        if (!signingOrgId)
+          throw new Error("No Turnkey organization id for signing");
         setActiveTurnkeyParams({
           client: turnkeyHttpClient as any,
-          organizationId: evmAccount.organizationId,
-          signWith: evmAccount.address,
+          organizationId: signingOrgId,
+          signWith: account,
         });
         const signer = await getEthersSigner(chainId);
         setRequestedWriteAccess(writeAccessEnabled);
