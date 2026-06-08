@@ -218,6 +218,14 @@ export const Swap = () => {
     setQuotedData(undefined);
   };
 
+  useEffect(() => {
+    if (!chainId) return;
+    setInSwapAmount("");
+    setInSwapToken(undefined);
+    setOutSwapToken(undefined);
+    setQuotedData(undefined);
+  }, [chainId]);
+
   const handleSwap = useCallback(async () => {
     if (
       !isReadyForSwap ||
