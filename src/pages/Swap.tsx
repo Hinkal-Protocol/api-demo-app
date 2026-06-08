@@ -86,12 +86,21 @@ export const Swap = () => {
     const feeToken = isSolana
       ? outSwapToken.erc20TokenAddress
       : inSwapToken.erc20TokenAddress;
+    const inWei = (() => {
+      try {
+        return getAmountInWei(inSwapToken, inSwapAmount);
+      } catch {
+        return 0n;
+      }
+    })();
     getFeeStructure(
       auth,
       feeToken,
       [inSwapToken.erc20TokenAddress, outSwapToken.erc20TokenAddress],
       quotedData.externalActionId,
       HINKAL_SWAP_VARIABLE_RATE.toString(),
+      isSolana ? [inWei, -BigInt(quotedData.outSwapAmount)] : undefined,
+      isSolana ? inSwapToken.erc20TokenAddress : undefined,
     )
       .then((fee) => {
         if (!cancelled) setFeeStructure(fee);
@@ -110,6 +119,7 @@ export const Swap = () => {
     quotedData,
     inSwapToken,
     outSwapToken,
+    inSwapAmount,
     chainId,
     walletAddress,
     signature,
