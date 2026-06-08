@@ -37,6 +37,11 @@ import { SUPPORTED_CHAINS } from "../constants/supported-chain-ids.constants";
 import { getFriendlyErrorMessage } from "../utils/errors";
 import toast from "react-hot-toast";
 
+enum WalletModalView {
+  Main = "main",
+  Social = "social",
+}
+
 interface ChooseWalletProps {
   isOpen: boolean;
   onHide: () => void;
@@ -76,7 +81,12 @@ export const ChooseWallet = ({
 
   const [connectingId, setConnectingId] = useState<string | null>(null);
   const [writeAccessEnabled, setWriteAccessEnabled] = useState(false);
+  const [view, setView] = useState<WalletModalView>(WalletModalView.Main);
   const turnkeySessionStarted = useRef(false);
+
+  useEffect(() => {
+    if (isOpen) setView(WalletModalView.Main);
+  }, [isOpen]);
   const handleSelectConnector = useCallback(
     async (connector: Connector) => {
       try {
@@ -379,8 +389,23 @@ export const ChooseWallet = ({
       stylePropsBg="bg-[#000000cc]"
       xBtnStyleProps="text-white font-black"
     >
-      <h1 className="font-[500] text-2xl p-5 text-white">Select Wallet</h1>
-      <div className="px-5 pb-2 flex items-center justify-between gap-3">
+      <div className="flex items-center gap-3 p-5 pb-0">
+        {view === WalletModalView.Social && (
+          <button
+            type="button"
+            aria-label="Back"
+            className="text-white text-xl leading-none hover:text-hinkal-gray-100"
+            disabled={!!connectingId}
+            onClick={() => setView(WalletModalView.Main)}
+          >
+            ‹
+          </button>
+        )}
+        <h1 className="font-[500] text-2xl text-white">
+          {view === WalletModalView.Social ? "Social Login" : "Select Wallet"}
+        </h1>
+      </div>
+      <div className="px-5 pb-2 pt-3 flex items-center justify-between gap-3">
         <div className="text-sm text-white">
           <p className="font-semibold">24h session for transactions</p>
           <p className="text-hinkal-gray-100 text-xs mt-0.5">
@@ -394,141 +419,158 @@ export const ChooseWallet = ({
           setIsOff={() => setWriteAccessEnabled((prev) => !prev)}
         />
       </div>
-      <div className="p-5 pb-10 flex flex-col items-center gap-y-5">
-        <button
-          className="bg-modal px-4 py-2 min-w-[180px] w-[80%] rounded-lg border-[2.5px] border-[#f0f0f0] hover:border-[#9c9c9c] font-bold duration-150 flex items-center justify-center gap-x-3"
-          type="button"
-          disabled={!!connectingId || !privyReady}
-          onClick={handleConnectPrivy}
-        >
-          <span className="text-white">Privy</span>
-          {connectingId?.startsWith("privy") && <Spinner />}
-        </button>
-        <button
-          className="bg-modal px-4 py-2 min-w-[180px] w-[80%] rounded-lg border-[2.5px] border-[#f0f0f0] hover:border-[#9c9c9c] font-bold duration-150 flex items-center justify-center gap-x-3"
-          type="button"
-          disabled={
-            !!connectingId || turnkeyClientState === ClientState.Loading
-          }
-          onClick={handleConnectTurnkey}
-        >
-          <span className="text-white">Turnkey</span>
-          {connectingId?.startsWith("turnkey") && <Spinner />}
-        </button>
-        {connectors
-          .filter((connector) =>
-            isMobile
-              ? connector.name === "WalletConnect"
-              : connector.name !== "Hinkal" &&
-                !connector.id.startsWith("io.privy.wallet"),
-          )
-          .map((connector) => (
-            <button
-              className="bg-hinkal-blue-900 text-white px-4 py-2 min-w-[180px] w-[80%] rounded-lg border-[2.5px] border-hinkal-blue-200 hover:border-hinkal-lavender-200 hover:bg-hinkal-blue-200 font-bold transition-all duration-300 flex items-center justify-start gap-x-3"
-              type="button"
-              disabled={!!connectingId}
-              key={connector.id}
-              onClick={() => handleSelectConnector(connector)}
-            >
-              {connector.name === "Coinbase Wallet" && (
-                <img
-                  src={coinbaseLogo}
-                  alt="Logo"
-                  className="w-[26px] h-[26px]"
-                />
-              )}
-              {connector.name === "MetaMask" && (
-                <img
-                  src={metamaskLogo}
-                  alt="Logo"
-                  className="w-[26px] h-[26px]"
-                />
-              )}
-              {connector.name === "WalletConnect" && (
-                <img
-                  src={walletconnectLogo}
-                  alt="Logo"
-                  className="w-[26px] h-[26px]"
-                />
-              )}
-              {connector.name !== "Coinbase Wallet" &&
-                connector.name !== "MetaMask" &&
-                connector.name !== "WalletConnect" && (
+
+      {view === WalletModalView.Social ? (
+        <div className="p-5 pb-10 flex flex-col items-center gap-y-5">
+          <p className="text-hinkal-gray-100 text-sm text-center w-[80%]">
+            Sign in with email.
+          </p>
+          <button
+            className="bg-modal px-4 py-2 min-w-[180px] w-[80%] rounded-lg border-[2.5px] border-[#f0f0f0] hover:border-[#9c9c9c] font-bold duration-150 flex items-center justify-center gap-x-3"
+            type="button"
+            disabled={!!connectingId || !privyReady}
+            onClick={handleConnectPrivy}
+          >
+            <span className="text-white">Continue with Privy</span>
+            {connectingId?.startsWith("privy") && <Spinner />}
+          </button>
+          <button
+            className="bg-modal px-4 py-2 min-w-[180px] w-[80%] rounded-lg border-[2.5px] border-[#f0f0f0] hover:border-[#9c9c9c] font-bold duration-150 flex items-center justify-center gap-x-3"
+            type="button"
+            disabled={
+              !!connectingId || turnkeyClientState === ClientState.Loading
+            }
+            onClick={handleConnectTurnkey}
+          >
+            <span className="text-white">Continue with Turnkey</span>
+            {connectingId?.startsWith("turnkey") && <Spinner />}
+          </button>
+        </div>
+      ) : (
+        <div className="p-5 pb-10 flex flex-col items-center gap-y-5">
+          <button
+            className="bg-modal px-4 py-2 min-w-[180px] w-[80%] rounded-lg border-[2.5px] border-[#f0f0f0] hover:border-[#9c9c9c] font-bold duration-150 flex items-center justify-center gap-x-3"
+            type="button"
+            disabled={!!connectingId}
+            onClick={() => setView(WalletModalView.Social)}
+          >
+            <span className="text-white">Social Login</span>
+          </button>
+          {connectors
+            .filter((connector) =>
+              isMobile
+                ? connector.name === "WalletConnect"
+                : connector.name !== "Hinkal" &&
+                  !connector.id.startsWith("io.privy.wallet"),
+            )
+            .map((connector) => (
+              <button
+                className="bg-hinkal-blue-900 text-white px-4 py-2 min-w-[180px] w-[80%] rounded-lg border-[2.5px] border-hinkal-blue-200 hover:border-hinkal-lavender-200 hover:bg-hinkal-blue-200 font-bold transition-all duration-300 flex items-center justify-start gap-x-3"
+                type="button"
+                disabled={!!connectingId}
+                key={connector.id}
+                onClick={() => handleSelectConnector(connector)}
+              >
+                {connector.name === "Coinbase Wallet" && (
                   <img
-                    src={connector.icon}
+                    src={coinbaseLogo}
                     alt="Logo"
                     className="w-[26px] h-[26px]"
                   />
                 )}
-              <span>{connector.name}</span>
-              {connectingId === connector.id && <Spinner />}
+                {connector.name === "MetaMask" && (
+                  <img
+                    src={metamaskLogo}
+                    alt="Logo"
+                    className="w-[26px] h-[26px]"
+                  />
+                )}
+                {connector.name === "WalletConnect" && (
+                  <img
+                    src={walletconnectLogo}
+                    alt="Logo"
+                    className="w-[26px] h-[26px]"
+                  />
+                )}
+                {connector.name !== "Coinbase Wallet" &&
+                  connector.name !== "MetaMask" &&
+                  connector.name !== "WalletConnect" && (
+                    <img
+                      src={connector.icon}
+                      alt="Logo"
+                      className="w-[26px] h-[26px]"
+                    />
+                  )}
+                <span>{connector.name}</span>
+                {connectingId === connector.id && <Spinner />}
+              </button>
+            ))}
+          {!isMobile && (
+            <button
+              className="bg-hinkal-blue-900 text-white px-4 py-2 min-w-[180px] w-[80%] rounded-lg border-[2.5px] border-hinkal-blue-200 hover:border-hinkal-lavender-200 hover:bg-hinkal-blue-200 font-bold transition-all duration-300 flex items-center justify-start gap-x-3"
+              type="button"
+              disabled={!!connectingId}
+              onClick={handleConnectTronLink}
+            >
+              <img
+                src={connectors.find((c) => c.name === "TronLink")?.icon}
+                alt="TronLink Logo"
+                className="w-[26px] h-[26px]"
+              />
+              <span>TronLink (Tron)</span>
+              {connectingId === "tronlink" && <Spinner />}
             </button>
-          ))}
-        {!isMobile && (
-          <button
-            className="bg-hinkal-blue-900 text-white px-4 py-2 min-w-[180px] w-[80%] rounded-lg border-[2.5px] border-hinkal-blue-200 hover:border-hinkal-lavender-200 hover:bg-hinkal-blue-200 font-bold transition-all duration-300 flex items-center justify-start gap-x-3"
-            type="button"
-            disabled={!!connectingId}
-            onClick={handleConnectTronLink}
-          >
-            <img
-              src={connectors.find((c) => c.name === "TronLink")?.icon}
-              alt="TronLink Logo"
-              className="w-[26px] h-[26px]"
-            />
-            <span>TronLink (Tron)</span>
-            {connectingId === "tronlink" && <Spinner />}
-          </button>
-        )}
-        {!isMobile && (
-          <button
-            className="bg-hinkal-blue-900 text-white px-4 py-2 min-w-[180px] w-[80%] rounded-lg border-[2.5px] border-hinkal-blue-200 hover:border-hinkal-lavender-200 hover:bg-hinkal-blue-200 font-bold transition-all duration-300 flex items-center justify-start gap-x-3"
-            type="button"
-            disabled={!!connectingId}
-            onClick={() => handleConnectSolana("phantom")}
-          >
-            <img
-              src={connectors.find((c) => c.name === "Phantom")?.icon}
-              alt="Phantom Logo"
-              className="w-[26px] h-[26px]"
-            />
-            <span>Phantom (Solana)</span>
-            {connectingId === "solana-phantom" && <Spinner />}
-          </button>
-        )}
-        {!isMobile && (
-          <button
-            className="bg-hinkal-blue-900 text-white px-4 py-2 min-w-[180px] w-[80%] rounded-lg border-[2.5px] border-hinkal-blue-200 hover:border-hinkal-lavender-200 hover:bg-hinkal-blue-200 font-bold transition-all duration-300 flex items-center justify-start gap-x-3"
-            type="button"
-            disabled={!!connectingId}
-            onClick={() => handleConnectSolana("solflare")}
-          >
-            <img
-              src={SolflareLogo}
-              alt="Solflare Logo"
-              className="w-[26px] h-[26px]"
-            />
-            <span>Solflare (Solana)</span>
-            {connectingId === "solana-solflare" && <Spinner />}
-          </button>
-        )}
-        {!isMobile && (
-          <button
-            className="bg-hinkal-blue-900 text-white px-4 py-2 min-w-[180px] w-[80%] rounded-lg border-[2.5px] border-hinkal-blue-200 hover:border-hinkal-lavender-200 hover:bg-hinkal-blue-200 font-bold transition-all duration-300 flex items-center justify-start gap-x-3"
-            type="button"
-            disabled={!!connectingId}
-            onClick={() => handleConnectSolana("metamask")}
-          >
-            <img
-              src={metamaskLogo}
-              alt="MetaMask"
-              className="w-[26px] h-[26px]"
-            />
-            <span>MetaMask (Solana)</span>
-            {connectingId === "solana-metamask" && <Spinner />}
-          </button>
-        )}
-      </div>
+          )}
+          {!isMobile && (
+            <button
+              className="bg-hinkal-blue-900 text-white px-4 py-2 min-w-[180px] w-[80%] rounded-lg border-[2.5px] border-hinkal-blue-200 hover:border-hinkal-lavender-200 hover:bg-hinkal-blue-200 font-bold transition-all duration-300 flex items-center justify-start gap-x-3"
+              type="button"
+              disabled={!!connectingId}
+              onClick={() => handleConnectSolana("phantom")}
+            >
+              <img
+                src={connectors.find((c) => c.name === "Phantom")?.icon}
+                alt="Phantom Logo"
+                className="w-[26px] h-[26px]"
+              />
+              <span>Phantom (Solana)</span>
+              {connectingId === "solana-phantom" && <Spinner />}
+            </button>
+          )}
+          {!isMobile && (
+            <button
+              className="bg-hinkal-blue-900 text-white px-4 py-2 min-w-[180px] w-[80%] rounded-lg border-[2.5px] border-hinkal-blue-200 hover:border-hinkal-lavender-200 hover:bg-hinkal-blue-200 font-bold transition-all duration-300 flex items-center justify-start gap-x-3"
+              type="button"
+              disabled={!!connectingId}
+              onClick={() => handleConnectSolana("solflare")}
+            >
+              <img
+                src={SolflareLogo}
+                alt="Solflare Logo"
+                className="w-[26px] h-[26px]"
+              />
+              <span>Solflare (Solana)</span>
+              {connectingId === "solana-solflare" && <Spinner />}
+            </button>
+          )}
+          {!isMobile && (
+            <button
+              className="bg-hinkal-blue-900 text-white px-4 py-2 min-w-[180px] w-[80%] rounded-lg border-[2.5px] border-hinkal-blue-200 hover:border-hinkal-lavender-200 hover:bg-hinkal-blue-200 font-bold transition-all duration-300 flex items-center justify-start gap-x-3"
+              type="button"
+              disabled={!!connectingId}
+              onClick={() => handleConnectSolana("metamask")}
+            >
+              <img
+                src={metamaskLogo}
+                alt="MetaMask"
+                className="w-[26px] h-[26px]"
+              />
+              <span>MetaMask (Solana)</span>
+              {connectingId === "solana-metamask" && <Spinner />}
+            </button>
+          )}
+        </div>
+      )}
     </Modal>
   );
 };
