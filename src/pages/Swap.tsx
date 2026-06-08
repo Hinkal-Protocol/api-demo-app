@@ -286,16 +286,19 @@ export const Swap = () => {
     hasWriteAccess,
   ]);
 
-  const setTokenAmountHandler = (
-    event: React.ChangeEvent<HTMLInputElement>,
-    setValue: (value: string) => void,
-  ) => {
-    if (/^[0-9]*[.]?[0-9]*$/.test(event.target.value)) {
-      setValue(event.target.value);
-    }
-  };
+  const setTokenAmountHandler = useCallback(
+    (
+      event: React.ChangeEvent<HTMLInputElement>,
+      setValue: (value: string) => void,
+    ) => {
+      if (/^[0-9]*[.]?[0-9]*$/.test(event.target.value)) {
+        setValue(event.target.value);
+      }
+    },
+    [],
+  );
 
-  const swapButtonText = () => {
+  const swapButtonText = useCallback(() => {
     if (!walletAddress) return "Connect Wallet";
     if (!inSwapToken || !outSwapToken) return "Select a token";
     if (!inSwapAmount || Number(inSwapAmount) === 0) return "Enter an amount";
@@ -303,9 +306,21 @@ export const Swap = () => {
     if (isFeeLoading) return "Calculating fee";
     if (hasInsufficientFunds) return "Insufficient balance";
     return isReadyForSwap ? "Swap" : "Enter an amount";
-  };
+  }, [
+    walletAddress,
+    inSwapToken,
+    outSwapToken,
+    inSwapAmount,
+    isPriceLoading,
+    isFeeLoading,
+    hasInsufficientFunds,
+    isReadyForSwap,
+  ]);
 
-  const handleSubmit = (e: SyntheticEvent) => e.preventDefault();
+  const handleSubmit = useCallback(
+    (e: SyntheticEvent) => e.preventDefault(),
+    [],
+  );
 
   return (
     <form onSubmit={handleSubmit} className="text-white">

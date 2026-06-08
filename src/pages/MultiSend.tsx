@@ -49,6 +49,10 @@ import {
 import { buildSolanaPrivateSendAuthFields } from "../utils/solana-auth";
 import { buildTronPrivateSendAuthFields } from "../utils/tron-auth";
 import { ButtonGroupWithLabel } from "../utils/buttonGroupWithLabel";
+import {
+  getRecipientAddressError,
+  isValidRecipientAddress,
+} from "../utils/recipientAddress";
 
 const NON_NATIVE_GAS_TOKENS = ["USDC", "USDT", "DAI"];
 const POLL_INTERVAL_MS = 5000;
@@ -191,35 +195,39 @@ export const MultiSend = () => {
     };
   }, [walletAddress, selectedToken, chainId]);
 
-  const updateRecipient = (
-    index: number,
-    field: keyof Recipient,
-    value: string,
-  ) => {
-    setRecipients((prev) =>
-      prev.map((r, i) => (i === index ? { ...r, [field]: value } : r)),
-    );
-  };
+  const updateRecipient = useCallback(
+    (index: number, field: keyof Recipient, value: string) => {
+      setRecipients((prev) =>
+        prev.map((r, i) => (i === index ? { ...r, [field]: value } : r)),
+      );
+    },
+    [],
+  );
 
-  const addRecipient = () =>
-    setRecipients((prev) => [...prev, emptyRecipient()]);
+  const addRecipient = useCallback(
+    () => setRecipients((prev) => [...prev, emptyRecipient()]),
+    [],
+  );
 
-  const removeRecipient = (index: number) =>
-    setRecipients((prev) => prev.filter((_, i) => i !== index));
+  const removeRecipient = useCallback(
+    (index: number) =>
+      setRecipients((prev) => prev.filter((_, i) => i !== index)),
+    [],
+  );
 
-  const handleAmountChange = (
-    index: number,
-    event: React.ChangeEvent<HTMLInputElement>,
-  ) => {
-    if (/^[0-9]*[.]?[0-9]*$/.test(event.target.value)) {
-      updateRecipient(index, "amount", event.target.value);
-    }
-  };
+  const handleAmountChange = useCallback(
+    (index: number, event: React.ChangeEvent<HTMLInputElement>) => {
+      if (/^[0-9]*[.]?[0-9]*$/.test(event.target.value)) {
+        updateRecipient(index, "amount", event.target.value);
+      }
+    },
+    [updateRecipient],
+  );
 
-  const handleReset = () => {
+  const handleReset = useCallback(() => {
     setRecipients([emptyRecipient()]);
     setTxCompletionTimeLabel(DEFAULT_TX_COMPLETION_TIME_LABEL);
-  };
+  }, []);
 
   const handleMultiSend = useCallback(async () => {
     try {
@@ -315,6 +323,7 @@ export const MultiSend = () => {
     nonce,
     hasWriteAccess,
     txCompletionTimeLabel,
+    isTron,
     isSolana,
     solanaProvider,
   ]);
@@ -337,12 +346,30 @@ export const MultiSend = () => {
     }
   }, [selectedToken, recipients, walletBalanceWei]);
 
+  const hasInvalidRecipient = useMemo(
+    () =>
+      recipients.some(
+        (r) =>
+          r.address && !isValidRecipientAddress(r.address, isSolana, isTron),
+      ),
+    [recipients, isTron, isSolana],
+  );
+
+  const recipientAddressError = useMemo(
+    () =>
+      hasInvalidRecipient
+        ? getRecipientAddressError(isTron, isSolana, false)
+        : undefined,
+    [hasInvalidRecipient, isTron, isSolana],
+  );
+
   const isDisabled = useMemo(
     () =>
       !walletAddress ||
       !selectedToken ||
       isProcessing ||
       exceedsBalance ||
+      hasInvalidRecipient ||
       recipients.some((r) => !r.address || !r.amount),
     [walletAddress, selectedToken, isProcessing, exceedsBalance, recipients],
   );
@@ -400,6 +427,11 @@ export const MultiSend = () => {
           >
             + Add recipient
           </button>
+          {recipientAddressError && walletAddress && (
+            <p className="text-hinkal-red-100 text-[13px] mt-2">
+              {recipientAddressError}
+            </p>
+          )}
         </div>
 
         <ButtonGroupWithLabel

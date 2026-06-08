@@ -22,6 +22,10 @@ import { transfer } from "../utils/transfer";
 import { getEthersSigner } from "../utils/ethers-wallet";
 import { buildSolanaTransferAuthFields } from "../utils/solana-auth";
 import { buildTronTransferAuthFields } from "../utils/tron-auth";
+import {
+  getRecipientAddressError,
+  isValidRecipientAddress,
+} from "../utils/recipientAddress";
 
 export const Transfer = () => {
   const {
@@ -64,14 +68,17 @@ export const Transfer = () => {
     amountWei,
   });
 
-  const feeAmount = getFeeAmount(feeStructure);
+  const feeAmount = useMemo(() => getFeeAmount(feeStructure), [feeStructure]);
 
-  const feeDisplay =
-    selectedToken && feeStructure
-      ? `${Number(getAmountInToken(selectedToken, feeAmount)).toFixed(6)} ${
-          selectedToken.symbol
-        }`
-      : null;
+  const feeDisplay = useMemo(
+    () =>
+      selectedToken && feeStructure
+        ? `${Number(getAmountInToken(selectedToken, feeAmount)).toFixed(6)} ${
+            selectedToken.symbol
+          }`
+        : null,
+    [selectedToken, feeAmount],
+  );
 
   const hasInsufficientFunds = useMemo(() => {
     if (!selectedToken || amountWei <= 0n) return false;
@@ -166,12 +173,26 @@ export const Transfer = () => {
     event.preventDefault();
   };
 
+  const isRecipientAddressValid = useMemo(
+    () => isValidRecipientAddress(transferAddress, isSolana, isTron),
+    [transferAddress, isTron, isSolana],
+  );
+
+  const recipientAddressError = useMemo(
+    () =>
+      transferAddress && !isRecipientAddressValid
+        ? getRecipientAddressError(isTron, isSolana, true)
+        : undefined,
+    [transferAddress, isRecipientAddressValid, isTron, isSolana],
+  );
+
   const isDisabled = useMemo(
     () =>
       !walletAddress ||
       !selectedToken ||
       !transferAmount ||
       !transferAddress ||
+      !isRecipientAddressValid ||
       isProcessing ||
       isFeeLoading ||
       !feeStructure ||
@@ -181,6 +202,7 @@ export const Transfer = () => {
       selectedToken,
       transferAmount,
       transferAddress,
+      isRecipientAddressValid,
       isProcessing,
       isFeeLoading,
       feeStructure,
@@ -213,6 +235,11 @@ export const Transfer = () => {
           onChange={setTransferAddressHandler}
           value={transferAddress}
         />
+        {recipientAddressError && walletAddress && (
+          <p className="text-hinkal-red-100 text-[13px] pl-[5%] mt-1">
+            {recipientAddressError}
+          </p>
+        )}
         <br />
       </div>
       <div className="px-[5%] mb-2 text-[13px] mt-1.5">
