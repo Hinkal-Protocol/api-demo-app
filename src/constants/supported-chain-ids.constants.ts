@@ -1,12 +1,22 @@
-import { arbitrum, mainnet, optimism, polygon, base, sepolia } from "wagmi/chains";
+import {
+  arbitrum,
+  mainnet,
+  optimism,
+  polygon,
+  base,
+  sepolia,
+} from "wagmi/chains";
 import { defineChain } from "viem";
+import { ALCHEMY_API_KEY } from "./chain.constants";
 
 export const arcTestnet = defineChain({
   id: 5042002,
   name: "Arc Testnet",
   nativeCurrency: { name: "USD Coin", symbol: "USDC", decimals: 6 },
   rpcUrls: {
-    default: { http: ["https://rpc.arc-testnet.caldera.xyz"] },
+    default: {
+      http: [`https://arc-testnet.g.alchemy.com/v2/${ALCHEMY_API_KEY}`],
+    },
   },
 });
 
@@ -21,5 +31,5 @@ export const SUPPORTED_CHAINS = [
 ] as const;
 
 export const SUPPORTED_CHAIN_IDS: number[] = SUPPORTED_CHAINS.map(
-  (chain) => chain.id
+  (chain) => chain.id,
 );

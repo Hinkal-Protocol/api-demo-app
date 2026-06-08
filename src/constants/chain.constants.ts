@@ -14,6 +14,8 @@ export const chainIds = {
   solanaMainnet: 501,
 };
 
+export const SWAP_EXCLUDED_CHAINS: number[] = [chainIds.arcTestnet];
+
 export const ALCHEMY_API_KEY = "X4IiEZsSzGOrJq8tzq7Y3";
 
 export const networkRegistry: Record<number, Network> = {
