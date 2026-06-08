@@ -56,13 +56,12 @@ export const WalletInfoDropDown = () => {
   const { isTron } = useAppContext();
 
   const handleDisconnect = async () => {
-    if (!isTron) {
-      try {
-        await disconnect(config);
-      } catch (err) {
-        console.error("disconnect failed", err);
-      }
+    try {
+      await disconnect(config);
+    } catch (err) {
+      console.error("disconnect failed", err);
     }
+
     if (authenticated) {
       try {
         await logout();
