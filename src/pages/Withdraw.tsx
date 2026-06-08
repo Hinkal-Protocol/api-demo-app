@@ -22,6 +22,10 @@ import { withdraw } from "../utils/withdraw";
 import { getEthersSigner } from "../utils/ethers-wallet";
 import { buildSolanaWithdrawAuthFields } from "../utils/solana-auth";
 import { buildTronWithdrawAuthFields } from "../utils/tron-auth";
+import {
+  getRecipientAddressError,
+  isValidRecipientAddress,
+} from "../utils/recipientAddress";
 
 export const Withdraw = () => {
   const {
@@ -173,12 +177,26 @@ export const Withdraw = () => {
     event.preventDefault();
   };
 
+  const isRecipientAddressValid = useMemo(
+    () => isValidRecipientAddress(recipientAddress, isSolana, isTron),
+    [recipientAddress, isTron, isSolana],
+  );
+
+  const recipientAddressError = useMemo(
+    () =>
+      recipientAddress && !isRecipientAddressValid
+        ? getRecipientAddressError(isTron, isSolana, false)
+        : undefined,
+    [recipientAddress, isRecipientAddressValid, isTron, isSolana],
+  );
+
   const isDisabled = useMemo(
     () =>
       !walletAddress ||
       !selectedToken ||
       !withdrawAmount ||
       !recipientAddress ||
+      !isRecipientAddressValid ||
       isProcessing ||
       isFeeLoading ||
       hasInsufficientFunds ||
@@ -188,6 +206,7 @@ export const Withdraw = () => {
       selectedToken,
       withdrawAmount,
       recipientAddress,
+      isRecipientAddressValid,
       isProcessing,
       isFeeLoading,
       hasInsufficientFunds,
@@ -223,6 +242,11 @@ export const Withdraw = () => {
             onChange={setRecipientAddressHandler}
             value={recipientAddress}
           />
+          {recipientAddressError && walletAddress && (
+            <p className="text-hinkal-red-100 text-[13px] pl-[5%] mt-1">
+              {recipientAddressError}
+            </p>
+          )}
         </div>
         <div className="flex items-center gap-x-2 pl-[5%] mb-4">
           <input
