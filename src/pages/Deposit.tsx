@@ -1,4 +1,10 @@
-import { SyntheticEvent, useCallback, useState, useMemo } from "react";
+import {
+  SyntheticEvent,
+  useCallback,
+  useEffect,
+  useState,
+  useMemo,
+} from "react";
 import { toast } from "react-hot-toast";
 import { Spinner } from "../components/Spinner";
 import { TokenAmountInput } from "../components/TokenAmountInput";
@@ -46,6 +52,11 @@ export const Deposit = () => {
     setSelectedToken(undefined);
     setDepositAmount("");
   };
+
+  useEffect(() => {
+    setSelectedToken(undefined);
+    setDepositAmount("");
+  }, [chainId]);
 
   const handleDeposit = useCallback(async () => {
     try {
