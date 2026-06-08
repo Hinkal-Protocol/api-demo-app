@@ -54,6 +54,7 @@ export const Deposit = () => {
   };
 
   useEffect(() => {
+    if (!chainId) return;
     setSelectedToken(undefined);
     setDepositAmount("");
   }, [chainId]);

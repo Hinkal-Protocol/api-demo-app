@@ -1,4 +1,10 @@
-import { SyntheticEvent, useCallback, useState, useMemo } from "react";
+import {
+  SyntheticEvent,
+  useCallback,
+  useEffect,
+  useState,
+  useMemo,
+} from "react";
 import { toast } from "react-hot-toast";
 import { Spinner } from "../components/Spinner";
 import { TokenAmountInput } from "../components/TokenAmountInput";
@@ -80,6 +86,14 @@ export const Withdraw = () => {
     setRecipientAddress("");
     setIsRelayerOff(false);
   };
+
+  useEffect(() => {
+    if (!chainId) return;
+    setSelectedToken(undefined);
+    setWithdrawAmount("");
+    setRecipientAddress("");
+    setIsRelayerOff(false);
+  }, [chainId]);
 
   const handleWithdraw = useCallback(async () => {
     try {
