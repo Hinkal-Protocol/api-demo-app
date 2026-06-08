@@ -1,6 +1,6 @@
 import { useState } from "react";
 import HinkalLogoSvg from "../../assets/hinkal-logo.svg";
-import { ChooseWallet } from "../ChooseWallet";
+import { ChooseWallet } from "../ChooseWallet/ChooseWallet";
 import { HinkalInfo } from "./HinkalInfo";
 import { Spinner } from "../Spinner";
 import { useAppContext } from "../../AppContext";
