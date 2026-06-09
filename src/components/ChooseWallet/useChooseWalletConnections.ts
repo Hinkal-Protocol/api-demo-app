@@ -74,7 +74,6 @@ export const useChooseWalletConnections = ({
       const session = await createEnclaveSession(
         signer,
         account,
-        chainId,
         writeAccessEnabled,
       );
       setWalletType("evm");
