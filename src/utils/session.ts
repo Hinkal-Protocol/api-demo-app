@@ -7,6 +7,7 @@ import type { EnclaveSession } from "./types";
 export type CreateSessionRequest = {
   signature: string;
   address: string;
+  chainId: number;
   nonce: string;
   writeAccess?: boolean;
 };
@@ -22,6 +23,7 @@ type CreateSessionResponse =
 export const createEnclaveSession = async (
   signer: ethers.Signer,
   address: string,
+  chainId: number,
   writeAccess: boolean,
 ): Promise<EnclaveSession> => {
   const nonce = generateNonce();
@@ -40,6 +42,7 @@ export const createEnclaveSession = async (
       body: JSON.stringify({
         signature,
         address,
+        chainId,
         nonce,
         writeAccess,
       } satisfies CreateSessionRequest),

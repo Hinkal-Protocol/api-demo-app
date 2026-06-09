@@ -182,6 +182,7 @@ export const AppContextProvider: FC<AppContextProps> = ({
         const session = await createEnclaveSession(
           signer,
           walletAddress,
+          chainId,
           requestedWriteAccess,
         );
         if (!cancelled) {
@@ -208,6 +209,7 @@ export const AppContextProvider: FC<AppContextProps> = ({
       cancelled = true;
     };
   }, [
+    chainId,
     walletAddress,
     dataLoaded,
     requestedWriteAccess,

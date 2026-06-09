@@ -23,12 +23,11 @@ import { SUPPORTED_CHAINS } from "../../constants/supported-chain-ids.constants"
 import { getFriendlyErrorMessage } from "../../utils/errors";
 
 interface UseChooseWalletConnectionsParams {
-  writeAccessEnabled: boolean
+  writeAccessEnabled: boolean;
   onHide: () => void;
   setShieldedAddress: (value: string | undefined) => void;
   setIsConnecting?: (value: boolean) => void;
-};
-
+}
 
 export const useChooseWalletConnections = ({
   onHide,
@@ -74,6 +73,7 @@ export const useChooseWalletConnections = ({
       const session = await createEnclaveSession(
         signer,
         account,
+        chainId,
         writeAccessEnabled,
       );
       setWalletType("evm");
@@ -264,7 +264,8 @@ export const useChooseWalletConnections = ({
         toast.error(
           getFriendlyErrorMessage(
             err,
-            `${provider === "phantom" ? "Phantom" : "Solflare"
+            `${
+              provider === "phantom" ? "Phantom" : "Solflare"
             } connection failed`,
           ),
         );
