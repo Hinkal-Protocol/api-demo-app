@@ -3,6 +3,9 @@ import type { Account, Chain, Client, Transport } from "viem";
 import { getConnectorClient, switchChain } from "wagmi/actions";
 import { TurnkeySigner } from "@turnkey/ethers";
 import type { TurnkeyClient } from "@turnkey/http";
+import { getSigner } from "@dynamic-labs/ethers-v6";
+import { isEthereumWallet } from "@dynamic-labs/ethereum";
+import type { Wallet } from "@dynamic-labs/sdk-react-core";
 import { ERC20_ABI } from "../constants/erc20.constants";
 import { networkRegistry } from "../constants/chain.constants";
 import { wagmiConfig } from "../wagmi.config";
@@ -31,6 +34,37 @@ export const setActiveTurnkeyParams = (
   activeTurnkeyParams = params;
 };
 
+let activeDynamicWallet: Wallet | null = null;
+export const setActiveDynamicWallet = (wallet: Wallet | null): void => {
+  activeDynamicWallet = wallet;
+};
+
+/**
+ * ethers serializes the EIP-712 domain chainId to a hex string ("0xa"), which
+ * Dynamic's WaaS signTypedData endpoint rejects (it requires a number). Route
+ * signTypedData through Dynamic's viem walletClient, which keeps it numeric.
+ */
+const wrapDynamicSigner = (wallet: Wallet, signer: ethers.Signer) => {
+  signer.signTypedData = async (domain, types, value) => {
+    const nested = new Set(
+      Object.values(types).flat().map((f) => f.type.replace(/\[\]$/, "")),
+    );
+    const primaryType = Object.keys(types).find((t) => !nested.has(t));
+    if (!primaryType) throw new Error("Could not derive EIP-712 primaryType");
+    const client = await (
+      wallet as unknown as { getWalletClient: () => Promise<any> }
+    ).getWalletClient();
+    return client.signTypedData({
+      account: await signer.getAddress(),
+      domain,
+      types,
+      primaryType,
+      message: value,
+    });
+  };
+  return signer;
+};
+
 const clientToSigner = (
   client: Client<Transport, Chain, Account>,
 ): ethers.JsonRpcSigner => {
@@ -47,6 +81,19 @@ const clientToSigner = (
 export const getEthersSigner = async (
   chainId?: number,
 ): Promise<ethers.Signer> => {
+  if (activeDynamicWallet) {
+    if (!isEthereumWallet(activeDynamicWallet)) {
+      throw new Error("Connected Dynamic wallet is not an Ethereum wallet");
+    }
+    if (chainId && Number(await activeDynamicWallet.getNetwork()) !== chainId) {
+      await activeDynamicWallet.switchNetwork(chainId);
+    }
+    return wrapDynamicSigner(
+      activeDynamicWallet,
+      await getSigner(activeDynamicWallet),
+    );
+  }
+
   if (activeTurnkeyParams) {
     const targetChainId = chainId ?? wagmiConfig.chains[0].id;
     const provider = getJsonRpcProvider(targetChainId);
@@ -86,6 +133,10 @@ export const getEthersSigner = async (
 export const switchActiveWalletChain = async (
   chainId: number,
 ): Promise<void> => {
+  if (activeDynamicWallet) {
+    await activeDynamicWallet.switchNetwork(chainId);
+    return;
+  }
   if (activeTurnkeyParams) return;
   if (activePrivyWallet) {
     await activePrivyWallet.switchChain(chainId);

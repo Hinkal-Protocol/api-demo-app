@@ -5,6 +5,8 @@ import { connect, disconnect } from "wagmi/actions";
 import type { Connector } from "wagmi";
 import { usePrivy, useWallets } from "@privy-io/react-auth";
 import { AuthState, useTurnkey } from "@turnkey/react-wallet-kit";
+import { useDynamicContext } from "@dynamic-labs/sdk-react-core";
+import { isEthereumWallet } from "@dynamic-labs/ethereum";
 import toast from "react-hot-toast";
 import { useAppContext } from "../../AppContext";
 import { createEnclaveSession } from "../../utils/session";
@@ -47,6 +49,11 @@ export const useChooseWalletConnections = ({
     httpClient: turnkeyHttpClient,
     session: turnkeySession,
   } = useTurnkey();
+  const {
+    primaryWallet: dynamicWallet,
+    setShowAuthFlow: setDynamicShowAuthFlow,
+    sdkHasLoaded: dynamicReady,
+  } = useDynamicContext();
 
   const {
     setChainId,
@@ -239,6 +246,36 @@ export const useChooseWalletConnections = ({
     finishConnecting,
   ]);
 
+  const handleConnectDynamic = useCallback(async () => {
+    setIsConnecting?.(true);
+    setConnectingId("dynamic");
+    await disconnect(config);
+    setDynamicShowAuthFlow(true);
+  }, [config, setDynamicShowAuthFlow, setIsConnecting]);
+
+  useEffect(() => {
+    if (connectingId !== "dynamic" || !dynamicWallet) return;
+    if (!isEthereumWallet(dynamicWallet)) return;
+    setConnectingId("dynamic-signing");
+
+    (async () => {
+      try {
+        const chainId =
+          Number(await dynamicWallet.getNetwork()) || SUPPORTED_CHAINS[0].id;
+        await completeEvmSession(dynamicWallet.address, chainId);
+      } catch (err) {
+        toast.error(
+          `Dynamic connection failed: ${getFriendlyErrorMessage(
+            err,
+            "Dynamic connection failed",
+          )}`,
+        );
+      } finally {
+        finishConnecting();
+      }
+    })();
+  }, [connectingId, dynamicWallet, completeEvmSession, finishConnecting]);
+
   const handleConnectSolana = useCallback(
     async (provider: SolanaWalletProvider) => {
       try {
@@ -330,9 +367,11 @@ export const useChooseWalletConnections = ({
     connectors,
     connectingId,
     privyReady,
+    dynamicReady,
     handleSelectConnector,
     handleConnectPrivy,
     handleConnectTurnkey,
+    handleConnectDynamic,
     handleConnectSolana,
     handleConnectTronLink,
   };

@@ -11,6 +11,9 @@ export const zeroAddress = `0x${"00".repeat(20)}`;
 
 export const PRIVY_APP_ID = "cmpzcz5re00et0cjmajy6q25y";
 
+export const DYNAMIC_ENVIRONMENT_ID = import.meta.env
+  .VITE_DYNAMIC_ENVIRONMENT_ID;
+
 const TURNKEY_ORGANIZATION_ID = import.meta.env.VITE_TURNKEY_ORGANIZATION_ID;
 const TURNKEY_AUTH_PROXY_CONFIG_ID = import.meta.env
   .VITE_TURNKEY_AUTH_PROXY_CONFIG_ID;

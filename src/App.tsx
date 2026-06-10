@@ -12,12 +12,14 @@ import { Withdraw } from "./pages/Withdraw";
 import { Transfer } from "./pages/Transfer";
 import { MultiSend } from "./pages/MultiSend";
 import { PrivyWalletSync } from "./components/PrivyWalletSync";
+import { DynamicWalletSync } from "./components/DynamicWalletSync";
 
 const App = () => {
   const [activeTab, setActiveTab] = useState(AppTab.Deposit);
   return (
     <div className="bg-bgColor h-screen font-generalSans">
       <PrivyWalletSync />
+      <DynamicWalletSync />
       <div className="bg-bgColor flex flex-col min-h-screen">
         <Header />
         <div className={"flex flex-col justify-between grow"}>
