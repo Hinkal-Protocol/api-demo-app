@@ -15,9 +15,7 @@ export const usePrivyWalletSync = () => {
       setActivePrivyWallet(null);
       return;
     }
-    console.log("wallets", wallets);
     const embedded = wallets.find((w) => w.walletClientType === "privy");
-    console.log("embedded", embedded);
     setActivePrivyWallet(embedded ?? null);
   }, [authenticated, wallets]);
 };

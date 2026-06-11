@@ -10,7 +10,6 @@ export const useDynamicWalletSync = () => {
   const { primaryWallet } = useDynamicContext();
 
   useEffect(() => {
-    console.log("primaryWallet", primaryWallet);
     setActiveDynamicWallet(primaryWallet ?? null);
   }, [primaryWallet]);
 };
