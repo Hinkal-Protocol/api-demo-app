@@ -29,9 +29,12 @@ export const ChooseWallet = ({
     connectors,
     connectingId,
     privyReady,
+    dynamicReady,
     handleSelectConnector,
     handleConnectPrivy,
     handleConnectTurnkey,
+    handleConnectDynamic,
+    handleConnectDfns,
     handleConnectSolana,
     handleConnectTronLink,
   } = useChooseWalletConnections({
@@ -69,9 +72,12 @@ export const ChooseWallet = ({
         <SocialLoginView
           connectingId={connectingId}
           privyReady={privyReady}
+          dynamicReady={dynamicReady}
           turnkeyClientState={turnkeyClientState}
           onConnectPrivy={handleConnectPrivy}
           onConnectTurnkey={handleConnectTurnkey}
+          onConnectDynamic={handleConnectDynamic}
+          onConnectDfns={handleConnectDfns}
         />
       ) : (
         <MainWalletView

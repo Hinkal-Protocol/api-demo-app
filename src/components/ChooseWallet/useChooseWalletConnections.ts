@@ -5,13 +5,21 @@ import { connect, disconnect } from "wagmi/actions";
 import type { Connector } from "wagmi";
 import { usePrivy, useWallets } from "@privy-io/react-auth";
 import { AuthState, useTurnkey } from "@turnkey/react-wallet-kit";
+import {
+  useDynamicContext,
+} from "@dynamic-labs/sdk-react-core";
+import { isEthereumWallet } from "@dynamic-labs/ethereum";
 import toast from "react-hot-toast";
 import { useAppContext } from "../../AppContext";
 import { createEnclaveSession } from "../../utils/session";
 import {
   getEthersSigner,
+  setActiveDynamicWallet,
+  setActivePrivyWallet,
+  setActiveDfnsWallet,
   setActiveTurnkeyParams,
 } from "../../utils/ethers-wallet";
+import { connectDfns } from "../../utils/dfns";
 import { connectTronLink } from "../../utils/tron-wallet";
 import { createTronEnclaveSession } from "../../utils/tron-session";
 import {
@@ -47,6 +55,11 @@ export const useChooseWalletConnections = ({
     httpClient: turnkeyHttpClient,
     session: turnkeySession,
   } = useTurnkey();
+  const {
+    primaryWallet: dynamicWallet,
+    setShowAuthFlow: setDynamicShowAuthFlow,
+    sdkHasLoaded: dynamicReady,
+  } = useDynamicContext();
 
   const {
     setChainId,
@@ -134,6 +147,7 @@ export const useChooseWalletConnections = ({
     if (connectingId !== "privy" || !authenticated) return;
     const embedded = wallets.find((w) => w.walletClientType === "privy");
     if (!embedded) return;
+    setActivePrivyWallet(embedded);
     setConnectingId("privy-signing");
 
     (async () => {
@@ -141,6 +155,7 @@ export const useChooseWalletConnections = ({
         const chainId = Number(embedded.chainId.split(":")[1]);
         await completeEvmSession(embedded.address, chainId);
       } catch (err) {
+        setActivePrivyWallet(null);
         toast.error(
           `Privy connection failed: ${getFriendlyErrorMessage(
             err,
@@ -217,6 +232,7 @@ export const useChooseWalletConnections = ({
         });
         await completeEvmSession(account, chainId);
       } catch (err) {
+        setActiveTurnkeyParams(null);
         toast.error(
           `Turnkey connection failed: ${getFriendlyErrorMessage(
             err,
@@ -238,6 +254,57 @@ export const useChooseWalletConnections = ({
     completeEvmSession,
     finishConnecting,
   ]);
+
+  const handleConnectDynamic = useCallback(async () => {
+    setIsConnecting?.(true);
+    setConnectingId("dynamic");
+    await disconnect(config);
+    setDynamicShowAuthFlow(true);
+  }, [config, setDynamicShowAuthFlow, setIsConnecting]);
+
+  useEffect(() => {
+    if (connectingId !== "dynamic" || !dynamicWallet) return;
+    if (!isEthereumWallet(dynamicWallet)) return;
+    setActiveDynamicWallet(dynamicWallet);
+    setConnectingId("dynamic-signing");
+
+    (async () => {
+      try {
+        const chainId =
+          Number(await dynamicWallet.getNetwork()) || SUPPORTED_CHAINS[0].id;
+        await completeEvmSession(dynamicWallet.address, chainId);
+      } catch (err) {
+        setActiveDynamicWallet(null);
+        toast.error(
+          `Dynamic connection failed: ${getFriendlyErrorMessage(
+            err,
+            "Dynamic connection failed",
+          )}`,
+        );
+      } finally {
+        finishConnecting();
+      }
+    })();
+  }, [connectingId, dynamicWallet, completeEvmSession, finishConnecting]);
+
+  const handleConnectDfns = useCallback(
+    async (idToken: string) => {
+      try {
+        setIsConnecting?.(true);
+        setConnectingId("dfns");
+        await disconnect(config);
+        const chainId = SUPPORTED_CHAINS[0].id;
+        const { wallet, address } = await connectDfns(idToken);
+        setActiveDfnsWallet(wallet);
+        await completeEvmSession(address, chainId);
+      } catch (err) {
+        toast.error(getFriendlyErrorMessage(err, "DFNS connection failed"));
+      } finally {
+        finishConnecting();
+      }
+    },
+    [config, completeEvmSession, finishConnecting, setIsConnecting],
+  );
 
   const handleConnectSolana = useCallback(
     async (provider: SolanaWalletProvider) => {
@@ -264,8 +331,7 @@ export const useChooseWalletConnections = ({
         toast.error(
           getFriendlyErrorMessage(
             err,
-            `${
-              provider === "phantom" ? "Phantom" : "Solflare"
+            `${provider === "phantom" ? "Phantom" : "Solflare"
             } connection failed`,
           ),
         );
@@ -330,9 +396,12 @@ export const useChooseWalletConnections = ({
     connectors,
     connectingId,
     privyReady,
+    dynamicReady,
     handleSelectConnector,
     handleConnectPrivy,
     handleConnectTurnkey,
+    handleConnectDynamic,
+    handleConnectDfns,
     handleConnectSolana,
     handleConnectTronLink,
   };

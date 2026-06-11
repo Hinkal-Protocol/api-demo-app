@@ -51,9 +51,16 @@
     "yarn": "1.22.x"
   },
   "dependencies": {
+    "@dfns/lib-ethersjs6": "0.8.21",
+    "@dfns/sdk": "0.8.21",
+    "@dfns/sdk-browser": "0.8.21",
+    "@dynamic-labs/ethereum": "^4.88.3",
+    "@dynamic-labs/ethers-v6": "^4.88.3",
+    "@dynamic-labs/sdk-react-core": "^4.88.3",
     "@headlessui/react": "^1.7.5",
     "@privy-io/react-auth": "^3",
     "@privy-io/wagmi": "^4",
+    "@react-oauth/google": "^0.13.5",
     "@solana/wallet-adapter-base": "^0.9.27",
     "@solana/wallet-adapter-react": "^0.15.39",
     "@solana/wallet-adapter-wallets": "^0.19.38",
