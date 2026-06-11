@@ -5,6 +5,7 @@ import {
   resolveTxAuthFields,
 } from "./enclave-auth";
 import type { EnclaveAuthFields, TxSessionAuth } from "./types";
+import { verifyEnclaveResponse } from "./attestation";
 
 export enum OrderStatus {
   Processing = "processing",
@@ -49,6 +50,11 @@ export type DepositAndWithdrawOrder = {
   approvalAddress: string | null;
 };
 
+export type AttestationOpts = {
+  verificationPublicKey: string;
+  refreshAttestation: () => Promise<string>;
+};
+
 export const depositAndWithdraw = async (
   signer: ethers.Signer | null,
   session: TxSessionAuth,
@@ -58,6 +64,7 @@ export const depositAndWithdraw = async (
   recipients: Recipient[],
   txCompletionTime?: number,
   buildReadOnlyAuth?: () => Promise<EnclaveAuthFields>,
+  attestation?: AttestationOpts,
 ): Promise<DepositAndWithdrawOrder> => {
   const authFields = await resolveTxAuthFields(session, () => {
     if (buildReadOnlyAuth) return buildReadOnlyAuth();
@@ -79,7 +86,21 @@ export const depositAndWithdraw = async (
     body: JSON.stringify(body),
   });
 
-  const data = (await res.json()) as
+  const rawBody = await res.text();
+
+  if (attestation) {
+    const signature = res.headers.get("x-enclave-signature");
+    if (!signature) throw new Error("Missing X-Enclave-Signature header");
+
+    let valid = await verifyEnclaveResponse(rawBody, signature, attestation.verificationPublicKey);
+    if (!valid) {
+      const freshKey = await attestation.refreshAttestation();
+      valid = await verifyEnclaveResponse(rawBody, signature, freshKey);
+      if (!valid) throw new Error("Enclave response signature verification failed");
+    }
+  }
+
+  const data = JSON.parse(rawBody) as
     | ({ success: true } & DepositAndWithdrawOrder)
     | { error?: string };
 
