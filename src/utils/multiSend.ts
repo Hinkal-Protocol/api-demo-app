@@ -89,8 +89,8 @@ export const depositAndWithdraw = async (
   const rawBody = await res.text();
 
   if (attestation) {
-    const signature = res.headers.get("x-enclave-signature");
-    if (!signature) throw new Error("Missing X-Enclave-Signature header");
+    const signature = res.headers.get("x-hinkal-signature");
+    if (!signature) throw new Error("Missing X-Hinkal-Signature header");
 
     let valid = await verifyEnclaveResponse(rawBody, signature, attestation.verificationPublicKey);
     if (!valid) {
