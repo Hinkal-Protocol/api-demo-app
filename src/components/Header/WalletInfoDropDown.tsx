@@ -16,6 +16,7 @@ import {
   setActiveDynamicWallet,
   setActivePrivyWallet,
   setActiveTurnkeyParams,
+  setActiveDfnsWallet,
 } from "../../utils/ethers-wallet";
 import { withdrawStuckUtxos } from "../../utils/withdraw";
 import { buildSolanaWithdrawStuckUtxosAuthFields } from "../../utils/solana-auth";
@@ -84,6 +85,7 @@ export const WalletInfoDropDown = () => {
     } catch (err) {
       console.error("dynamic logout failed", err);
     }
+    setActiveDfnsWallet(null);
     setActiveDynamicWallet(null);
     setActivePrivyWallet(null);
     setActiveTurnkeyParams(null);
