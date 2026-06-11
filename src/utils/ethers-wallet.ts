@@ -53,7 +53,9 @@ export const setActiveDfnsWallet = (wallet: DfnsWallet | null): void => {
 const wrapDynamicSigner = (wallet: Wallet, signer: ethers.Signer) => {
   signer.signTypedData = async (domain, types, value) => {
     const nested = new Set(
-      Object.values(types).flat().map((f) => f.type.replace(/\[\]$/, "")),
+      Object.values(types)
+        .flat()
+        .map((f) => f.type.replace(/\[\]$/, "")),
     );
     const primaryType = Object.keys(types).find((t) => !nested.has(t));
     if (!primaryType) throw new Error("Could not derive EIP-712 primaryType");
@@ -82,7 +84,9 @@ const wrapDfnsSigner = (signer: ethers.Signer): ethers.Signer => {
       domain,
       types,
       JSON.parse(
-        JSON.stringify(value, (_, x) => (typeof x === "bigint" ? x.toString() : x)),
+        JSON.stringify(value, (_, x) =>
+          typeof x === "bigint" ? x.toString() : x,
+        ),
       ),
     );
   return signer;
@@ -133,8 +137,13 @@ export const getEthersSigner = async (
   }
 
   if (activePrivyWallet) {
-    if (chainId) await activePrivyWallet.switchChain(chainId);
     const provider = await activePrivyWallet.getEthereumProvider();
+    if (chainId) {
+      await (provider as ethers.Eip1193Provider).request({
+        method: "wallet_switchEthereumChain",
+        params: [{ chainId: `0x${chainId.toString(16)}` }],
+      });
+    }
     const browserProvider = new ethers.BrowserProvider(provider);
     const signer = await browserProvider.getSigner();
     const signerAddress = await signer.getAddress();

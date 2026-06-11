@@ -5,9 +5,7 @@ import { connect, disconnect } from "wagmi/actions";
 import type { Connector } from "wagmi";
 import { usePrivy, useWallets } from "@privy-io/react-auth";
 import { AuthState, useTurnkey } from "@turnkey/react-wallet-kit";
-import {
-  useDynamicContext,
-} from "@dynamic-labs/sdk-react-core";
+import { useDynamicContext } from "@dynamic-labs/sdk-react-core";
 import { isEthereumWallet } from "@dynamic-labs/ethereum";
 import toast from "react-hot-toast";
 import { useAppContext } from "../../AppContext";
@@ -331,7 +329,8 @@ export const useChooseWalletConnections = ({
         toast.error(
           getFriendlyErrorMessage(
             err,
-            `${provider === "phantom" ? "Phantom" : "Solflare"
+            `${
+              provider === "phantom" ? "Phantom" : "Solflare"
             } connection failed`,
           ),
         );
