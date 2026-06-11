@@ -1,7 +1,8 @@
+import { useState, useMemo } from "react";
 import { ClientState } from "@turnkey/react-wallet-kit";
 import type { ChooseWalletConnections } from "./useChooseWalletConnections";
 import { WalletOptionButton } from "./WalletOptionButton";
-import { useMemo } from "react";
+import { DfnsGoogleOverlay } from "./DfnsGoogleOverlay";
 
 interface SocialLoginViewProps {
   connectingId: string | null;
@@ -11,6 +12,7 @@ interface SocialLoginViewProps {
   onConnectPrivy: ChooseWalletConnections["handleConnectPrivy"];
   onConnectTurnkey: ChooseWalletConnections["handleConnectTurnkey"];
   onConnectDynamic: ChooseWalletConnections["handleConnectDynamic"];
+  onConnectDfns: ChooseWalletConnections["handleConnectDfns"];
 }
 
 export const SocialLoginView = ({
@@ -21,7 +23,10 @@ export const SocialLoginView = ({
   onConnectPrivy,
   onConnectTurnkey,
   onConnectDynamic,
+  onConnectDfns,
 }: SocialLoginViewProps) => {
+  const [dfnsOpen, setDfnsOpen] = useState(false);
+
   const socialProviders = useMemo(
     () => [
       {
@@ -41,6 +46,12 @@ export const SocialLoginView = ({
         label: "Continue with Dynamic",
         disabled: !!connectingId || !dynamicReady,
         onClick: onConnectDynamic,
+      },
+      {
+        id: "dfns",
+        label: "Continue with DFNS",
+        disabled: !!connectingId,
+        onClick: () => setDfnsOpen(true),
       },
     ],
     [
@@ -69,6 +80,12 @@ export const SocialLoginView = ({
           onClick={onClick}
         />
       ))}
+      {dfnsOpen && (
+        <DfnsGoogleOverlay
+          onClose={() => setDfnsOpen(false)}
+          onConnect={onConnectDfns}
+        />
+      )}
     </div>
   );
 };

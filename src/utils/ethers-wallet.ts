@@ -6,6 +6,7 @@ import type { TurnkeyClient } from "@turnkey/http";
 import { getSigner } from "@dynamic-labs/ethers-v6";
 import { isEthereumWallet } from "@dynamic-labs/ethereum";
 import type { Wallet } from "@dynamic-labs/sdk-react-core";
+import type { DfnsWallet } from "@dfns/lib-ethersjs6";
 import { ERC20_ABI } from "../constants/erc20.constants";
 import { networkRegistry } from "../constants/chain.constants";
 import { wagmiConfig } from "../wagmi.config";
@@ -39,6 +40,11 @@ export const setActiveDynamicWallet = (wallet: Wallet | null): void => {
   activeDynamicWallet = wallet;
 };
 
+let activeDfnsWallet: DfnsWallet | null = null;
+export const setActiveDfnsWallet = (wallet: DfnsWallet | null): void => {
+  activeDfnsWallet = wallet;
+};
+
 /**
  * ethers serializes the EIP-712 domain chainId to a hex string ("0xa"), which
  * Dynamic's WaaS signTypedData endpoint rejects (it requires a number). Route
@@ -65,6 +71,23 @@ const wrapDynamicSigner = (wallet: Wallet, signer: ethers.Signer) => {
   return signer;
 };
 
+/**
+ * DfnsWallet.signTypedData JSON-serializes the EIP-712 message, which throws on
+ * BigInt values (chainId, amounts). Stringify BigInts before they reach it.
+ */
+const wrapDfnsSigner = (signer: ethers.Signer): ethers.Signer => {
+  const orig = signer.signTypedData.bind(signer);
+  signer.signTypedData = (domain, types, value) =>
+    orig(
+      domain,
+      types,
+      JSON.parse(
+        JSON.stringify(value, (_, x) => (typeof x === "bigint" ? x.toString() : x)),
+      ),
+    );
+  return signer;
+};
+
 const clientToSigner = (
   client: Client<Transport, Chain, Account>,
 ): ethers.JsonRpcSigner => {
@@ -81,6 +104,15 @@ const clientToSigner = (
 export const getEthersSigner = async (
   chainId?: number,
 ): Promise<ethers.Signer> => {
+  if (activeDfnsWallet) {
+    const provider = getJsonRpcProvider(chainId ?? wagmiConfig.chains[0].id);
+    return wrapDfnsSigner(
+      activeDfnsWallet.connect(
+        provider as unknown as Parameters<DfnsWallet["connect"]>[0],
+      ) as unknown as ethers.Signer,
+    );
+  }
+
   if (activeDynamicWallet) {
     if (!isEthereumWallet(activeDynamicWallet)) {
       throw new Error("Connected Dynamic wallet is not an Ethereum wallet");
@@ -133,6 +165,7 @@ export const getEthersSigner = async (
 export const switchActiveWalletChain = async (
   chainId: number,
 ): Promise<void> => {
+  if (activeDfnsWallet) return;
   if (activeDynamicWallet) {
     await activeDynamicWallet.switchNetwork(chainId);
     return;

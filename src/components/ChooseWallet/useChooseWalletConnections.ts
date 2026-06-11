@@ -16,8 +16,10 @@ import {
   getEthersSigner,
   setActiveDynamicWallet,
   setActivePrivyWallet,
+  setActiveDfnsWallet,
   setActiveTurnkeyParams,
 } from "../../utils/ethers-wallet";
+import { connectDfns } from "../../utils/dfns";
 import { connectTronLink } from "../../utils/tron-wallet";
 import { createTronEnclaveSession } from "../../utils/tron-session";
 import {
@@ -285,6 +287,25 @@ export const useChooseWalletConnections = ({
     })();
   }, [connectingId, dynamicWallet, completeEvmSession, finishConnecting]);
 
+  const handleConnectDfns = useCallback(
+    async (idToken: string) => {
+      try {
+        setIsConnecting?.(true);
+        setConnectingId("dfns");
+        await disconnect(config);
+        const chainId = SUPPORTED_CHAINS[0].id;
+        const { wallet, address } = await connectDfns(idToken);
+        setActiveDfnsWallet(wallet);
+        await completeEvmSession(address, chainId);
+      } catch (err) {
+        toast.error(getFriendlyErrorMessage(err, "DFNS connection failed"));
+      } finally {
+        finishConnecting();
+      }
+    },
+    [config, completeEvmSession, finishConnecting, setIsConnecting],
+  );
+
   const handleConnectSolana = useCallback(
     async (provider: SolanaWalletProvider) => {
       try {
@@ -380,6 +401,7 @@ export const useChooseWalletConnections = ({
     handleConnectPrivy,
     handleConnectTurnkey,
     handleConnectDynamic,
+    handleConnectDfns,
     handleConnectSolana,
     handleConnectTronLink,
   };
