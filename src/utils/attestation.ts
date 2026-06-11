@@ -7,7 +7,6 @@ const toBytes = (b64: string): Uint8Array<ArrayBuffer> => {
   return out;
 };
 
-const b64urlToBytes = (s: string) => toBytes(s.replace(/-/g, "+").replace(/_/g, "/"));
 
 const encode = (s: string): Uint8Array<ArrayBuffer> => {
   const bytes = new TextEncoder().encode(s);
@@ -15,6 +14,9 @@ const encode = (s: string): Uint8Array<ArrayBuffer> => {
   bytes.forEach((b, i) => { out[i] = b; });
   return out;
 };
+
+const GOOGLE_CONFIDENTIAL_SPACE_JWKS_URI =
+  "https://www.googleapis.com/service_accounts/v1/metadata/jwk/signer@confidentialspace-sign.iam.gserviceaccount.com";
 
 const parseJwtPayload = (jwt: string) =>
   JSON.parse(window.atob(jwt.split(".")[1].replace(/-/g, "+").replace(/_/g, "/"))) as {
@@ -25,13 +27,9 @@ const parseJwtPayload = (jwt: string) =>
 
 const verifyJwtSignature = async (jwt: string): Promise<void> => {
   const [header64, payload64, sig64] = jwt.split(".");
-  const { kid: key_id } = JSON.parse(window.atob(header64)) as { kid: string };
+  const { kid: key_id } = JSON.parse(window.atob(header64.replace(/-/g, "+").replace(/_/g, "/"))) as { kid: string };
 
-  const { jwks_uri } = (await fetch(
-    "https://confidentialcomputing.googleapis.com/.well-known/openid-configuration",
-  ).then((r) => r.json())) as { jwks_uri: string };
-
-  const { keys } = (await fetch(jwks_uri).then((r) => r.json())) as {
+  const { keys } = (await fetch(GOOGLE_CONFIDENTIAL_SPACE_JWKS_URI).then((r) => r.json())) as {
     keys: ({ kid: string } & JsonWebKey)[];
   };
   const jwk = keys.find((k) => k.kid === key_id);
@@ -45,12 +43,9 @@ const verifyJwtSignature = async (jwt: string): Promise<void> => {
     ["verify"],
   );
 
-  const valid = await crypto.subtle.verify(
-    "RSASSA-PKCS1-v1_5",
-    key,
-    b64urlToBytes(sig64),
-    encode(`${header64}.${payload64}`),
-  );
+  const sigBytes = toBytes(sig64.replace(/-/g, "+").replace(/_/g, "/"));
+  const dataBytes = encode(`${header64}.${payload64}`);
+  const valid = await crypto.subtle.verify("RSASSA-PKCS1-v1_5", key, sigBytes, dataBytes);
   if (!valid) throw new Error("JWT signature verification failed");
 };
 
