@@ -1,6 +1,7 @@
 import { ClientState } from "@turnkey/react-wallet-kit";
 import type { ChooseWalletConnections } from "./useChooseWalletConnections";
 import { WalletOptionButton } from "./WalletOptionButton";
+import { useMemo } from "react";
 
 interface SocialLoginViewProps {
   connectingId: string | null;
@@ -20,31 +21,54 @@ export const SocialLoginView = ({
   onConnectPrivy,
   onConnectTurnkey,
   onConnectDynamic,
-}: SocialLoginViewProps) => (
-  <div className="p-5 pb-10 flex flex-col items-center gap-y-5">
-    <p className="text-hinkal-gray-100 text-sm text-center w-[80%]">
-      Sign in with email.
-    </p>
-    <WalletOptionButton
-      variant="social"
-      label="Continue with Privy"
-      disabled={!!connectingId || !privyReady}
-      loading={connectingId?.startsWith("privy") ?? false}
-      onClick={onConnectPrivy}
-    />
-    <WalletOptionButton
-      variant="social"
-      label="Continue with Turnkey"
-      disabled={!!connectingId || turnkeyClientState === ClientState.Loading}
-      loading={connectingId?.startsWith("turnkey") ?? false}
-      onClick={onConnectTurnkey}
-    />
-    <WalletOptionButton
-      variant="social"
-      label="Continue with Dynamic"
-      disabled={!!connectingId || !dynamicReady}
-      loading={connectingId?.startsWith("dynamic") ?? false}
-      onClick={onConnectDynamic}
-    />
-  </div>
-);
+}: SocialLoginViewProps) => {
+  const socialProviders = useMemo(
+    () => [
+      {
+        id: "privy",
+        label: "Continue with Privy",
+        disabled: !!connectingId || !privyReady,
+        onClick: onConnectPrivy,
+      },
+      {
+        id: "turnkey",
+        label: "Continue with Turnkey",
+        disabled: !!connectingId || turnkeyClientState === ClientState.Loading,
+        onClick: onConnectTurnkey,
+      },
+      {
+        id: "dynamic",
+        label: "Continue with Dynamic",
+        disabled: !!connectingId || !dynamicReady,
+        onClick: onConnectDynamic,
+      },
+    ],
+    [
+      connectingId,
+      privyReady,
+      turnkeyClientState,
+      dynamicReady,
+      onConnectPrivy,
+      onConnectTurnkey,
+      onConnectDynamic,
+    ] as const,
+  );
+
+  return (
+    <div className="p-5 pb-10 flex flex-col items-center gap-y-5">
+      <p className="text-hinkal-gray-100 text-sm text-center w-[80%]">
+        Sign in with email.
+      </p>
+      {socialProviders.map(({ id, label, disabled, onClick }) => (
+        <WalletOptionButton
+          key={id}
+          variant="social"
+          label={label}
+          disabled={disabled}
+          loading={connectingId?.startsWith(id) ?? false}
+          onClick={onClick}
+        />
+      ))}
+    </div>
+  );
+};

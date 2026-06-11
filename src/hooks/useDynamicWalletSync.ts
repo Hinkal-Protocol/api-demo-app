@@ -6,12 +6,11 @@ import { setActiveDynamicWallet } from "../utils/ethers-wallet";
  * useDynamicContext() can't be called inside getEthersSigner (plain util, not a component).
  * This bridges the gap — keeps activeDynamicWallet in sync so getEthersSigner can reach it.
  */
-export const DynamicWalletSync = () => {
+export const useDynamicWalletSync = () => {
   const { primaryWallet } = useDynamicContext();
 
   useEffect(() => {
+    console.log("primaryWallet", primaryWallet);
     setActiveDynamicWallet(primaryWallet ?? null);
   }, [primaryWallet]);
-
-  return null;
 };
