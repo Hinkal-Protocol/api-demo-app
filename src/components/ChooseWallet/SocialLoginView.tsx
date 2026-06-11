@@ -1,9 +1,8 @@
 import { useState, useMemo } from "react";
 import { ClientState } from "@turnkey/react-wallet-kit";
-import { GoogleLogin } from "@react-oauth/google";
-import toast from "react-hot-toast";
 import type { ChooseWalletConnections } from "./useChooseWalletConnections";
 import { WalletOptionButton } from "./WalletOptionButton";
+import { DfnsGoogleOverlay } from "./DfnsGoogleOverlay";
 
 interface SocialLoginViewProps {
   connectingId: string | null;
@@ -82,25 +81,10 @@ export const SocialLoginView = ({
         />
       ))}
       {dfnsOpen && (
-        <div
-          className="fixed inset-0 z-50 flex items-center justify-center bg-black/70"
-          onClick={() => setDfnsOpen(false)}
-        >
-          <div
-            className="bg-modal rounded-2xl p-6 flex flex-col items-center gap-y-4"
-            onClick={(e) => e.stopPropagation()}
-          >
-            <GoogleLogin
-              onSuccess={(res) => {
-                setDfnsOpen(false);
-                res.credential
-                  ? onConnectDfns(res.credential)
-                  : toast.error("Google sign-in returned no credential");
-              }}
-              onError={() => toast.error("Google sign-in failed")}
-            />
-          </div>
-        </div>
+        <DfnsGoogleOverlay
+          onClose={() => setDfnsOpen(false)}
+          onConnect={onConnectDfns}
+        />
       )}
     </div>
   );
