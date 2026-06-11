@@ -21,8 +21,6 @@ import type { EnclaveSession } from "./utils/types";
 import type { SolanaWalletProvider } from "./utils/solana-wallet";
 import { getERC20Registry } from "./constants/token-data";
 import { getEthersSigner } from "./utils/ethers-wallet";
-import { useDynamicWalletSync } from "./hooks/useDynamicWalletSync";
-import { usePrivyWalletSync } from "./hooks/usePrivyWalletSync";
 import { ERC20Token, TokenBalance } from "./types";
 
 export type WalletType = "evm" | "tron" | "solana";
@@ -128,9 +126,6 @@ export const AppContextProvider: FC<AppContextProps> = ({
   const balancesRef = useRef<TokenBalance[]>([]);
   const abortControllerRef = useRef<AbortController | null>(null);
   const prevChainIdRef = useRef<number | undefined>();
-
-  usePrivyWalletSync();
-  useDynamicWalletSync();
 
   const isTron = useMemo(() => walletType === "tron", [walletType]);
   const isSolana = useMemo(() => walletType === "solana", [walletType]);

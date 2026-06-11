@@ -3,6 +3,7 @@ import toast from "react-hot-toast";
 import { useConfig } from "wagmi";
 import { disconnect } from "wagmi/actions";
 import { usePrivy } from "@privy-io/react-auth";
+import { useDynamicContext } from "@dynamic-labs/sdk-react-core";
 import { AuthState, useTurnkey } from "@turnkey/react-wallet-kit";
 import Copy from "../../assets/Copy.svg";
 import Disconnect from "../../assets/Disconnect.svg";
@@ -12,6 +13,7 @@ import { getFriendlyErrorMessage } from "../../utils/errors";
 import { fetchRecipientInfo } from "../../utils/recipientInfo";
 import {
   getEthersSigner,
+  setActiveDynamicWallet,
   setActivePrivyWallet,
   setActiveTurnkeyParams,
 } from "../../utils/ethers-wallet";
@@ -44,6 +46,7 @@ export const WalletInfoDropDown = () => {
   } = useAppContext();
   const config = useConfig();
   const { authenticated, logout } = usePrivy();
+  const { handleLogOut: dynamicLogout } = useDynamicContext();
   const { authState: turnkeyAuthState, logout: turnkeyLogout } = useTurnkey();
   const visibleStuckUtxoBalances = useMemo(
     () => filterNonZeroTokenBalances(stuckUtxoBalances),
@@ -76,6 +79,12 @@ export const WalletInfoDropDown = () => {
         console.error("turnkey logout failed", err);
       }
     }
+    try {
+      await dynamicLogout();
+    } catch (err) {
+      console.error("dynamic logout failed", err);
+    }
+    setActiveDynamicWallet(null);
     setActivePrivyWallet(null);
     setActiveTurnkeyParams(null);
     setWalletAddress(null);
