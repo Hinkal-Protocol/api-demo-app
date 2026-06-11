@@ -9,25 +9,15 @@ export const isValidPrivateAddress = (address: string): boolean => {
   const looksLikeUrl = REJECT_URLS.some((url) => address.includes(url));
   if (looksLikeUrl) return false;
 
-  const [randomization, stealthAddress, encryptionKey, H0, H1] = address.split(",");
+  if (address.includes('"')) return false;
 
-  const missingVariable =
-    !randomization || !stealthAddress || !encryptionKey || !H0 || !H1;
-  const incorrectAddressFormat =
-    stealthAddress?.substring(0, 2) !== "0x" ||
-    encryptionKey?.substring(0, 2) !== "0x";
-  const incorrectLength =
-    encryptionKey?.length !== 66 ||
-    stealthAddress?.length > 66 ||
-    stealthAddress?.length < 64;
-  const incorrectSymbols = address.includes('"');
+  const parts = address.split(",");
+  if (parts.length !== 5) return false;
 
-  return !(
-    missingVariable ||
-    incorrectAddressFormat ||
-    incorrectLength ||
-    incorrectSymbols
-  );
+  const isNumericField = (value: string) =>
+    /^0x[0-9a-fA-F]+$/.test(value) || /^[0-9]+$/.test(value);
+
+  return parts.every((part) => isNumericField(part.trim()));
 };
 
 export const isValidSolanaPublicKey = (address: string): boolean => {

@@ -420,6 +420,30 @@
   dependencies:
     "@jridgewell/trace-mapping" "0.3.9"
 
+"@dfns/lib-ethersjs6@0.8.21":
+  version "0.8.21"
+  resolved "https://registry.yarnpkg.com/@dfns/lib-ethersjs6/-/lib-ethersjs6-0.8.21.tgz#6ed3699bd2ed42b567176af0658741a6fe55dfb4"
+  integrity sha512-fhFJV4njmVAS2AwUmRpe0kbdq15dTiC2LSXUZL22XhA/lXWnqYjvInSJAJaBRJfLvYBPE6jlt8GSXguWoHLhew==
+  dependencies:
+    buffer "^6.0.3"
+    cross-fetch "^3.1.6"
+
+"@dfns/sdk-browser@0.8.21":
+  version "0.8.21"
+  resolved "https://registry.yarnpkg.com/@dfns/sdk-browser/-/sdk-browser-0.8.21.tgz#a219b0a44c339a64dfa8b518f0e1dc6c10342034"
+  integrity sha512-Fm561pZKo3+y+0w4E2DG6tnVzqAb6GwTBo+iMA4WdJDjNvqgctBj44tMo/DrvFXciGA7c/L7FZzrUh5DNqUqQg==
+  dependencies:
+    buffer "6.0.3"
+    cross-fetch "^3.1.6"
+
+"@dfns/sdk@0.8.21":
+  version "0.8.21"
+  resolved "https://registry.yarnpkg.com/@dfns/sdk/-/sdk-0.8.21.tgz#f8ad73d24d8a77f6052975b5147bbe17d2be6fa1"
+  integrity sha512-btyLj1/zm0W3rrgNbzMTN4pOH6UkXWw+QXFOPRmq/fmAfVOltVIq5LWuyue/SseBv2843YrstOGxzl+E0INpNg==
+  dependencies:
+    buffer "^6.0.3"
+    cross-fetch "^3.1.6"
+
 "@dynamic-labs-connectors/base-account-evm@4.6.7":
   version "4.6.7"
   resolved "https://registry.yarnpkg.com/@dynamic-labs-connectors/base-account-evm/-/base-account-evm-4.6.7.tgz#a136818d049a60bb1e4223038fcdd092e95f01b6"
@@ -2896,6 +2920,11 @@
   integrity sha512-W4/vbwUOYOjco0x3toB8QCr7EjIP6nE9G7o8PMguvvjYT5Awg09lyV4enACRx4s++PPulBiBSjL0KTFx2u0Z/g==
   dependencies:
     merge-options "^3.0.4"
+
+"@react-oauth/google@^0.13.5":
+  version "0.13.5"
+  resolved "https://registry.yarnpkg.com/@react-oauth/google/-/google-0.13.5.tgz#78fba5f0051cdde055079f83e41eff167d56c326"
+  integrity sha512-xQWri2s/3nNekZJ4uuov2aAfQYu83bN3864KcFqw2pK1nNbFurQIjPFDXhWaKH3IjYJ2r/9yyIIpsn5lMqrheQ==
 
 "@react-types/shared@^3.34.0", "@react-types/shared@^3.35.0":
   version "3.35.0"
@@ -8632,7 +8661,7 @@ create-require@^1.1.0, create-require@^1.1.1:
   resolved "https://registry.yarnpkg.com/create-require/-/create-require-1.1.1.tgz#c1d7e8f1e5f6cfc9ff65f9cd352d37348756c333"
   integrity sha512-dcKFX3jn0MpIaXjisoRvexIJVEKzaq7z2rZKxf+MSr9TkdmHmsU4m2lcLojrj/FHl8mk5VxMmYA+ftRkP/3oKQ==
 
-cross-fetch@^3.1.4, cross-fetch@^3.1.5:
+cross-fetch@^3.1.4, cross-fetch@^3.1.5, cross-fetch@^3.1.6:
   version "3.2.0"
   resolved "https://registry.yarnpkg.com/cross-fetch/-/cross-fetch-3.2.0.tgz#34e9192f53bc757d6614304d9e5e6fb4edb782e3"
   integrity sha512-Q+xVJLoGOeIMXZmbUK4HYk+69cQH6LudR0Vu/pRm2YlU/hDV9CiS0gKUMaWY5f2NeUH9C1nV3bsTlCo0FsTV1Q==
