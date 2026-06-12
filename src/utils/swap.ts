@@ -1,12 +1,11 @@
 import { ethers } from "ethers";
-import { API_BASE_URL } from "../constants/server.constants";
 import { ERC20Token } from "../types";
 import { buildSwapAuthFields, resolveTxAuthFields } from "./enclave-auth";
 import { buildSolanaSwapAuthFields } from "./solana-auth";
+import { enclaveFetch } from "./enclaveApi";
 import { ExternalActionId, getFeeStructure } from "./fees";
 import type { SolanaWalletProvider } from "./solana-wallet";
 import { Auth, TxSessionAuth } from "./types";
-import { verifyResponseWithAttestation, type AttestationOpts } from "./attestation";
 
 export const HINKAL_SWAP_VARIABLE_RATE = 35n;
 
@@ -37,11 +36,10 @@ export const getSwapData = async (
     params.append("slippagePercentage", String(slippagePercentage));
   }
 
-  const res = await fetch(`${API_BASE_URL}/get-swap-data?${params}`);
-
-  const data = (await res.json()) as
+  const { res, data } = await enclaveFetch<
     | (SwapData & { success: true })
-    | { error?: string };
+    | { error?: string }
+  >(`/get-swap-data?${params}`, nonce);
 
   if (!res.ok || !("success" in data && data.success)) {
     throw new Error(
@@ -66,7 +64,6 @@ export const executeSwap = async (
   inAmount: string,
   quotedData: SwapData,
   solanaProvider?: SolanaWalletProvider,
-  attestation?: AttestationOpts,
 ): Promise<string> => {
   const isSolana = !!solanaProvider;
   const inAmountWei = BigInt(
@@ -104,7 +101,10 @@ export const executeSwap = async (
         }),
       );
 
-  const res = await fetch(`${API_BASE_URL}/swap`, {
+  const { res, data } = await enclaveFetch<
+    | { success: true; txHash: string }
+    | { error?: string }
+  >("/swap", authFields.nonce, {
     method: "POST",
     headers: { "Content-Type": "application/json" },
     body: JSON.stringify({
@@ -118,16 +118,6 @@ export const executeSwap = async (
       ...(isSolana ? { feeStructure } : { feeToken, feeStructure }),
     }),
   });
-
-  const rawBody = await res.text();
-
-  if (attestation) {
-    await verifyResponseWithAttestation(res, rawBody, attestation);
-  }
-
-  const data = JSON.parse(rawBody) as
-    | { success: true; txHash: string }
-    | { error?: string };
 
   if (!res.ok || !("success" in data && data.success)) {
     throw new Error((data as { error?: string }).error ?? "Swap failed");

@@ -92,8 +92,6 @@ export const MultiSend = () => {
     isTron,
     isSolana,
     solanaProvider,
-    verificationPublicKey,
-    refreshAttestation,
   } = useAppContext();
 
   const allowedTokens = useMemo<ERC20Token[]>(() => {
@@ -277,7 +275,6 @@ export const MultiSend = () => {
         recipientsWei,
         txCompletionTime,
         buildReadOnlyAuth,
-        verificationPublicKey ? { verificationPublicKey, refreshAttestation } : undefined,
       );
 
       const isNative =
@@ -329,8 +326,6 @@ export const MultiSend = () => {
     isTron,
     isSolana,
     solanaProvider,
-    verificationPublicKey,
-    refreshAttestation,
   ]);
 
   const handleSubmit = (event: SyntheticEvent) => {

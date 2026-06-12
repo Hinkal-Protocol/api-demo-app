@@ -1,13 +1,12 @@
 import { ethers } from "ethers";
-import { API_BASE_URL } from "../constants/server.constants";
 import {
   buildWithdrawAuthFields,
   buildWithdrawStuckUtxosAuthFields,
   resolveTxAuthFields,
 } from "./enclave-auth";
+import { enclaveFetch } from "./enclaveApi";
 import type { EnclaveAuthFields, TxSessionAuth } from "./types";
 import { FeeStructure } from "./fees";
-import { verifyResponseWithAttestation, type AttestationOpts } from "./attestation";
 
 export const withdraw = async (
   signer: ethers.Signer | null,
@@ -21,7 +20,6 @@ export const withdraw = async (
   feeToken?: string,
   feeStructure?: FeeStructure,
   buildReadOnlyAuth?: () => Promise<EnclaveAuthFields>,
-  attestation?: AttestationOpts,
 ): Promise<string> => {
   const authFields = await resolveTxAuthFields(session, () => {
     if (buildReadOnlyAuth) return buildReadOnlyAuth();
@@ -40,21 +38,14 @@ export const withdraw = async (
     feeStructure,
   };
 
-  const res = await fetch(`${API_BASE_URL}/withdraw`, {
+  const { res, data } = await enclaveFetch<
+    | { success: true; txHash: string }
+    | { error?: string }
+  >("/withdraw", authFields.nonce, {
     method: "POST",
     headers: { "Content-Type": "application/json" },
     body: JSON.stringify(body),
   });
-
-  const rawBody = await res.text();
-
-  if (attestation) {
-    await verifyResponseWithAttestation(res, rawBody, attestation);
-  }
-
-  const data = JSON.parse(rawBody) as
-    | { success: true; txHash: string }
-    | { error?: string };
 
   if (!res.ok || !("success" in data && data.success)) {
     throw new Error((data as { error?: string }).error ?? "Withdraw failed");
@@ -71,7 +62,6 @@ export const withdrawStuckUtxos = async (
   tokenAddress: string,
   recipientAddress: string,
   buildReadOnlyAuth?: () => Promise<EnclaveAuthFields>,
-  attestation?: AttestationOpts,
 ): Promise<string[]> => {
   const authFields = await resolveTxAuthFields(session, () => {
     if (buildReadOnlyAuth) return buildReadOnlyAuth();
@@ -86,21 +76,14 @@ export const withdrawStuckUtxos = async (
     recipientAddress,
   };
 
-  const res = await fetch(`${API_BASE_URL}/withdraw-stuck-utxos`, {
+  const { res, data } = await enclaveFetch<
+    | { success: true; txHashes: string[] }
+    | { error?: string }
+  >("/withdraw-stuck-utxos", authFields.nonce, {
     method: "POST",
     headers: { "Content-Type": "application/json" },
     body: JSON.stringify(body),
   });
-
-  const rawBody = await res.text();
-
-  if (attestation) {
-    await verifyResponseWithAttestation(res, rawBody, attestation);
-  }
-
-  const data = JSON.parse(rawBody) as
-    | { success: true; txHashes: string[] }
-    | { error?: string };
 
   if (!res.ok || !("success" in data && data.success)) {
     throw new Error(

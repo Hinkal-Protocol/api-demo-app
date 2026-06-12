@@ -22,8 +22,6 @@ import type { SolanaWalletProvider } from "./utils/solana-wallet";
 import { getERC20Registry } from "./constants/token-data";
 import { getEthersSigner } from "./utils/ethers-wallet";
 import { ERC20Token, TokenBalance } from "./types";
-import { fetchAndVerifyAttestation } from "./utils/attestation";
-
 export type WalletType = "evm" | "tron" | "solana";
 
 type AppContextArgumnets = {
@@ -59,8 +57,6 @@ type AppContextArgumnets = {
   walletBalances: Record<string, bigint>;
   isWalletBalancesLoading: boolean;
   refreshWalletBalances: () => Promise<void>;
-  verificationPublicKey: string | null;
-  refreshAttestation: () => Promise<string>;
 };
 
 const BALANCE_REFRESH_INTERVAL = 100000;
@@ -99,8 +95,6 @@ const AppContext = createContext<AppContextArgumnets>({
   walletBalances: {},
   isWalletBalancesLoading: false,
   refreshWalletBalances: async () => {},
-  verificationPublicKey: null,
-  refreshAttestation: async () => { throw new Error('not initialized'); },
 });
 
 type AppContextProps = { children: ReactNode };
@@ -128,19 +122,7 @@ export const AppContextProvider: FC<AppContextProps> = ({
   );
   const [isWalletBalancesLoading, setIsWalletBalancesLoading] = useState(false);
   const [isBalancesRefreshing, setIsBalancesRefreshing] = useState(false);
-  const [verificationPublicKey, setEnclavePublicKey] = useState<string | null>(null);
 
-  const refreshAttestation = useCallback(async (): Promise<string> => {
-    const key = await fetchAndVerifyAttestation();
-    setEnclavePublicKey(key);
-    return key;
-  }, []);
-
-  useEffect(() => {
-    refreshAttestation().catch((err) =>
-      console.error('Attestation verification failed:', err),
-    );
-  }, []);
   const balancesRef = useRef<TokenBalance[]>([]);
   const abortControllerRef = useRef<AbortController | null>(null);
   const prevChainIdRef = useRef<number | undefined>();
@@ -377,8 +359,6 @@ export const AppContextProvider: FC<AppContextProps> = ({
         isSolana,
         solanaProvider,
         setSolanaProvider,
-        verificationPublicKey,
-        refreshAttestation,
       }}
     >
       {children}

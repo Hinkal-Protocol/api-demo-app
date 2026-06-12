@@ -1,5 +1,5 @@
-import { API_BASE_URL } from "../constants/server.constants";
 import { buildEnclaveSignMessage, EnclaveSessionAccess } from "./auth";
+import { enclaveFetch } from "./enclaveApi";
 import { generateNonce } from "./enclave-auth";
 import { signSolanaMessage, SolanaWalletProvider } from "./solana-wallet";
 import type { EnclaveSession } from "./types";
@@ -24,9 +24,10 @@ export const createSolanaEnclaveSession = async (
   const signature = await signSolanaMessage(provider, message);
   const normalizedSig = signature.startsWith("0x") ? signature : `0x${signature}`;
 
-  let res: Response;
-  try {
-    res = await fetch(`${API_BASE_URL}/create-session`, {
+  const { res, data } = await enclaveFetch<CreateSessionResponse>(
+    "/create-session",
+    nonce,
+    {
       method: "POST",
       headers: { "Content-Type": "application/json" },
       body: JSON.stringify({
@@ -36,12 +37,8 @@ export const createSolanaEnclaveSession = async (
         nonce,
         writeAccess,
       }),
-    });
-  } catch (err) {
-    throw new Error(`Network error: ${(err as Error).message}`);
-  }
-
-  const data = (await res.json()) as CreateSessionResponse;
+    },
+  );
   if (!res.ok || !data.success) {
     throw new Error(("error" in data && data.error) || "Session was not created");
   }

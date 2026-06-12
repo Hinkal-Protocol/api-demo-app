@@ -1,4 +1,4 @@
-import { API_BASE_URL } from "../constants/server.constants";
+import { enclaveFetch } from "./enclaveApi";
 import { Auth } from "./types";
 
 export enum ExternalActionId {
@@ -54,11 +54,10 @@ export const getFeeStructure = async (
     params.append("mintFrom", mintFrom);
   }
 
-  const res = await fetch(`${API_BASE_URL}/get-fee-structure?${params}`);
-
-  const data = (await res.json()) as
+  const { res, data } = await enclaveFetch<
     | { success: true; feeStructure: FeeStructure }
-    | { error?: string };
+    | { error?: string }
+  >(`/get-fee-structure?${params}`, nonce);
 
   if (!res.ok || !("success" in data && data.success)) {
     throw new Error(

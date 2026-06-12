@@ -7,11 +7,12 @@ const toBytes = (b64: string): Uint8Array<ArrayBuffer> => {
   return out;
 };
 
-
 const encode = (s: string): Uint8Array<ArrayBuffer> => {
   const bytes = new TextEncoder().encode(s);
   const out = new Uint8Array(bytes.length);
-  bytes.forEach((b, i) => { out[i] = b; });
+  bytes.forEach((b, i) => {
+    out[i] = b;
+  });
   return out;
 };
 
@@ -19,7 +20,9 @@ const GOOGLE_CONFIDENTIAL_SPACE_JWKS_URI =
   "https://www.googleapis.com/service_accounts/v1/metadata/jwk/signer@confidentialspace-sign.iam.gserviceaccount.com";
 
 const parseJwtPayload = (jwt: string) =>
-  JSON.parse(window.atob(jwt.split(".")[1].replace(/-/g, "+").replace(/_/g, "/"))) as {
+  JSON.parse(
+    window.atob(jwt.split(".")[1].replace(/-/g, "+").replace(/_/g, "/")),
+  ) as {
     aud: string;
     eat_nonce: string;
     submods?: { container?: { image_digest?: string } };
@@ -27,9 +30,13 @@ const parseJwtPayload = (jwt: string) =>
 
 const verifyJwtSignature = async (jwt: string): Promise<void> => {
   const [header64, payload64, sig64] = jwt.split(".");
-  const { kid: key_id } = JSON.parse(window.atob(header64.replace(/-/g, "+").replace(/_/g, "/"))) as { kid: string };
+  const { kid: key_id } = JSON.parse(
+    window.atob(header64.replace(/-/g, "+").replace(/_/g, "/")),
+  ) as { kid: string };
 
-  const { keys } = (await fetch(GOOGLE_CONFIDENTIAL_SPACE_JWKS_URI).then((r) => r.json())) as {
+  const { keys } = (await fetch(GOOGLE_CONFIDENTIAL_SPACE_JWKS_URI).then((r) =>
+    r.json(),
+  )) as {
     keys: ({ kid: string } & JsonWebKey)[];
   };
   const jwk = keys.find((k) => k.kid === key_id);
@@ -45,7 +52,12 @@ const verifyJwtSignature = async (jwt: string): Promise<void> => {
 
   const sigBytes = toBytes(sig64.replace(/-/g, "+").replace(/_/g, "/"));
   const dataBytes = encode(`${header64}.${payload64}`);
-  const valid = await crypto.subtle.verify("RSASSA-PKCS1-v1_5", key, sigBytes, dataBytes);
+  const valid = await crypto.subtle.verify(
+    "RSASSA-PKCS1-v1_5",
+    key,
+    sigBytes,
+    dataBytes,
+  );
   if (!valid) throw new Error("JWT signature verification failed");
 };
 
@@ -63,32 +75,58 @@ export const fetchAndVerifyAttestation = async (): Promise<string> => {
   await verifyJwtSignature(jwt);
 
   const payload = parseJwtPayload(jwt);
-  if (payload.eat_nonce !== nonce) throw new Error("Attestation nonce mismatch");
-  if (payload.aud !== verificationPublicKey) throw new Error("JWT aud does not match verificationPublicKey");
+  if (payload.eat_nonce !== nonce)
+    throw new Error("Attestation nonce mismatch");
+  if (payload.aud !== verificationPublicKey)
+    throw new Error("JWT aud does not match verificationPublicKey");
   if (imageDigest !== payload.submods?.container?.image_digest)
     throw new Error("imageDigest does not match JWT");
 
   return verificationPublicKey;
 };
 
-export type AttestationOpts = {
-  verificationPublicKey: string;
-  refreshAttestation: () => Promise<string>;
+let verificationPublicKey: string | null = null;
+let initPromise: Promise<string> | null = null;
+
+const refreshEnclaveAttestation = async (): Promise<string> => {
+  verificationPublicKey = await fetchAndVerifyAttestation();
+  return verificationPublicKey;
+};
+
+const ensureVerificationPublicKey = async (): Promise<string> => {
+  if (!verificationPublicKey) {
+    if (!initPromise) {
+      initPromise = refreshEnclaveAttestation().catch((err) => {
+        initPromise = null;
+        throw err;
+      });
+    }
+    verificationPublicKey = await initPromise;
+  }
+  return verificationPublicKey;
 };
 
 export const verifyResponseWithAttestation = async (
   res: Response,
   rawBody: string,
-  attestation: AttestationOpts,
+  requestNonce?: string,
 ): Promise<void> => {
+  const key = await ensureVerificationPublicKey();
+
+  if (requestNonce) {
+    const parsed = JSON.parse(rawBody) as { nonce?: unknown };
+    if (parsed.nonce !== requestNonce)
+      throw new Error("Response nonce mismatch");
+  }
+
   const signature = res.headers.get("x-hinkal-signature");
   if (!signature) throw new Error("Missing X-Hinkal-Signature header");
-  let valid = await verifyEnclaveResponse(rawBody, signature, attestation.verificationPublicKey);
-  console.log('is valid: ', valid);
+  let valid = await verifyEnclaveResponse(rawBody, signature, key);
   if (!valid) {
-    const freshKey = await attestation.refreshAttestation();
+    const freshKey = await refreshEnclaveAttestation();
     valid = await verifyEnclaveResponse(rawBody, signature, freshKey);
-    if (!valid) throw new Error("Enclave response signature verification failed");
+    if (!valid)
+      throw new Error("Enclave response signature verification failed");
   }
 };
 

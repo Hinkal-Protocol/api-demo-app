@@ -39,8 +39,6 @@ export const Swap = () => {
     isSolana,
     solanaProvider,
     balances,
-    verificationPublicKey,
-    refreshAttestation,
   } = useAppContext();
   const [inSwapAmount, setInSwapAmount] = useState("");
   const [inSwapToken, setInSwapToken] = useState<ERC20Token | undefined>();
@@ -265,7 +263,6 @@ export const Swap = () => {
         inSwapAmount,
         quotedData,
         isSolana && solanaProvider ? solanaProvider : undefined,
-        verificationPublicKey ? { verificationPublicKey, refreshAttestation } : undefined,
       );
       toast.success("Swap confirmed");
       handleReset();

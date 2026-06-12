@@ -1,12 +1,10 @@
 import { ethers } from "ethers";
-import { API_BASE_URL } from "../constants/server.constants";
 import {
   buildDepositAndWithdrawAuthFields,
   resolveTxAuthFields,
 } from "./enclave-auth";
+import { enclaveFetch } from "./enclaveApi";
 import type { EnclaveAuthFields, TxSessionAuth } from "./types";
-import { verifyResponseWithAttestation, type AttestationOpts } from "./attestation";
-export type { AttestationOpts } from "./attestation";
 
 export enum OrderStatus {
   Processing = "processing",
@@ -60,7 +58,6 @@ export const depositAndWithdraw = async (
   recipients: Recipient[],
   txCompletionTime?: number,
   buildReadOnlyAuth?: () => Promise<EnclaveAuthFields>,
-  attestation?: AttestationOpts,
 ): Promise<DepositAndWithdrawOrder> => {
   const authFields = await resolveTxAuthFields(session, () => {
     if (buildReadOnlyAuth) return buildReadOnlyAuth();
@@ -76,21 +73,14 @@ export const depositAndWithdraw = async (
     ...(txCompletionTime !== undefined && { txCompletionTime }),
   };
 
-  const res = await fetch(`${API_BASE_URL}/private-send`, {
+  const { res, data } = await enclaveFetch<
+    | ({ success: true } & DepositAndWithdrawOrder)
+    | { error?: string }
+  >("/private-send", authFields.nonce, {
     method: "POST",
     headers: { "Content-Type": "application/json" },
     body: JSON.stringify(body),
   });
-
-  const rawBody = await res.text();
-
-  if (attestation) {
-    await verifyResponseWithAttestation(res, rawBody, attestation);
-  }
-
-  const data = JSON.parse(rawBody) as
-    | ({ success: true } & DepositAndWithdrawOrder)
-    | { error?: string };
 
   if (!res.ok || !("success" in data && data.success)) {
     throw new Error((data as { error?: string }).error ?? "privateSend failed");
@@ -115,8 +105,9 @@ export type OrderStatusResponse = {
 export const getOrderStatus = async (
   orderId: string,
 ): Promise<OrderStatusResponse> => {
-  const res = await fetch(`${API_BASE_URL}/private-send/${orderId}`);
-  const data = (await res.json()) as OrderStatusResponse & { error?: string };
+  const { res, data } = await enclaveFetch<
+    OrderStatusResponse & { error?: string }
+  >(`/private-send/${orderId}`);
 
   if (!res.ok || data.success === false) {
     throw new Error(data.error ?? "Order status fetch failed");

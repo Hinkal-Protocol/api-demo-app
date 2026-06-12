@@ -1,8 +1,7 @@
 import { ethers } from "ethers";
-import { API_BASE_URL } from "../constants/server.constants";
 import { buildDepositAuthFields, resolveTxAuthFields } from "./enclave-auth";
+import { enclaveFetch } from "./enclaveApi";
 import type { EnclaveAuthFields, TxSessionAuth } from "./types";
-import { verifyResponseWithAttestation, type AttestationOpts } from "./attestation";
 
 export type TxData = {
   to: string;
@@ -20,7 +19,6 @@ export const deposit = async (
   tokenAddresses: string[],
   amounts: string[],
   buildReadOnlyAuth?: () => Promise<EnclaveAuthFields>,
-  attestation?: AttestationOpts,
 ): Promise<TxData | string> => {
   const authFields = await resolveTxAuthFields(session, () => {
     if (buildReadOnlyAuth) return buildReadOnlyAuth();
@@ -35,26 +33,14 @@ export const deposit = async (
     amounts,
   };
 
-  let res: Response;
-  try {
-    res = await fetch(`${API_BASE_URL}/deposit`, {
-      method: "POST",
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify(body),
-    });
-  } catch (err) {
-    throw new Error(`Network error: ${(err as Error).message}`);
-  }
-
-  const rawBody = await res.text();
-
-  if (attestation) {
-    await verifyResponseWithAttestation(res, rawBody, attestation);
-  }
-
-  const data = JSON.parse(rawBody) as
+  const { res, data } = await enclaveFetch<
     | { success: true; txData: TxData | string }
-    | { error?: string };
+    | { error?: string }
+  >("/deposit", authFields.nonce, {
+    method: "POST",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify(body),
+  });
 
   if (!res.ok || !("success" in data && data.success)) {
     throw new Error((data as { error?: string }).error ?? "Deposit failed");

@@ -1,6 +1,6 @@
 import { ethers } from "ethers";
-import { API_BASE_URL } from "../constants/server.constants";
 import { buildEnclaveSignMessage, EnclaveSessionAccess } from "./auth";
+import { enclaveFetch } from "./enclaveApi";
 import { generateNonce } from "./enclave-auth";
 import type { EnclaveSession } from "./types";
 
@@ -34,9 +34,10 @@ export const createEnclaveSession = async (
     ),
   );
 
-  let res: Response;
-  try {
-    res = await fetch(`${API_BASE_URL}/create-session`, {
+  const { res, data } = await enclaveFetch<CreateSessionResponse>(
+    "/create-session",
+    nonce,
+    {
       method: "POST",
       headers: { "Content-Type": "application/json" },
       body: JSON.stringify({
@@ -46,12 +47,8 @@ export const createEnclaveSession = async (
         nonce,
         writeAccess,
       } satisfies CreateSessionRequest),
-    });
-  } catch (err) {
-    throw new Error(`Network error: ${(err as Error).message}`);
-  }
-
-  const data = (await res.json()) as CreateSessionResponse;
+    },
+  );
 
   if (!res.ok || !data.success) {
     throw new Error(
