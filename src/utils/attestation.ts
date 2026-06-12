@@ -71,6 +71,27 @@ export const fetchAndVerifyAttestation = async (): Promise<string> => {
   return verificationPublicKey;
 };
 
+export type AttestationOpts = {
+  verificationPublicKey: string;
+  refreshAttestation: () => Promise<string>;
+};
+
+export const verifyResponseWithAttestation = async (
+  res: Response,
+  rawBody: string,
+  attestation: AttestationOpts,
+): Promise<void> => {
+  const signature = res.headers.get("x-hinkal-signature");
+  if (!signature) throw new Error("Missing X-Hinkal-Signature header");
+  let valid = await verifyEnclaveResponse(rawBody, signature, attestation.verificationPublicKey);
+  console.log('is valid: ', valid);
+  if (!valid) {
+    const freshKey = await attestation.refreshAttestation();
+    valid = await verifyEnclaveResponse(rawBody, signature, freshKey);
+    if (!valid) throw new Error("Enclave response signature verification failed");
+  }
+};
+
 export const verifyEnclaveResponse = async (
   rawBody: string,
   signatureB64: string,

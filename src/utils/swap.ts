@@ -6,6 +6,7 @@ import { buildSolanaSwapAuthFields } from "./solana-auth";
 import { ExternalActionId, getFeeStructure } from "./fees";
 import type { SolanaWalletProvider } from "./solana-wallet";
 import { Auth, TxSessionAuth } from "./types";
+import { verifyResponseWithAttestation, type AttestationOpts } from "./attestation";
 
 export const HINKAL_SWAP_VARIABLE_RATE = 35n;
 
@@ -65,6 +66,7 @@ export const executeSwap = async (
   inAmount: string,
   quotedData: SwapData,
   solanaProvider?: SolanaWalletProvider,
+  attestation?: AttestationOpts,
 ): Promise<string> => {
   const isSolana = !!solanaProvider;
   const inAmountWei = BigInt(
@@ -117,7 +119,13 @@ export const executeSwap = async (
     }),
   });
 
-  const data = (await res.json()) as
+  const rawBody = await res.text();
+
+  if (attestation) {
+    await verifyResponseWithAttestation(res, rawBody, attestation);
+  }
+
+  const data = JSON.parse(rawBody) as
     | { success: true; txHash: string }
     | { error?: string };
 

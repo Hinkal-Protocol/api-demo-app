@@ -7,6 +7,7 @@ import {
 } from "./enclave-auth";
 import type { EnclaveAuthFields, TxSessionAuth } from "./types";
 import { FeeStructure } from "./fees";
+import { verifyResponseWithAttestation, type AttestationOpts } from "./attestation";
 
 export const withdraw = async (
   signer: ethers.Signer | null,
@@ -20,6 +21,7 @@ export const withdraw = async (
   feeToken?: string,
   feeStructure?: FeeStructure,
   buildReadOnlyAuth?: () => Promise<EnclaveAuthFields>,
+  attestation?: AttestationOpts,
 ): Promise<string> => {
   const authFields = await resolveTxAuthFields(session, () => {
     if (buildReadOnlyAuth) return buildReadOnlyAuth();
@@ -44,7 +46,13 @@ export const withdraw = async (
     body: JSON.stringify(body),
   });
 
-  const data = (await res.json()) as
+  const rawBody = await res.text();
+
+  if (attestation) {
+    await verifyResponseWithAttestation(res, rawBody, attestation);
+  }
+
+  const data = JSON.parse(rawBody) as
     | { success: true; txHash: string }
     | { error?: string };
 
@@ -63,6 +71,7 @@ export const withdrawStuckUtxos = async (
   tokenAddress: string,
   recipientAddress: string,
   buildReadOnlyAuth?: () => Promise<EnclaveAuthFields>,
+  attestation?: AttestationOpts,
 ): Promise<string[]> => {
   const authFields = await resolveTxAuthFields(session, () => {
     if (buildReadOnlyAuth) return buildReadOnlyAuth();
@@ -83,7 +92,13 @@ export const withdrawStuckUtxos = async (
     body: JSON.stringify(body),
   });
 
-  const data = (await res.json()) as
+  const rawBody = await res.text();
+
+  if (attestation) {
+    await verifyResponseWithAttestation(res, rawBody, attestation);
+  }
+
+  const data = JSON.parse(rawBody) as
     | { success: true; txHashes: string[] }
     | { error?: string };
 

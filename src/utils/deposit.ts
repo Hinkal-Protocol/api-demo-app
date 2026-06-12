@@ -2,6 +2,7 @@ import { ethers } from "ethers";
 import { API_BASE_URL } from "../constants/server.constants";
 import { buildDepositAuthFields, resolveTxAuthFields } from "./enclave-auth";
 import type { EnclaveAuthFields, TxSessionAuth } from "./types";
+import { verifyResponseWithAttestation, type AttestationOpts } from "./attestation";
 
 export type TxData = {
   to: string;
@@ -19,6 +20,7 @@ export const deposit = async (
   tokenAddresses: string[],
   amounts: string[],
   buildReadOnlyAuth?: () => Promise<EnclaveAuthFields>,
+  attestation?: AttestationOpts,
 ): Promise<TxData | string> => {
   const authFields = await resolveTxAuthFields(session, () => {
     if (buildReadOnlyAuth) return buildReadOnlyAuth();
@@ -44,7 +46,13 @@ export const deposit = async (
     throw new Error(`Network error: ${(err as Error).message}`);
   }
 
-  const data = (await res.json()) as
+  const rawBody = await res.text();
+
+  if (attestation) {
+    await verifyResponseWithAttestation(res, rawBody, attestation);
+  }
+
+  const data = JSON.parse(rawBody) as
     | { success: true; txData: TxData | string }
     | { error?: string };
 

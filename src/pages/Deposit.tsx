@@ -34,6 +34,8 @@ export const Deposit = () => {
     walletBalances,
     isWalletBalancesLoading,
     refreshWalletBalances,
+    verificationPublicKey,
+    refreshAttestation,
   } = useAppContext();
 
   const [selectedToken, setSelectedToken] = useState<ERC20Token | undefined>(
@@ -87,6 +89,7 @@ export const Deposit = () => {
           [tokenAddr],
           [amountStr],
           buildReadOnlyAuth,
+          verificationPublicKey ? { verificationPublicKey, refreshAttestation } : undefined,
         );
         await broadcastSolanaTransaction(
           solanaProvider,
@@ -105,6 +108,7 @@ export const Deposit = () => {
           [tokenAddr],
           [amountStr],
           buildReadOnlyAuth,
+          verificationPublicKey ? { verificationPublicKey, refreshAttestation } : undefined,
         );
         await approveAndBroadcastTronDepositTx(
           txData,
@@ -121,6 +125,8 @@ export const Deposit = () => {
           chainId,
           [selectedToken.erc20TokenAddress],
           [amountInWei.toString()],
+          undefined,
+          verificationPublicKey ? { verificationPublicKey, refreshAttestation } : undefined,
         );
         if (selectedToken.erc20TokenAddress !== zeroAddress) {
           await approveErc20(

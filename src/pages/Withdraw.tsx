@@ -40,6 +40,8 @@ export const Withdraw = () => {
     isSolana,
     solanaProvider,
     balances,
+    verificationPublicKey,
+    refreshAttestation,
   } = useAppContext();
   const [selectedToken, setSelectedToken] = useState<ERC20Token | undefined>(
     undefined,
@@ -142,6 +144,7 @@ export const Withdraw = () => {
         tokenAddress,
         feeStructure,
         buildReadOnlyAuth,
+        verificationPublicKey ? { verificationPublicKey, refreshAttestation } : undefined,
       );
 
       toast.success("Withdraw confirmed");

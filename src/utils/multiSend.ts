@@ -5,7 +5,8 @@ import {
   resolveTxAuthFields,
 } from "./enclave-auth";
 import type { EnclaveAuthFields, TxSessionAuth } from "./types";
-import { verifyEnclaveResponse } from "./attestation";
+import { verifyResponseWithAttestation, type AttestationOpts } from "./attestation";
+export type { AttestationOpts } from "./attestation";
 
 export enum OrderStatus {
   Processing = "processing",
@@ -50,11 +51,6 @@ export type DepositAndWithdrawOrder = {
   approvalAddress: string | null;
 };
 
-export type AttestationOpts = {
-  verificationPublicKey: string;
-  refreshAttestation: () => Promise<string>;
-};
-
 export const depositAndWithdraw = async (
   signer: ethers.Signer | null,
   session: TxSessionAuth,
@@ -89,15 +85,7 @@ export const depositAndWithdraw = async (
   const rawBody = await res.text();
 
   if (attestation) {
-    const signature = res.headers.get("x-hinkal-signature");
-    if (!signature) throw new Error("Missing X-Hinkal-Signature header");
-
-    let valid = await verifyEnclaveResponse(rawBody, signature, attestation.verificationPublicKey);
-    if (!valid) {
-      const freshKey = await attestation.refreshAttestation();
-      valid = await verifyEnclaveResponse(rawBody, signature, freshKey);
-      if (!valid) throw new Error("Enclave response signature verification failed");
-    }
+    await verifyResponseWithAttestation(res, rawBody, attestation);
   }
 
   const data = JSON.parse(rawBody) as
