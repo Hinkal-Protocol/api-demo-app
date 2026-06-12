@@ -137,11 +137,10 @@ export const AppContextProvider: FC<AppContextProps> = ({
   }, []);
 
   useEffect(() => {
-    if (!walletAddress) return;
     refreshAttestation().catch((err) =>
       console.error('Attestation verification failed:', err),
     );
-  }, [walletAddress, refreshAttestation]);
+  }, []);
   const balancesRef = useRef<TokenBalance[]>([]);
   const abortControllerRef = useRef<AbortController | null>(null);
   const prevChainIdRef = useRef<number | undefined>();
