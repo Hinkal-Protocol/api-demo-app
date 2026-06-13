@@ -1,5 +1,6 @@
-import { API_BASE_URL } from "../constants/server.constants";
 import { TokenBalance } from "../types";
+import { enclaveFetch } from "./enclaveApi";
+import { hasKeySignSession, signGetRequest } from "./session";
 import { Auth } from "./types";
 
 type BalanceResponse =
@@ -9,10 +10,20 @@ type BalanceResponse =
 const fetchBalanceEndpoint = async (
   endpoint: "balance" | "stuck-utxo-balance",
   params: URLSearchParams,
+  requestNonce: string,
   signal?: AbortSignal,
 ): Promise<TokenBalance[]> => {
-  const res = await fetch(`${API_BASE_URL}/${endpoint}?${params}`, { signal });
-  const data = (await res.json()) as BalanceResponse;
+  const init: RequestInit = { signal };
+  if (hasKeySignSession()) {
+    const signature = signGetRequest(params);
+    init.headers = { "X-Request-Signature": signature };
+  }
+
+  const { res, data } = await enclaveFetch<BalanceResponse>(
+    `/${endpoint}?${params}`,
+    requestNonce,
+    init,
+  );
 
   if (!res.ok || !("success" in data && data.success)) {
     const errorMessage = "error" in data ? data.error : undefined;
@@ -40,7 +51,7 @@ export const fetchBalances = async (
     nonce,
   });
 
-  const balances = await fetchBalanceEndpoint("balance", params, signal);
+  const balances = await fetchBalanceEndpoint("balance", params, nonce, signal);
 
   return balances.filter((b) => b.balance !== "0");
 };
@@ -61,6 +72,7 @@ export const fetchStuckUtxoBalances = async (
   const balances = await fetchBalanceEndpoint(
     "stuck-utxo-balance",
     params,
+    nonce,
     signal,
   );
 

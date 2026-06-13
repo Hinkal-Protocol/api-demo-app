@@ -1,6 +1,7 @@
 import { ethers } from "ethers";
-import { API_BASE_URL } from "../constants/server.constants";
 import { buildTransferAuthFields, resolveTxAuthFields } from "./enclave-auth";
+import { enclaveFetch } from "./enclaveApi";
+import { hasKeySignSession, signWriteRequest } from "./session";
 import type { EnclaveAuthFields, TxSessionAuth } from "./types";
 import { FeeStructure } from "./fees";
 
@@ -32,15 +33,22 @@ export const transfer = async (
     feeStructure,
   };
 
-  const res = await fetch(`${API_BASE_URL}/transfer`, {
-    method: "POST",
-    headers: { "Content-Type": "application/json" },
-    body: JSON.stringify(body),
-  });
+  const headers: Record<string, string> = { "Content-Type": "application/json" };
+  let finalBody: Record<string, unknown> = body;
+  if (session.hasWriteAccess && hasKeySignSession()) {
+    const signed = signWriteRequest(body);
+    finalBody = signed.body;
+    headers["X-Request-Signature"] = signed.signature;
+  }
 
-  const data = (await res.json()) as
+  const { res, data } = await enclaveFetch<
     | { success: true; txHash: string }
-    | { error?: string };
+    | { error?: string }
+  >("/transfer", authFields.nonce, {
+    method: "POST",
+    headers,
+    body: JSON.stringify(finalBody),
+  });
 
   if (!res.ok || !("success" in data && data.success)) {
     throw new Error((data as { error?: string }).error ?? "Transfer failed");

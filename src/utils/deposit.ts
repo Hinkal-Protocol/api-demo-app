@@ -1,6 +1,7 @@
 import { ethers } from "ethers";
-import { API_BASE_URL } from "../constants/server.constants";
 import { buildDepositAuthFields, resolveTxAuthFields } from "./enclave-auth";
+import { enclaveFetch } from "./enclaveApi";
+import { hasKeySignSession, signWriteRequest } from "./session";
 import type { EnclaveAuthFields, TxSessionAuth } from "./types";
 
 export type TxData = {
@@ -33,20 +34,22 @@ export const deposit = async (
     amounts,
   };
 
-  let res: Response;
-  try {
-    res = await fetch(`${API_BASE_URL}/deposit`, {
-      method: "POST",
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify(body),
-    });
-  } catch (err) {
-    throw new Error(`Network error: ${(err as Error).message}`);
+  const headers: Record<string, string> = { "Content-Type": "application/json" };
+  let finalBody: Record<string, unknown> = body;
+  if (session.hasWriteAccess && hasKeySignSession()) {
+    const signed = signWriteRequest(body);
+    finalBody = signed.body;
+    headers["X-Request-Signature"] = signed.signature;
   }
 
-  const data = (await res.json()) as
+  const { res, data } = await enclaveFetch<
     | { success: true; txData: TxData | string }
-    | { error?: string };
+    | { error?: string }
+  >("/deposit", authFields.nonce, {
+    method: "POST",
+    headers,
+    body: JSON.stringify(finalBody),
+  });
 
   if (!res.ok || !("success" in data && data.success)) {
     throw new Error((data as { error?: string }).error ?? "Deposit failed");

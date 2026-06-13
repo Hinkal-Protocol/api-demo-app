@@ -30,6 +30,7 @@ import { getFriendlyErrorMessage } from "../../utils/errors";
 
 interface UseChooseWalletConnectionsParams {
   writeAccessEnabled: boolean;
+  useKeySign: boolean;
   onHide: () => void;
   setShieldedAddress: (value: string | undefined) => void;
   setIsConnecting?: (value: boolean) => void;
@@ -40,6 +41,7 @@ export const useChooseWalletConnections = ({
   setShieldedAddress,
   setIsConnecting,
   writeAccessEnabled,
+  useKeySign,
 }: UseChooseWalletConnectionsParams) => {
   const connectors = useConnectors();
   const config = useConfig();
@@ -86,6 +88,7 @@ export const useChooseWalletConnections = ({
         account,
         chainId,
         writeAccessEnabled,
+        useKeySign,
       );
       setWalletType("evm");
       setWalletAddress(account);
@@ -97,6 +100,7 @@ export const useChooseWalletConnections = ({
     },
     [
       writeAccessEnabled,
+      useKeySign,
       setRequestedWriteAccess,
       applyEnclaveSession,
       setShieldedAddress,
