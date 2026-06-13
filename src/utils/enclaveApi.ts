@@ -21,7 +21,14 @@ export const enclaveFetch = async <T>(
 
   const rawBody = await res.text();
   if (!IS_LOCAL) {
-    await verifyResponseWithAttestation(res, rawBody, requestNonce);
+    let expectedNonce = requestNonce;
+    if (init?.body && typeof init.body === "string") {
+      try {
+        const outgoing = JSON.parse(init.body) as Record<string, unknown>;
+        if (typeof outgoing.requestId === "string") expectedNonce = outgoing.requestId;
+      } catch {}
+    }
+    await verifyResponseWithAttestation(res, rawBody, expectedNonce);
   }
 
   return { res, data: JSON.parse(rawBody) as T };
