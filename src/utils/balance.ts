@@ -1,5 +1,6 @@
 import { TokenBalance } from "../types";
 import { enclaveFetch } from "./enclaveApi";
+import { hasKeySignSession, signGetRequest } from "./session";
 import { Auth } from "./types";
 
 type BalanceResponse =
@@ -12,10 +13,16 @@ const fetchBalanceEndpoint = async (
   requestNonce: string,
   signal?: AbortSignal,
 ): Promise<TokenBalance[]> => {
+  const init: RequestInit = { signal };
+  if (hasKeySignSession()) {
+    const signature = signGetRequest(params);
+    init.headers = { "X-Request-Signature": signature };
+  }
+
   const { res, data } = await enclaveFetch<BalanceResponse>(
     `/${endpoint}?${params}`,
     requestNonce,
-    { signal },
+    init,
   );
 
   if (!res.ok || !("success" in data && data.success)) {

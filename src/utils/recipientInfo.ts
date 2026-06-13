@@ -1,4 +1,5 @@
 import { enclaveFetch } from "./enclaveApi";
+import { hasKeySignSession, signGetRequest } from "./session";
 import { Auth } from "./types";
 
 type RecipientInfoResponse =
@@ -18,10 +19,16 @@ export const fetchRecipientInfo = async (
     nonce,
   });
 
+  const init: RequestInit = { signal };
+  if (hasKeySignSession()) {
+    const signature = signGetRequest(params);
+    init.headers = { "X-Request-Signature": signature };
+  }
+
   const { res, data } = await enclaveFetch<RecipientInfoResponse>(
     `/recipient-info?${params}`,
     nonce,
-    { signal },
+    init,
   );
 
   if (!res.ok || !("success" in data && data.success)) {

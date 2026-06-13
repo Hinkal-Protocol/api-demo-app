@@ -184,6 +184,7 @@ export const AppContextProvider: FC<AppContextProps> = ({
           walletAddress,
           chainId,
           requestedWriteAccess,
+          true
         );
         if (!cancelled) {
           applyEnclaveSession(session);

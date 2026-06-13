@@ -5,6 +5,7 @@ import {
   resolveTxAuthFields,
 } from "./enclave-auth";
 import { enclaveFetch } from "./enclaveApi";
+import { hasKeySignSession, signWriteRequest } from "./session";
 import type { EnclaveAuthFields, TxSessionAuth } from "./types";
 import { FeeStructure } from "./fees";
 
@@ -38,13 +39,21 @@ export const withdraw = async (
     feeStructure,
   };
 
+  const headers: Record<string, string> = { "Content-Type": "application/json" };
+  let finalBody: Record<string, unknown> = body;
+  if (session.hasWriteAccess && hasKeySignSession()) {
+    const signed = signWriteRequest(body);
+    finalBody = signed.body;
+    headers["X-Request-Signature"] = signed.signature;
+  }
+
   const { res, data } = await enclaveFetch<
     | { success: true; txHash: string }
     | { error?: string }
   >("/withdraw", authFields.nonce, {
     method: "POST",
-    headers: { "Content-Type": "application/json" },
-    body: JSON.stringify(body),
+    headers,
+    body: JSON.stringify(finalBody),
   });
 
   if (!res.ok || !("success" in data && data.success)) {
@@ -76,13 +85,21 @@ export const withdrawStuckUtxos = async (
     recipientAddress,
   };
 
+  const headers: Record<string, string> = { "Content-Type": "application/json" };
+  let finalBody: Record<string, unknown> = body;
+  if (session.hasWriteAccess && hasKeySignSession()) {
+    const signed = signWriteRequest(body);
+    finalBody = signed.body;
+    headers["X-Request-Signature"] = signed.signature;
+  }
+
   const { res, data } = await enclaveFetch<
     | { success: true; txHashes: string[] }
     | { error?: string }
   >("/withdraw-stuck-utxos", authFields.nonce, {
     method: "POST",
-    headers: { "Content-Type": "application/json" },
-    body: JSON.stringify(body),
+    headers,
+    body: JSON.stringify(finalBody),
   });
 
   if (!res.ok || !("success" in data && data.success)) {

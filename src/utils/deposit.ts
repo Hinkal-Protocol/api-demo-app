@@ -1,6 +1,7 @@
 import { ethers } from "ethers";
 import { buildDepositAuthFields, resolveTxAuthFields } from "./enclave-auth";
 import { enclaveFetch } from "./enclaveApi";
+import { hasKeySignSession, signWriteRequest } from "./session";
 import type { EnclaveAuthFields, TxSessionAuth } from "./types";
 
 export type TxData = {
@@ -33,13 +34,21 @@ export const deposit = async (
     amounts,
   };
 
+  const headers: Record<string, string> = { "Content-Type": "application/json" };
+  let finalBody: Record<string, unknown> = body;
+  if (session.hasWriteAccess && hasKeySignSession()) {
+    const signed = signWriteRequest(body);
+    finalBody = signed.body;
+    headers["X-Request-Signature"] = signed.signature;
+  }
+
   const { res, data } = await enclaveFetch<
     | { success: true; txData: TxData | string }
     | { error?: string }
   >("/deposit", authFields.nonce, {
     method: "POST",
-    headers: { "Content-Type": "application/json" },
-    body: JSON.stringify(body),
+    headers,
+    body: JSON.stringify(finalBody),
   });
 
   if (!res.ok || !("success" in data && data.success)) {

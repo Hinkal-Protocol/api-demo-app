@@ -4,6 +4,7 @@ import {
   resolveTxAuthFields,
 } from "./enclave-auth";
 import { enclaveFetch } from "./enclaveApi";
+import { hasKeySignSession, signWriteRequest } from "./session";
 import type { EnclaveAuthFields, TxSessionAuth } from "./types";
 
 export enum OrderStatus {
@@ -73,13 +74,21 @@ export const depositAndWithdraw = async (
     ...(txCompletionTime !== undefined && { txCompletionTime }),
   };
 
+  const headers: Record<string, string> = { "Content-Type": "application/json" };
+  let finalBody: Record<string, unknown> = body;
+  if (session.hasWriteAccess && hasKeySignSession()) {
+    const signed = signWriteRequest(body);
+    finalBody = signed.body;
+    headers["X-Request-Signature"] = signed.signature;
+  }
+
   const { res, data } = await enclaveFetch<
     | ({ success: true } & DepositAndWithdrawOrder)
     | { error?: string }
   >("/private-send", authFields.nonce, {
     method: "POST",
-    headers: { "Content-Type": "application/json" },
-    body: JSON.stringify(body),
+    headers,
+    body: JSON.stringify(finalBody),
   });
 
   if (!res.ok || !("success" in data && data.success)) {
