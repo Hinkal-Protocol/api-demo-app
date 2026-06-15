@@ -1,10 +1,7 @@
-import { ethers } from "ethers";
-import {
-  buildDepositAndWithdrawAuthFields,
-  resolveTxAuthFields,
-} from "./enclave-auth";
+import { buildAuthPost } from "./enclave-auth";
 import { enclaveFetch } from "./enclaveApi";
-import type { EnclaveTxAuthFields, TxSessionAuth } from "./types";
+import { resolvePrivateSendAuth } from "./resolve-tx-auth";
+import type { TxSessionAuth, TxWallet } from "./types";
 
 export enum OrderStatus {
   Processing = "processing",
@@ -50,36 +47,41 @@ export type DepositAndWithdrawOrder = {
 };
 
 export const depositAndWithdraw = async (
-  signer: ethers.Signer | null,
+  wallet: TxWallet,
   session: TxSessionAuth,
   account: string,
   chainId: number,
   tokenAddress: string,
   recipients: Recipient[],
   txCompletionTime?: number,
-  buildReadOnlyAuth?: () => Promise<EnclaveTxAuthFields>,
 ): Promise<DepositAndWithdrawOrder> => {
-  const authFields = await resolveTxAuthFields(session, () => {
-    if (buildReadOnlyAuth) return buildReadOnlyAuth();
-    if (!signer) throw new Error("EVM signer required for privateSend without write-access session");
-    return buildDepositAndWithdrawAuthFields(session, signer, { chainId, tokenAddress, recipients });
-  });
-  const body = {
-    ...authFields,
-    address: account,
-    chainId,
+  const txParams = {
     tokenAddress,
     recipients,
     ...(txCompletionTime !== undefined && { txCompletionTime }),
   };
+  const { bodyJson, headers, requestNonce } = await buildAuthPost(
+    session,
+    account,
+    chainId,
+    txParams,
+    () =>
+      resolvePrivateSendAuth(
+        wallet,
+        session.sessionId,
+        chainId,
+        tokenAddress,
+        recipients,
+      ),
+  );
 
   const { res, data } = await enclaveFetch<
     | ({ success: true } & DepositAndWithdrawOrder)
     | { error?: string }
-  >("/private-send", authFields.nonce, {
+  >("/private-send", requestNonce, {
     method: "POST",
-    headers: { "Content-Type": "application/json" },
-    body: JSON.stringify(body),
+    headers,
+    body: bodyJson,
   });
 
   if (!res.ok || !("success" in data && data.success)) {

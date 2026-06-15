@@ -1,5 +1,3 @@
-export { buildEnclaveAuthFields } from "./enclave-auth";
-
 export enum EnclaveSessionAuthMode {
   Normal = "normal",
   EIP712 = "eip712",

@@ -1,11 +1,11 @@
-import { ethers } from "ethers";
-import { buildTransferAuthFields, resolveTxAuthFields } from "./enclave-auth";
+import { buildAuthPost } from "./enclave-auth";
 import { enclaveFetch } from "./enclaveApi";
-import type { EnclaveTxAuthFields, TxSessionAuth } from "./types";
 import { FeeStructure } from "./fees";
+import { resolveTransferAuth } from "./resolve-tx-auth";
+import type { TxSessionAuth, TxWallet } from "./types";
 
 export const transfer = async (
-  signer: ethers.Signer | null,
+  wallet: TxWallet,
   session: TxSessionAuth,
   account: string,
   chainId: number,
@@ -14,31 +14,37 @@ export const transfer = async (
   recipientAddress: string,
   feeToken?: string,
   feeStructure?: FeeStructure,
-  buildReadOnlyAuth?: () => Promise<EnclaveTxAuthFields>,
 ): Promise<string> => {
-  const authFields = await resolveTxAuthFields(session, () => {
-    if (buildReadOnlyAuth) return buildReadOnlyAuth();
-    if (!signer) throw new Error("EVM signer required for transfer without write-access session");
-    return buildTransferAuthFields(session, signer, { chainId, tokenAddresses, amounts, recipient: recipientAddress });
-  });
-  const body = {
-    ...authFields,
-    address: account,
-    chainId,
+  const txParams = {
     tokenAddresses,
     amounts,
     recipientAddress,
     feeToken,
     feeStructure,
   };
+  const { bodyJson, headers, requestNonce } = await buildAuthPost(
+    session,
+    account,
+    chainId,
+    txParams,
+    () =>
+      resolveTransferAuth(
+        wallet,
+        session.sessionId,
+        chainId,
+        tokenAddresses,
+        amounts,
+        recipientAddress,
+      ),
+  );
 
   const { res, data } = await enclaveFetch<
     | { success: true; txHash: string }
     | { error?: string }
-  >("/transfer", authFields.nonce, {
+  >("/transfer", requestNonce, {
     method: "POST",
-    headers: { "Content-Type": "application/json" },
-    body: JSON.stringify(body),
+    headers,
+    body: bodyJson,
   });
 
   if (!res.ok || !("success" in data && data.success)) {

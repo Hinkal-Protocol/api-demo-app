@@ -7,6 +7,13 @@ import { ERC20_ABI } from "../constants/erc20.constants";
 import { networkRegistry } from "../constants/chain.constants";
 import { wagmiConfig } from "../wagmi.config";
 
+export const requireEvmSigner = (
+  signer: ethers.Signer | null | undefined,
+): ethers.Signer => {
+  if (!signer) throw new Error("EVM signer required");
+  return signer;
+};
+
 export interface PrivyEvmWallet {
   address: string;
   switchChain: (chainId: number | `0x${string}`) => Promise<void>;

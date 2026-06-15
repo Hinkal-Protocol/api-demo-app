@@ -5,17 +5,8 @@ import {
   resolveSessionAuthMode,
 } from "./auth";
 import { enclaveFetch } from "./enclaveApi";
+import { computeHmacHex, generateClientKeyMaterial } from "./hmac";
 import type { EnclaveSession } from "./types";
-
-export type CreateSessionRequest = {
-  signature: string;
-  address: string;
-  chainId: number;
-  sessionId: string;
-  nonce: string;
-  timestamp?: number;
-  useEIP712?: boolean;
-};
 
 type CreateSessionResponse =
   | {
@@ -25,36 +16,42 @@ type CreateSessionResponse =
     }
   | { success: false; error?: string };
 
-export const createEnclaveSession = async (
-  signer: ethers.Signer,
-  address: string,
-  chainId: number,
-  useEIP712: boolean,
-): Promise<EnclaveSession> => {
-  const sessionId = crypto.randomUUID();
-  const authMode = resolveSessionAuthMode(useEIP712);
-  const signature = await signer.signMessage(
-    buildEnclaveSignMessage(sessionId, authMode),
-  );
+type RegisterSessionParams = {
+  signature: string;
+  address: string;
+  sessionId: string;
+  useEIP712: boolean;
+};
 
+export const registerEnclaveSession = async ({
+  signature,
+  address,
+  sessionId,
+  useEIP712,
+}: RegisterSessionParams): Promise<EnclaveSession> => {
+  const { clientPublicKey, clientSecret } = await generateClientKeyMaterial();
   const requestNonce = crypto.randomUUID();
-  const requestBody: CreateSessionRequest = {
+  const body = {
     signature,
     address,
-    chainId,
     sessionId,
+    clientPublicKey,
     nonce: requestNonce,
-    timestamp: Date.now(),
     useEIP712,
   };
+  const bodyJson = JSON.stringify(body);
+  const hmac = await computeHmacHex(clientSecret, bodyJson);
 
   const { res, data } = await enclaveFetch<CreateSessionResponse>(
     "/create-session",
     requestNonce,
     {
       method: "POST",
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify(requestBody),
+      headers: {
+        "Content-Type": "application/json",
+        "X-HMAC-SHA256": hmac,
+      },
+      body: bodyJson,
     },
   );
 
@@ -65,9 +62,28 @@ export const createEnclaveSession = async (
   }
 
   return {
-    signature,
     sessionId,
     authMode: data.authMode,
     expiresAt: data.expiresAt,
+    clientSecret,
   };
+};
+
+export const createEnclaveSession = async (
+  signer: ethers.Signer,
+  address: string,
+  useEIP712: boolean,
+): Promise<EnclaveSession> => {
+  const sessionId = crypto.randomUUID();
+  const authMode = resolveSessionAuthMode(useEIP712);
+  const signature = await signer.signMessage(
+    buildEnclaveSignMessage(sessionId, authMode),
+  );
+
+  return registerEnclaveSession({
+    signature,
+    address,
+    sessionId,
+    useEIP712,
+  });
 };

@@ -32,6 +32,7 @@ import {
   getEthersSigner,
   getErc20Balance,
   getNativeBalance,
+  requireEvmSigner,
 } from "../utils/ethers-wallet";
 import {
   approveAndBroadcastTronSerializedTx,
@@ -46,8 +47,6 @@ import {
   isSolanaChain,
   SOLANA_NATIVE_ADDRESS,
 } from "../utils/solana-wallet";
-import { buildSolanaPrivateSendAuthFields } from "../utils/solana-auth";
-import { buildTronPrivateSendAuthFields } from "../utils/tron-auth";
 import { ButtonGroupWithLabel } from "../utils/buttonGroupWithLabel";
 import {
   getRecipientAddressError,
@@ -86,8 +85,8 @@ export const MultiSend = () => {
     walletAddress,
     refreshBalances,
     chainId,
-    signature,
     sessionId,
+    clientSecret,
     authMode,
     isTron,
     isSolana,
@@ -231,11 +230,14 @@ export const MultiSend = () => {
 
   const handleMultiSend = useCallback(async () => {
     try {
-      if (!chainId || !selectedToken || !walletAddress || !signature || !sessionId)
+      if (!chainId || !selectedToken || !walletAddress || !sessionId || !clientSecret)
         return;
       setIsProcessing(true);
 
-      const signer = isTron || isSolana ? null : await getEthersSigner(chainId);
+      const wallet = {
+        signer: isTron || isSolana ? null : await getEthersSigner(chainId),
+        solanaProvider: isSolana ? solanaProvider : undefined,
+      };
 
       const recipientsWei: Recipient[] = recipients.map((r) => ({
         address: r.address,
@@ -248,36 +250,16 @@ export const MultiSend = () => {
       const txCompletionTime =
         delaySeconds > 0 ? resolveTxCompletionTime(delaySeconds) : undefined;
 
-      const session = { signature, sessionId, authMode };
-      const buildReadOnlyAuth =
-        isSolana && solanaProvider
-          ? () =>
-              buildSolanaPrivateSendAuthFields(
-                session,
-                solanaProvider,
-                chainId,
-                selectedToken.erc20TokenAddress,
-                recipientsWei,
-              )
-          : isTron
-          ? () =>
-              buildTronPrivateSendAuthFields(
-                session,
-                chainId,
-                selectedToken.erc20TokenAddress,
-                recipientsWei,
-              )
-          : undefined;
+      const session = { sessionId, authMode, clientSecret };
 
       const order = await depositAndWithdraw(
-        signer,
+        wallet,
         session,
         walletAddress,
         chainId,
         selectedToken.erc20TokenAddress,
         recipientsWei,
         txCompletionTime,
-        buildReadOnlyAuth,
       );
 
       const isNative =
@@ -295,15 +277,16 @@ export const MultiSend = () => {
           walletAddress,
         );
       } else {
+        const signer = requireEvmSigner(wallet.signer);
         if (!isNative && order.approvalAddress) {
           await approveErc20(
-            signer!,
+            signer,
             selectedToken.erc20TokenAddress,
             order.approvalAddress,
             BigInt(order.amountIn),
           );
         }
-        await broadcastDepositTx(signer!, order.serializedTx);
+        await broadcastDepositTx(signer, order.serializedTx);
       }
 
       await waitForOrderTerminal(order.orderId);
@@ -322,8 +305,8 @@ export const MultiSend = () => {
     walletAddress,
     recipients,
     refreshBalances,
-    signature,
     sessionId,
+    clientSecret,
     authMode,
     txCompletionTimeLabel,
     isTron,

@@ -1,4 +1,7 @@
-import { API_BASE_URL, ENCLAVE_API_URL_LOCAL } from "../constants/server.constants";
+import {
+  API_BASE_URL,
+  ENCLAVE_API_URL_LOCAL,
+} from "../constants/server.constants";
 import { verifyResponseAttestation, verifyResponseNonce } from "./attestation";
 
 const IS_LOCAL = API_BASE_URL === ENCLAVE_API_URL_LOCAL;

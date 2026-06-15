@@ -1,4 +1,9 @@
-import { API_BASE_URL } from "../constants/server.constants";
+import {
+  API_BASE_URL,
+  ENCLAVE_API_URL_LOCAL,
+} from "../constants/server.constants";
+
+const IS_LOCAL = API_BASE_URL === ENCLAVE_API_URL_LOCAL;
 
 const toBytes = (b64: string): Uint8Array<ArrayBuffer> => {
   const s = window.atob(b64);
@@ -66,11 +71,22 @@ export const fetchAndVerifyAttestation = async (): Promise<string> => {
   const res = await fetch(`${API_BASE_URL}/attestation?nonce=${nonce}`);
   if (!res.ok) throw new Error("Failed to fetch attestation");
 
-  const { jwt, imageDigest, verificationPublicKey } = (await res.json()) as {
-    jwt: string;
-    imageDigest: string;
-    verificationPublicKey: string;
+  const data = (await res.json()) as {
+    jwt?: string;
+    imageDigest?: string;
+    verificationPublicKey?: string;
   };
+
+  if (!data.verificationPublicKey) {
+    throw new Error("Missing verificationPublicKey in attestation response");
+  }
+
+  if (IS_LOCAL) {
+    return data.verificationPublicKey;
+  }
+
+  const { jwt, imageDigest, verificationPublicKey } = data;
+  if (!jwt) throw new Error("Missing jwt in attestation response");
 
   await verifyJwtSignature(jwt);
 

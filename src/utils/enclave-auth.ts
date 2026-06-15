@@ -4,7 +4,8 @@ import {
   getEnclaveTypedDataDomain,
   getTypesForPrimary,
 } from "../constants/enclave.constants";
-import { buildEnclaveSignMessage, EnclaveSessionAuthMode } from "./auth";
+import { EnclaveSessionAuthMode } from "./auth";
+import { hmacPostHeader, sessionBodyParams } from "./hmac";
 import type { EnclaveTxAuthFields, TxSessionAuth } from "./types";
 import { Recipient } from "./multiSend";
 
@@ -31,34 +32,45 @@ const toTokenAmountValues = (pairs: TokenAmountPair[]) =>
     amount: BigInt(amount),
   }));
 
-export const resolveTxAuthFields = async (
+export const buildAuthPost = async (
   session: TxSessionAuth,
-  buildTypedAuth: () => Promise<EnclaveTxAuthFields>,
-): Promise<EnclaveTxAuthFields> => {
+  address: string,
+  chainId: number,
+  txData: Record<string, unknown>,
+  buildTypedDataAuth: () => Promise<EnclaveTxAuthFields>,
+): Promise<{
+  body: Record<string, unknown>;
+  bodyJson: string;
+  headers: Record<string, string>;
+  requestNonce: string;
+}> => {
   if (session.authMode === EnclaveSessionAuthMode.Normal) {
-    throw new Error("Normal auth mode requires HMAC signing, which is not yet supported in this app");
+    const body = { ...sessionBodyParams(session, address, chainId), ...txData };
+    const bodyJson = JSON.stringify(body);
+    return {
+      body,
+      bodyJson,
+      headers: {
+        "Content-Type": "application/json",
+        ...(await hmacPostHeader(session, body)),
+      },
+      requestNonce: body.nonce,
+    };
   }
-  return buildTypedAuth();
-};
 
-/** Personal message signature for getter routes (balance, fees, swap quote, etc.). */
-export const buildEnclaveAuthFields = async (
-  signer: ethers.Signer,
-): Promise<EnclaveTxAuthFields> => {
-  const sessionId = crypto.randomUUID();
-  const signature = await signer.signMessage(
-    buildEnclaveSignMessage(sessionId, EnclaveSessionAuthMode.EIP712),
-  );
+  const authFields = await buildTypedDataAuth();
+  const body = { ...authFields, address, chainId, ...txData };
+  const bodyJson = JSON.stringify(body);
   return {
-    signature,
-    sessionId,
-    nonce: crypto.randomUUID(),
-    timestamp: Date.now(),
+    body,
+    bodyJson,
+    headers: { "Content-Type": "application/json" },
+    requestNonce: authFields.nonce,
   };
 };
 
 const signEnclaveTypedData = async (
-  session: TxSessionAuth,
+  sessionId: string,
   signer: ethers.Signer,
   primaryType: EnclaveTypedDataPrimaryType,
   chainId: number,
@@ -71,7 +83,7 @@ const signEnclaveTypedData = async (
     buildMessage(nonce),
   );
   return {
-    sessionId: session.sessionId,
+    sessionId,
     signature,
     nonce,
     timestamp: Date.now(),
@@ -79,18 +91,19 @@ const signEnclaveTypedData = async (
 };
 
 export const buildDepositAuthFields = (
-  session: TxSessionAuth,
+  sessionId: string,
   signer: ethers.Signer,
   primaryType: "Deposit" | "ProoflessDeposit",
   params: { chainId: number; tokenAddresses: string[]; amounts: string[] },
 ) =>
   signEnclaveTypedData(
-    session,
+    sessionId,
     signer,
     primaryType,
     params.chainId,
     (nonce) => ({
       nonce,
+      sessionId,
       chainId: BigInt(params.chainId),
       tokenAmounts: toTokenAmountValues(
         normalizeTokenAmountPairs(params.tokenAddresses, params.amounts),
@@ -99,7 +112,7 @@ export const buildDepositAuthFields = (
   );
 
 export const buildTransferAuthFields = (
-  session: TxSessionAuth,
+  sessionId: string,
   signer: ethers.Signer,
   params: {
     chainId: number;
@@ -109,12 +122,13 @@ export const buildTransferAuthFields = (
   },
 ) =>
   signEnclaveTypedData(
-    session,
+    sessionId,
     signer,
     "Transfer",
     params.chainId,
     (nonce) => ({
       nonce,
+      sessionId,
       chainId: BigInt(params.chainId),
       tokenAmounts: toTokenAmountValues(
         normalizeTokenAmountPairs(params.tokenAddresses, params.amounts),
@@ -124,7 +138,7 @@ export const buildTransferAuthFields = (
   );
 
 export const buildWithdrawAuthFields = (
-  session: TxSessionAuth,
+  sessionId: string,
   signer: ethers.Signer,
   params: {
     chainId: number;
@@ -134,12 +148,13 @@ export const buildWithdrawAuthFields = (
   },
 ) =>
   signEnclaveTypedData(
-    session,
+    sessionId,
     signer,
     "Withdraw",
     params.chainId,
     (nonce) => ({
       nonce,
+      sessionId,
       chainId: BigInt(params.chainId),
       tokenAmounts: toTokenAmountValues(
         normalizeTokenAmountPairs(params.tokenAddresses, params.amounts),
@@ -149,7 +164,7 @@ export const buildWithdrawAuthFields = (
   );
 
 export const buildWithdrawStuckUtxosAuthFields = (
-  session: TxSessionAuth,
+  sessionId: string,
   signer: ethers.Signer,
   params: {
     chainId: number;
@@ -158,12 +173,13 @@ export const buildWithdrawStuckUtxosAuthFields = (
   },
 ) =>
   signEnclaveTypedData(
-    session,
+    sessionId,
     signer,
     "WithdrawStuckUtxos",
     params.chainId,
     (nonce) => ({
       nonce,
+      sessionId,
       chainId: BigInt(params.chainId),
       tokenAddress: ethers.getAddress(params.tokenAddress),
       recipient: ethers.getAddress(params.recipientAddress),
@@ -171,12 +187,13 @@ export const buildWithdrawStuckUtxosAuthFields = (
   );
 
 export const buildSwapAuthFields = (
-  session: TxSessionAuth,
+  sessionId: string,
   signer: ethers.Signer,
   params: { chainId: number; tokenAddresses: string[]; amounts: string[] },
 ) =>
-  signEnclaveTypedData(session, signer, "Swap", params.chainId, (nonce) => ({
+  signEnclaveTypedData(sessionId, signer, "Swap", params.chainId, (nonce) => ({
     nonce,
+    sessionId,
     chainId: BigInt(params.chainId),
     tokenAmounts: toTokenAmountValues(
       normalizeTokenAmountPairs(params.tokenAddresses, params.amounts),
@@ -184,7 +201,7 @@ export const buildSwapAuthFields = (
   }));
 
 export const buildDepositAndWithdrawAuthFields = (
-  session: TxSessionAuth,
+  sessionId: string,
   signer: ethers.Signer,
   params: {
     chainId: number;
@@ -193,12 +210,13 @@ export const buildDepositAndWithdrawAuthFields = (
   },
 ) =>
   signEnclaveTypedData(
-    session,
+    sessionId,
     signer,
     "PrivateSend",
     params.chainId,
     (nonce) => ({
       nonce,
+      sessionId,
       chainId: BigInt(params.chainId),
       tokenAddress: params.tokenAddress,
       // Must match the server's normalizeDepositAndWithdrawRecipients:

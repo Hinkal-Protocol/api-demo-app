@@ -1,11 +1,11 @@
-import { ethers } from "ethers";
 import { ERC20Token } from "../types";
-import { buildSwapAuthFields, resolveTxAuthFields } from "./enclave-auth";
-import { buildSolanaSwapAuthFields } from "./solana-auth";
+import { buildAuthGet } from "./hmac";
+import { buildAuthPost } from "./enclave-auth";
 import { enclaveFetch } from "./enclaveApi";
 import { ExternalActionId, getFeeStructure } from "./fees";
-import type { SolanaWalletProvider } from "./solana-wallet";
-import { Auth, TxSessionAuth } from "./types";
+import { resolveSwapAuth } from "./resolve-tx-auth";
+import { isSolanaChain } from "./solana-wallet";
+import { Auth, TxSessionAuth, TxWallet } from "./types";
 
 export const HINKAL_SWAP_VARIABLE_RATE = 35n;
 
@@ -22,26 +22,18 @@ export const getSwapData = async (
   amount: string,
   slippagePercentage?: number,
 ): Promise<SwapData> => {
-  const { signature, sessionId, address, chainId } = auth;
-  const requestNonce = crypto.randomUUID();
-  const params = new URLSearchParams({
-    signature,
-    sessionId,
-    nonce: requestNonce,
-    timestamp: Date.now().toString(),
-    address,
-    chainId: String(chainId),
+  const { queryString, headers, requestNonce } = await buildAuthGet(auth, {
     inputTokenAddress,
     outputTokenAddress,
     amount,
+    ...(slippagePercentage !== undefined
+      ? { slippagePercentage: String(slippagePercentage) }
+      : {}),
   });
-  if (slippagePercentage !== undefined) {
-    params.append("slippagePercentage", String(slippagePercentage));
-  }
 
   const { res, data } = await enclaveFetch<
     (SwapData & { success: true }) | { error?: string }
-  >(`/get-swap-data?${params}`, requestNonce);
+  >(`/get-swap-data?${queryString}`, requestNonce, { headers });
 
   if (!res.ok || !("success" in data && data.success)) {
     throw new Error(
@@ -57,7 +49,7 @@ export const getSwapData = async (
 };
 
 export const executeSwap = async (
-  signer: ethers.Signer | null,
+  wallet: TxWallet,
   session: TxSessionAuth,
   account: string,
   getterAuth: Auth,
@@ -65,9 +57,8 @@ export const executeSwap = async (
   outToken: ERC20Token,
   inAmount: string,
   quotedData: SwapData,
-  solanaProvider?: SolanaWalletProvider,
 ): Promise<string> => {
-  const isSolana = !!solanaProvider;
+  const isSolana = isSolanaChain(getterAuth.chainId);
   const inAmountWei = BigInt(
     Math.floor(parseFloat(inAmount) * 10 ** inToken.decimals),
   );
@@ -95,31 +86,7 @@ export const executeSwap = async (
     isSolana ? inToken.erc20TokenAddress : undefined,
   );
 
-  const authFields = await resolveTxAuthFields(session, async () => {
-    if (isSolana) {
-      return buildSolanaSwapAuthFields(
-        session,
-        solanaProvider,
-        getterAuth.chainId,
-        tokenAddresses,
-        amounts,
-      );
-    }
-    if (!signer)
-      throw new Error(
-        "EVM signer required for swap without write-access session",
-      );
-    return buildSwapAuthFields(session, signer, {
-      chainId: getterAuth.chainId,
-      tokenAddresses,
-      amounts,
-    });
-  });
-
-  const swapBody: Record<string, unknown> = {
-    ...authFields,
-    address: account,
-    chainId: getterAuth.chainId,
+  const txParams: Record<string, unknown> = {
     tokenAddresses,
     amounts,
     externalActionId: quotedData.externalActionId,
@@ -127,12 +94,27 @@ export const executeSwap = async (
     ...(isSolana ? { feeStructure } : { feeToken, feeStructure }),
   };
 
+  const { bodyJson, headers, requestNonce } = await buildAuthPost(
+    session,
+    account,
+    getterAuth.chainId,
+    txParams,
+    () =>
+      resolveSwapAuth(
+        wallet,
+        session.sessionId,
+        getterAuth.chainId,
+        tokenAddresses,
+        amounts,
+      ),
+  );
+
   const { res, data } = await enclaveFetch<
     { success: true; txHash: string } | { error?: string }
-  >("/swap", authFields.nonce, {
+  >("/swap", requestNonce, {
     method: "POST",
-    headers: { "Content-Type": "application/json" },
-    body: JSON.stringify(swapBody),
+    headers,
+    body: bodyJson,
   });
 
   if (!res.ok || !("success" in data && data.success)) {

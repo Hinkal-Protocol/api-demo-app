@@ -1,5 +1,5 @@
 import { signSolanaMessage, SolanaWalletProvider } from "./solana-wallet";
-import type { EnclaveTxAuthFields, TxSessionAuth } from "./types";
+import type { EnclaveTxAuthFields } from "./types";
 import type { Recipient } from "./multiSend";
 
 const DOMAIN_NAME = "Hinkal Enclave";
@@ -24,14 +24,14 @@ const renderRecipients = (recipients: Recipient[]): string => {
 };
 
 const sign = async (
-  session: TxSessionAuth,
+  sessionId: string,
   provider: SolanaWalletProvider,
   message: string,
   nonce: string,
 ): Promise<EnclaveTxAuthFields> => {
   const hexSig = await signSolanaMessage(provider, message);
   return {
-    sessionId: session.sessionId,
+    sessionId,
     signature: hexSig.startsWith("0x") ? hexSig : `0x${hexSig}`,
     nonce,
     timestamp: Date.now(),
@@ -39,7 +39,7 @@ const sign = async (
 };
 
 export const buildSolanaDepositAuthFields = async (
-  session: TxSessionAuth,
+  sessionId: string,
   provider: SolanaWalletProvider,
   chainId: number,
   tokenAddresses: string[],
@@ -49,11 +49,11 @@ export const buildSolanaDepositAuthFields = async (
   const message =
     `${buildHeader("Deposit", nonce, chainId)}` +
     `\nToken Amounts:\n${renderTokenAmounts(tokenAddresses, amounts)}`;
-  return sign(session, provider, message, nonce);
+  return sign(sessionId, provider, message, nonce);
 };
 
 export const buildSolanaTransferAuthFields = async (
-  session: TxSessionAuth,
+  sessionId: string,
   provider: SolanaWalletProvider,
   chainId: number,
   tokenAddresses: string[],
@@ -65,11 +65,11 @@ export const buildSolanaTransferAuthFields = async (
     `${buildHeader("Transfer", nonce, chainId)}` +
     `\nToken Amounts:\n${renderTokenAmounts(tokenAddresses, amounts)}` +
     `\nRecipient: ${recipientAddress}`;
-  return sign(session, provider, message, nonce);
+  return sign(sessionId, provider, message, nonce);
 };
 
 export const buildSolanaWithdrawAuthFields = async (
-  session: TxSessionAuth,
+  sessionId: string,
   provider: SolanaWalletProvider,
   chainId: number,
   tokenAddresses: string[],
@@ -81,11 +81,11 @@ export const buildSolanaWithdrawAuthFields = async (
     `${buildHeader("Withdraw", nonce, chainId)}` +
     `\nToken Amounts:\n${renderTokenAmounts(tokenAddresses, amounts)}` +
     `\nRecipient: ${recipientAddress}`;
-  return sign(session, provider, message, nonce);
+  return sign(sessionId, provider, message, nonce);
 };
 
 export const buildSolanaPrivateSendAuthFields = async (
-  session: TxSessionAuth,
+  sessionId: string,
   provider: SolanaWalletProvider,
   chainId: number,
   tokenAddress: string,
@@ -96,11 +96,11 @@ export const buildSolanaPrivateSendAuthFields = async (
     `${buildHeader("PrivateSend", nonce, chainId)}` +
     `\nToken Address: ${tokenAddress}` +
     `\nRecipients:\n${renderRecipients(recipients)}`;
-  return sign(session, provider, message, nonce);
+  return sign(sessionId, provider, message, nonce);
 };
 
 export const buildSolanaSwapAuthFields = async (
-  session: TxSessionAuth,
+  sessionId: string,
   provider: SolanaWalletProvider,
   chainId: number,
   tokenAddresses: string[],
@@ -110,11 +110,11 @@ export const buildSolanaSwapAuthFields = async (
   const message =
     `${buildHeader("Swap", nonce, chainId)}` +
     `\nToken Amounts:\n${renderTokenAmounts(tokenAddresses, amounts)}`;
-  return sign(session, provider, message, nonce);
+  return sign(sessionId, provider, message, nonce);
 };
 
 export const buildSolanaWithdrawStuckUtxosAuthFields = async (
-  session: TxSessionAuth,
+  sessionId: string,
   provider: SolanaWalletProvider,
   chainId: number,
   tokenAddress: string,
@@ -125,5 +125,5 @@ export const buildSolanaWithdrawStuckUtxosAuthFields = async (
     `${buildHeader("WithdrawStuckUtxos", nonce, chainId)}` +
     `\nToken Address: ${tokenAddress}` +
     `\nRecipient: ${recipientAddress}`;
-  return sign(session, provider, message, nonce);
+  return sign(sessionId, provider, message, nonce);
 };

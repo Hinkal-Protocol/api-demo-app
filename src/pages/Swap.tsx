@@ -33,7 +33,7 @@ export const Swap = () => {
     walletAddress,
     refreshBalancesSoon,
     chainId,
-    signature,
+    clientSecret,
     sessionId,
     authMode,
     isSolana,
@@ -72,7 +72,7 @@ export const Swap = () => {
       !outSwapToken ||
       !chainId ||
       !walletAddress ||
-      !signature ||
+      !clientSecret ||
       !sessionId
     ) {
       setFeeStructure(undefined);
@@ -82,7 +82,7 @@ export const Swap = () => {
 
     let cancelled = false;
     setIsFeeLoading(true);
-    const auth = { signature, sessionId, address: walletAddress, chainId };
+    const auth = { sessionId, clientSecret, address: walletAddress, chainId };
     const feeToken = isSolana
       ? outSwapToken.erc20TokenAddress
       : inSwapToken.erc20TokenAddress;
@@ -122,7 +122,7 @@ export const Swap = () => {
     inSwapAmount,
     chainId,
     walletAddress,
-    signature,
+    clientSecret,
     sessionId,
     isSolana,
   ]);
@@ -157,7 +157,7 @@ export const Swap = () => {
     if (
       !chainId ||
       !walletAddress ||
-      !signature ||
+      !clientSecret ||
       !sessionId ||
       !inSwapToken ||
       !outSwapToken ||
@@ -166,7 +166,7 @@ export const Swap = () => {
     )
       return;
 
-    const auth = { signature, sessionId, address: walletAddress, chainId };
+    const auth = { sessionId, clientSecret, address: walletAddress, chainId };
     let cancelled = false;
     const timer = setTimeout(async () => {
       try {
@@ -197,7 +197,7 @@ export const Swap = () => {
   }, [
     chainId,
     walletAddress,
-    signature,
+    clientSecret,
     sessionId,
     inSwapToken,
     outSwapToken,
@@ -242,7 +242,7 @@ export const Swap = () => {
       !inSwapToken ||
       !outSwapToken ||
       !quotedData ||
-      !signature ||
+      !clientSecret ||
       !sessionId ||
       !walletAddress ||
       !chainId
@@ -251,18 +251,20 @@ export const Swap = () => {
 
     try {
       setIsProcessing(true);
-      const getterAuth = { signature, sessionId, address: walletAddress, chainId };
-      const signer = isSolana ? null : await getEthersSigner(chainId);
+      const getterAuth = { sessionId, clientSecret, address: walletAddress, chainId };
+      const wallet = {
+        signer: isSolana ? null : await getEthersSigner(chainId),
+        solanaProvider: isSolana ? solanaProvider : undefined,
+      };
       await executeSwap(
-        signer,
-        { signature, sessionId, authMode },
+        wallet,
+        { sessionId, authMode, clientSecret },
         walletAddress,
         getterAuth,
         inSwapToken,
         outSwapToken,
         inSwapAmount,
         quotedData,
-        isSolana && solanaProvider ? solanaProvider : undefined,
       );
       toast.success("Swap confirmed");
       handleReset();
@@ -277,7 +279,7 @@ export const Swap = () => {
     inSwapToken,
     outSwapToken,
     quotedData,
-    signature,
+    clientSecret,
     sessionId,
     walletAddress,
     chainId,

@@ -4,7 +4,7 @@ import {
   getTypesForPrimary,
 } from "../constants/enclave.constants";
 import { getTronWeb, tronBase58ToHex } from "./tron-wallet";
-import type { EnclaveTxAuthFields, TxSessionAuth } from "./types";
+import type { EnclaveTxAuthFields } from "./types";
 import type { Recipient } from "./multiSend";
 
 // eslint-disable-next-line @typescript-eslint/no-explicit-any
@@ -17,7 +17,7 @@ const serializeBigInts = (obj: any): any => {
 };
 
 const signTypedData = async (
-  session: TxSessionAuth,
+  sessionId: string,
   primaryType: Parameters<typeof getTypesForPrimary>[0],
   chainId: number,
   buildValue: (nonce: string) => Record<string, unknown>,
@@ -31,17 +31,18 @@ const signTypedData = async (
   const serializedDomain = serializeBigInts(domain);
   const serializedMessage = serializeBigInts(value);
   const signature = await tw.trx._signTypedData(serializedDomain, types, serializedMessage);
-  return { sessionId: session.sessionId, signature, nonce, timestamp: Date.now() };
+  return { sessionId, signature, nonce, timestamp: Date.now() };
 };
 
 export const buildTronDepositAuthFields = (
-  session: TxSessionAuth,
+  sessionId: string,
   chainId: number,
   tokenAddresses: string[],
   amounts: string[],
 ): Promise<EnclaveTxAuthFields> =>
-  signTypedData(session, "Deposit", chainId, (nonce) => ({
+  signTypedData(sessionId, "Deposit", chainId, (nonce) => ({
     nonce,
+    sessionId,
     chainId: BigInt(chainId),
     tokenAmounts: tokenAddresses.map((token, i) => ({
       token: ethers.getAddress(token),
@@ -50,14 +51,15 @@ export const buildTronDepositAuthFields = (
   }));
 
 export const buildTronTransferAuthFields = (
-  session: TxSessionAuth,
+  sessionId: string,
   chainId: number,
   tokenAddresses: string[],
   amounts: string[],
   recipient: string,
 ): Promise<EnclaveTxAuthFields> =>
-  signTypedData(session, "Transfer", chainId, (nonce) => ({
+  signTypedData(sessionId, "Transfer", chainId, (nonce) => ({
     nonce,
+    sessionId,
     chainId: BigInt(chainId),
     tokenAmounts: tokenAddresses.map((token, i) => ({
       token: ethers.getAddress(token),
@@ -67,14 +69,15 @@ export const buildTronTransferAuthFields = (
   }));
 
 export const buildTronWithdrawAuthFields = (
-  session: TxSessionAuth,
+  sessionId: string,
   chainId: number,
   tokenAddresses: string[],
   amounts: string[],
   recipient: string,
 ): Promise<EnclaveTxAuthFields> =>
-  signTypedData(session, "Withdraw", chainId, (nonce) => ({
+  signTypedData(sessionId, "Withdraw", chainId, (nonce) => ({
     nonce,
+    sessionId,
     chainId: BigInt(chainId),
     tokenAmounts: tokenAddresses.map((token, i) => ({
       token: ethers.getAddress(token),
@@ -84,13 +87,14 @@ export const buildTronWithdrawAuthFields = (
   }));
 
 export const buildTronPrivateSendAuthFields = (
-  session: TxSessionAuth,
+  sessionId: string,
   chainId: number,
   tokenAddress: string,
   recipients: Recipient[],
 ): Promise<EnclaveTxAuthFields> =>
-  signTypedData(session, "PrivateSend", chainId, (nonce) => ({
+  signTypedData(sessionId, "PrivateSend", chainId, (nonce) => ({
     nonce,
+    sessionId,
     chainId: BigInt(chainId),
     tokenAddress: ethers.getAddress(tokenAddress),
     recipients: [...recipients]
@@ -102,13 +106,14 @@ export const buildTronPrivateSendAuthFields = (
   }));
 
 export const buildTronWithdrawStuckUtxosAuthFields = (
-  session: TxSessionAuth,
+  sessionId: string,
   chainId: number,
   tokenAddress: string,
   recipientAddress: string,
 ): Promise<EnclaveTxAuthFields> =>
-  signTypedData(session, "WithdrawStuckUtxos", chainId, (nonce) => ({
+  signTypedData(sessionId, "WithdrawStuckUtxos", chainId, (nonce) => ({
     nonce,
+    sessionId,
     chainId: BigInt(chainId),
     tokenAddress: ethers.getAddress(tokenAddress),
     recipient: ethers.getAddress(recipientAddress),

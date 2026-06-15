@@ -14,19 +14,17 @@ import { ERC20Token } from "../types";
 import { getAmountInWei } from "../utils/amount.utils";
 import { deposit } from "../utils/deposit";
 import { getFriendlyErrorMessage } from "../utils/errors";
-import { approveErc20, getEthersSigner, sendTx } from "../utils/ethers-wallet";
+import { approveErc20, getEthersSigner, requireEvmSigner, sendTx } from "../utils/ethers-wallet";
 import { approveAndBroadcastTronDepositTx } from "../utils/tron-wallet";
 import { broadcastSolanaTransaction } from "../utils/solana-wallet";
-import { buildSolanaDepositAuthFields } from "../utils/solana-auth";
-import { buildTronDepositAuthFields } from "../utils/tron-auth";
 
 export const Deposit = () => {
   const {
     walletAddress,
     refreshBalancesSoon,
     chainId,
-    signature,
     sessionId,
+    clientSecret,
     authMode,
     isTron,
     isSolana,
@@ -61,51 +59,38 @@ export const Deposit = () => {
 
   const handleDeposit = useCallback(async () => {
     try {
-      if (!chainId || !selectedToken || !walletAddress || !signature || !sessionId)
+      if (!chainId || !selectedToken || !walletAddress || !sessionId || !clientSecret)
         return;
       setIsProcessing(true);
 
       const amountInWei = getAmountInWei(selectedToken, depositAmount);
-      const session = { signature, sessionId, authMode };
+      const session = { sessionId, authMode, clientSecret };
+      const wallet = {
+        signer: isTron || isSolana ? null : await getEthersSigner(chainId),
+        solanaProvider: isSolana ? solanaProvider : undefined,
+      };
+      const tokenAddr = selectedToken.erc20TokenAddress;
+      const amountStr = amountInWei.toString();
 
       if (isSolana) {
-        if (!solanaProvider) throw new Error("Solana provider not set");
-        const tokenAddr = selectedToken.erc20TokenAddress;
-        const amountStr = amountInWei.toString();
-        const buildReadOnlyAuth = () =>
-          buildSolanaDepositAuthFields(
-            session,
-            solanaProvider,
-            chainId,
-            [tokenAddr],
-            [amountStr],
-          );
+        if (!wallet.solanaProvider) throw new Error("Solana provider not set");
         const serializedTx = await deposit(
-          null,
+          wallet,
           session,
           walletAddress,
           chainId,
           [tokenAddr],
           [amountStr],
-          buildReadOnlyAuth,
         );
-        await broadcastSolanaTransaction(
-          solanaProvider,
-          serializedTx as string,
-        );
+        await broadcastSolanaTransaction(wallet.solanaProvider, serializedTx as string);
       } else if (isTron) {
-        const tokenAddr = selectedToken.erc20TokenAddress;
-        const amountStr = amountInWei.toString();
-        const buildReadOnlyAuth = () =>
-          buildTronDepositAuthFields(session, chainId, [tokenAddr], [amountStr]);
         const txData = await deposit(
-          null,
+          wallet,
           session,
           walletAddress,
           chainId,
           [tokenAddr],
           [amountStr],
-          buildReadOnlyAuth,
         );
         await approveAndBroadcastTronDepositTx(
           txData,
@@ -114,9 +99,9 @@ export const Deposit = () => {
           walletAddress,
         );
       } else {
-        const signer = await getEthersSigner(chainId);
+        const signer = requireEvmSigner(wallet.signer);
         const txData = await deposit(
-          signer,
+          wallet,
           session,
           walletAddress,
           chainId,
@@ -155,9 +140,12 @@ export const Deposit = () => {
     refreshWalletBalances,
     chainId,
     walletAddress,
-    signature,
     sessionId,
+    clientSecret,
     authMode,
+    isSolana,
+    isTron,
+    solanaProvider,
   ]);
 
   const handleSubmit = (event: SyntheticEvent) => {

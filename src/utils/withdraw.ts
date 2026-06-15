@@ -1,15 +1,14 @@
-import { ethers } from "ethers";
-import {
-  buildWithdrawAuthFields,
-  buildWithdrawStuckUtxosAuthFields,
-  resolveTxAuthFields,
-} from "./enclave-auth";
+import { buildAuthPost } from "./enclave-auth";
 import { enclaveFetch } from "./enclaveApi";
-import type { EnclaveTxAuthFields, TxSessionAuth } from "./types";
 import { FeeStructure } from "./fees";
+import {
+  resolveWithdrawAuth,
+  resolveWithdrawStuckUtxosAuth,
+} from "./resolve-tx-auth";
+import type { TxSessionAuth, TxWallet } from "./types";
 
 export const withdraw = async (
-  signer: ethers.Signer | null,
+  wallet: TxWallet,
   session: TxSessionAuth,
   account: string,
   chainId: number,
@@ -19,17 +18,8 @@ export const withdraw = async (
   isRelayerOff?: boolean,
   feeToken?: string,
   feeStructure?: FeeStructure,
-  buildReadOnlyAuth?: () => Promise<EnclaveTxAuthFields>,
 ): Promise<string> => {
-  const authFields = await resolveTxAuthFields(session, () => {
-    if (buildReadOnlyAuth) return buildReadOnlyAuth();
-    if (!signer) throw new Error("EVM signer required for withdraw without write-access session");
-    return buildWithdrawAuthFields(session, signer, { chainId, tokenAddresses, amounts, recipient: recipientAddress });
-  });
-  const body = {
-    ...authFields,
-    address: account,
-    chainId,
+  const txParams = {
     tokenAddresses,
     amounts,
     recipientAddress,
@@ -37,14 +27,29 @@ export const withdraw = async (
     feeToken,
     feeStructure,
   };
+  const { bodyJson, headers, requestNonce } = await buildAuthPost(
+    session,
+    account,
+    chainId,
+    txParams,
+    () =>
+      resolveWithdrawAuth(
+        wallet,
+        session.sessionId,
+        chainId,
+        tokenAddresses,
+        amounts,
+        recipientAddress,
+      ),
+  );
 
   const { res, data } = await enclaveFetch<
     | { success: true; txHash: string }
     | { error?: string }
-  >("/withdraw", authFields.nonce, {
+  >("/withdraw", requestNonce, {
     method: "POST",
-    headers: { "Content-Type": "application/json" },
-    body: JSON.stringify(body),
+    headers,
+    body: bodyJson,
   });
 
   if (!res.ok || !("success" in data && data.success)) {
@@ -55,34 +60,36 @@ export const withdraw = async (
 };
 
 export const withdrawStuckUtxos = async (
-  signer: ethers.Signer | null,
+  wallet: TxWallet,
   session: TxSessionAuth,
   account: string,
   chainId: number,
   tokenAddress: string,
   recipientAddress: string,
-  buildReadOnlyAuth?: () => Promise<EnclaveTxAuthFields>,
 ): Promise<string[]> => {
-  const authFields = await resolveTxAuthFields(session, () => {
-    if (buildReadOnlyAuth) return buildReadOnlyAuth();
-    if (!signer) throw new Error("EVM signer required for withdrawStuckUtxos without write-access session");
-    return buildWithdrawStuckUtxosAuthFields(session, signer, { chainId, tokenAddress, recipientAddress });
-  });
-  const body = {
-    ...authFields,
-    address: account,
+  const txParams = { tokenAddress, recipientAddress };
+  const { bodyJson, headers, requestNonce } = await buildAuthPost(
+    session,
+    account,
     chainId,
-    tokenAddress,
-    recipientAddress,
-  };
+    txParams,
+    () =>
+      resolveWithdrawStuckUtxosAuth(
+        wallet,
+        session.sessionId,
+        chainId,
+        tokenAddress,
+        recipientAddress,
+      ),
+  );
 
   const { res, data } = await enclaveFetch<
     | { success: true; txHashes: string[] }
     | { error?: string }
-  >("/withdraw-stuck-utxos", authFields.nonce, {
+  >("/withdraw-stuck-utxos", requestNonce, {
     method: "POST",
-    headers: { "Content-Type": "application/json" },
-    body: JSON.stringify(body),
+    headers,
+    body: bodyJson,
   });
 
   if (!res.ok || !("success" in data && data.success)) {

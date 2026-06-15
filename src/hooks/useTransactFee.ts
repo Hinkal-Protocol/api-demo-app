@@ -14,7 +14,7 @@ export const useTransactFee = ({
   amountWei,
   enabled = true,
 }: UseTransactFeeParams) => {
-  const { chainId, walletAddress, signature, sessionId } = useAppContext();
+  const { chainId, walletAddress, clientSecret, sessionId } = useAppContext();
   const [feeStructure, setFeeStructure] = useState<FeeStructure | undefined>();
   const [isFeeLoading, setIsFeeLoading] = useState(false);
 
@@ -24,7 +24,7 @@ export const useTransactFee = ({
       !token ||
       !chainId ||
       !walletAddress ||
-      !signature ||
+      !clientSecret ||
       !sessionId ||
       amountWei <= 0n
     ) {
@@ -38,7 +38,7 @@ export const useTransactFee = ({
     const tokenAddress = token.erc20TokenAddress;
     const timer = setTimeout(async () => {
       try {
-        const auth = { signature, sessionId, address: walletAddress, chainId };
+        const auth = { sessionId, clientSecret, address: walletAddress, chainId };
         const fee = await getFeeStructure(
           auth,
           tokenAddress,
@@ -59,7 +59,7 @@ export const useTransactFee = ({
       cancelled = true;
       clearTimeout(timer);
     };
-  }, [enabled, token, amountWei, chainId, walletAddress, signature, sessionId]);
+  }, [enabled, token, amountWei, chainId, walletAddress, clientSecret, sessionId]);
 
   return { feeStructure, isFeeLoading };
 };

@@ -26,10 +26,9 @@ import { ERC20Token, TokenBalance } from "./types";
 export type WalletType = "evm" | "tron" | "solana";
 
 type AppContextArgumnets = {
-  signature: string | null;
-  setSignature: Dispatch<SetStateAction<string | null>>;
   sessionId: string | null;
   setSessionId: Dispatch<SetStateAction<string | null>>;
+  clientSecret: ArrayBuffer | null;
   authMode: EnclaveSessionAuthMode;
   sessionExpiresAt: string | null;
   requestedUseEIP712: boolean;
@@ -64,10 +63,9 @@ const BALANCE_REFRESH_INTERVAL = 100000;
 const WALLET_BALANCES_REFRESH_INTERVAL = 7000;
 
 const AppContext = createContext<AppContextArgumnets>({
-  signature: null,
-  setSignature: () => {},
   sessionId: null,
   setSessionId: () => {},
+  clientSecret: null,
   authMode: EnclaveSessionAuthMode.Normal,
   sessionExpiresAt: null,
   requestedUseEIP712: false,
@@ -103,8 +101,8 @@ type AppContextProps = { children: ReactNode };
 export const AppContextProvider: FC<AppContextProps> = ({
   children,
 }: AppContextProps) => {
-  const [signature, setSignature] = useState<string | null>(null);
   const [sessionId, setSessionId] = useState<string | null>(null);
+  const [clientSecret, setClientSecret] = useState<ArrayBuffer | null>(null);
   const [authMode, setAuthMode] = useState<EnclaveSessionAuthMode>(
     EnclaveSessionAuthMode.Normal,
   );
@@ -144,15 +142,15 @@ export const AppContextProvider: FC<AppContextProps> = ({
   );
 
   const applyEnclaveSession = useCallback((session: EnclaveSession) => {
-    setSignature(session.signature);
     setSessionId(session.sessionId);
+    setClientSecret(session.clientSecret);
     setAuthMode(session.authMode);
     setSessionExpiresAt(session.expiresAt);
   }, []);
 
   const clearEnclaveSession = useCallback(() => {
-    setSignature(null);
     setSessionId(null);
+    setClientSecret(null);
     setAuthMode(EnclaveSessionAuthMode.Normal);
     setSessionExpiresAt(null);
     setWalletType(null);
@@ -174,8 +172,8 @@ export const AppContextProvider: FC<AppContextProps> = ({
     if (walletType === "tron" || walletType === "solana") return;
 
     let cancelled = false;
-    setSignature(null);
     setSessionId(null);
+    setClientSecret(null);
     setAuthMode(EnclaveSessionAuthMode.Normal);
     setSessionExpiresAt(null);
 
@@ -185,7 +183,6 @@ export const AppContextProvider: FC<AppContextProps> = ({
         const session = await createEnclaveSession(
           signer,
           walletAddress,
-          chainId,
           requestedUseEIP712,
         );
         if (!cancelled) {
@@ -221,7 +218,13 @@ export const AppContextProvider: FC<AppContextProps> = ({
   ]);
 
   const refreshBalances = useCallback(async () => {
-    if (!dataLoaded || !chainId || !walletAddress || !signature || !sessionId)
+    if (
+      !dataLoaded ||
+      !chainId ||
+      !walletAddress ||
+      !sessionId ||
+      !clientSecret
+    )
       return;
 
     abortControllerRef.current?.abort();
@@ -229,7 +232,12 @@ export const AppContextProvider: FC<AppContextProps> = ({
     abortControllerRef.current = controller;
 
     try {
-      const auth = { signature, sessionId, address: walletAddress, chainId };
+      const auth = {
+        sessionId,
+        clientSecret,
+        address: walletAddress,
+        chainId,
+      };
       const [bals, stuckBals] = await Promise.all([
         fetchBalances(auth, controller.signal),
         fetchStuckUtxoBalances(auth, controller.signal),
@@ -244,7 +252,7 @@ export const AppContextProvider: FC<AppContextProps> = ({
         console.error("Error refreshing balances:", error);
       }
     }
-  }, [dataLoaded, chainId, walletAddress, signature, sessionId]);
+  }, [dataLoaded, chainId, walletAddress, sessionId, clientSecret]);
 
   // After a tx the new balance may not be indexed yet, so a single immediate
   // refresh returns stale data. Re-poll a few times spaced out to catch it
@@ -330,10 +338,9 @@ export const AppContextProvider: FC<AppContextProps> = ({
   return (
     <AppContext.Provider
       value={{
-        signature,
-        setSignature,
         sessionId,
         setSessionId,
+        clientSecret,
         authMode,
         sessionExpiresAt,
         requestedUseEIP712,

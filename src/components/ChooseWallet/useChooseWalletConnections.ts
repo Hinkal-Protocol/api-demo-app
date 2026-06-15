@@ -73,7 +73,6 @@ export const useChooseWalletConnections = ({
       const session = await createEnclaveSession(
         signer,
         account,
-        chainId,
         useEIP712Enabled,
       );
       setWalletType("evm");
@@ -247,7 +246,6 @@ export const useChooseWalletConnections = ({
         const { address, chainId } = await connectSolanaWallet(provider);
         const session = await createSolanaEnclaveSession(
           address,
-          chainId,
           provider,
           useEIP712Enabled,
         );
@@ -296,7 +294,6 @@ export const useChooseWalletConnections = ({
       const { address, chainId } = await connectTronLink();
       const session = await createTronEnclaveSession(
         address,
-        chainId,
         useEIP712Enabled,
       );
       setRequestedUseEIP712(useEIP712Enabled);

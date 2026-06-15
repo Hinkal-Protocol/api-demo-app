@@ -16,8 +16,6 @@ import {
   setActiveTurnkeyParams,
 } from "../../utils/ethers-wallet";
 import { withdrawStuckUtxos } from "../../utils/withdraw";
-import { buildSolanaWithdrawStuckUtxosAuthFields } from "../../utils/solana-auth";
-import { buildTronWithdrawStuckUtxosAuthFields } from "../../utils/tron-auth";
 import { WalletInfoBalance } from "./WalletInfoBalance";
 import { useAppContext } from "../../AppContext";
 import { TokenBalance } from "../../types";
@@ -30,8 +28,8 @@ export const WalletInfoDropDown = () => {
     stuckUtxoBalances,
     walletAddress,
     chainId,
-    signature,
     sessionId,
+    clientSecret,
     authMode,
     refreshBalances,
     setWalletAddress,
@@ -102,7 +100,7 @@ export const WalletInfoDropDown = () => {
 
   const handleCopyPrivateAddress = async () => {
     try {
-      if (!walletAddress || !chainId || !signature || !sessionId) {
+      if (!walletAddress || !chainId || !sessionId || !clientSecret) {
         toast.error("No active session found");
         return;
       }
@@ -110,8 +108,8 @@ export const WalletInfoDropDown = () => {
       const recipientInfo = await fetchRecipientInfo({
         address: walletAddress,
         chainId,
-        signature,
         sessionId,
+        clientSecret,
       });
       copyToClipboard(recipientInfo);
       toast.success("Private address copied to clipboard");
@@ -127,38 +125,21 @@ export const WalletInfoDropDown = () => {
   const handleWithdrawStuckUtxos = useCallback(
     async (tokenAddress: string) => {
       try {
-        if (!walletAddress || !chainId || !signature || !sessionId) return;
+        if (!walletAddress || !chainId || !sessionId || !clientSecret) return;
 
         setWithdrawingStuckTokenAddress(tokenAddress);
-        const signer = isTron || isSolana ? null : await getEthersSigner();
-        const session = { signature, sessionId, authMode };
-        const buildReadOnlyAuth =
-          isSolana && solanaProvider
-            ? () =>
-                buildSolanaWithdrawStuckUtxosAuthFields(
-                  session,
-                  solanaProvider,
-                  chainId,
-                  tokenAddress,
-                  walletAddress,
-                )
-            : isTron
-            ? () =>
-                buildTronWithdrawStuckUtxosAuthFields(
-                  session,
-                  chainId,
-                  tokenAddress,
-                  walletAddress,
-                )
-            : undefined;
+        const session = { sessionId, authMode, clientSecret };
+        const wallet = {
+          signer: isTron || isSolana ? null : await getEthersSigner(),
+          solanaProvider: isSolana ? solanaProvider : undefined,
+        };
         const txHashes = await withdrawStuckUtxos(
-          signer,
+          wallet,
           session,
           walletAddress,
           chainId,
           tokenAddress,
           walletAddress,
-          buildReadOnlyAuth,
         );
 
         toast.success(`Withdraw sent (${txHashes.length} txs)`);
@@ -171,7 +152,7 @@ export const WalletInfoDropDown = () => {
         setWithdrawingStuckTokenAddress(null);
       }
     },
-    [walletAddress, chainId, signature, sessionId, authMode, refreshBalances],
+    [walletAddress, chainId, sessionId, clientSecret, authMode, refreshBalances, isSolana, isTron, solanaProvider],
   );
 
   return (
