@@ -1,6 +1,5 @@
-import { generateNonce } from "./enclave-auth";
 import { signSolanaMessage, SolanaWalletProvider } from "./solana-wallet";
-import type { EnclaveAuthFields } from "./types";
+import type { EnclaveTxAuthFields, TxSessionAuth } from "./types";
 import type { Recipient } from "./multiSend";
 
 const DOMAIN_NAME = "Hinkal Enclave";
@@ -25,94 +24,106 @@ const renderRecipients = (recipients: Recipient[]): string => {
 };
 
 const sign = async (
+  session: TxSessionAuth,
   provider: SolanaWalletProvider,
   message: string,
   nonce: string,
-): Promise<EnclaveAuthFields> => {
+): Promise<EnclaveTxAuthFields> => {
   const hexSig = await signSolanaMessage(provider, message);
-  return { signature: hexSig.startsWith("0x") ? hexSig : `0x${hexSig}`, nonce };
+  return {
+    sessionId: session.sessionId,
+    signature: hexSig.startsWith("0x") ? hexSig : `0x${hexSig}`,
+    nonce,
+    timestamp: Date.now(),
+  };
 };
 
 export const buildSolanaDepositAuthFields = async (
+  session: TxSessionAuth,
   provider: SolanaWalletProvider,
   chainId: number,
   tokenAddresses: string[],
   amounts: string[],
-): Promise<EnclaveAuthFields> => {
-  const nonce = generateNonce();
+): Promise<EnclaveTxAuthFields> => {
+  const nonce = crypto.randomUUID();
   const message =
     `${buildHeader("Deposit", nonce, chainId)}` +
     `\nToken Amounts:\n${renderTokenAmounts(tokenAddresses, amounts)}`;
-  return sign(provider, message, nonce);
+  return sign(session, provider, message, nonce);
 };
 
 export const buildSolanaTransferAuthFields = async (
+  session: TxSessionAuth,
   provider: SolanaWalletProvider,
   chainId: number,
   tokenAddresses: string[],
   amounts: string[],
   recipientAddress: string,
-): Promise<EnclaveAuthFields> => {
-  const nonce = generateNonce();
+): Promise<EnclaveTxAuthFields> => {
+  const nonce = crypto.randomUUID();
   const message =
     `${buildHeader("Transfer", nonce, chainId)}` +
     `\nToken Amounts:\n${renderTokenAmounts(tokenAddresses, amounts)}` +
     `\nRecipient: ${recipientAddress}`;
-  return sign(provider, message, nonce);
+  return sign(session, provider, message, nonce);
 };
 
 export const buildSolanaWithdrawAuthFields = async (
+  session: TxSessionAuth,
   provider: SolanaWalletProvider,
   chainId: number,
   tokenAddresses: string[],
   amounts: string[],
   recipientAddress: string,
-): Promise<EnclaveAuthFields> => {
-  const nonce = generateNonce();
+): Promise<EnclaveTxAuthFields> => {
+  const nonce = crypto.randomUUID();
   const message =
     `${buildHeader("Withdraw", nonce, chainId)}` +
     `\nToken Amounts:\n${renderTokenAmounts(tokenAddresses, amounts)}` +
     `\nRecipient: ${recipientAddress}`;
-  return sign(provider, message, nonce);
+  return sign(session, provider, message, nonce);
 };
 
 export const buildSolanaPrivateSendAuthFields = async (
+  session: TxSessionAuth,
   provider: SolanaWalletProvider,
   chainId: number,
   tokenAddress: string,
   recipients: Recipient[],
-): Promise<EnclaveAuthFields> => {
-  const nonce = generateNonce();
+): Promise<EnclaveTxAuthFields> => {
+  const nonce = crypto.randomUUID();
   const message =
     `${buildHeader("PrivateSend", nonce, chainId)}` +
     `\nToken Address: ${tokenAddress}` +
     `\nRecipients:\n${renderRecipients(recipients)}`;
-  return sign(provider, message, nonce);
+  return sign(session, provider, message, nonce);
 };
 
 export const buildSolanaSwapAuthFields = async (
+  session: TxSessionAuth,
   provider: SolanaWalletProvider,
   chainId: number,
   tokenAddresses: string[],
   amounts: string[],
-): Promise<EnclaveAuthFields> => {
-  const nonce = generateNonce();
+): Promise<EnclaveTxAuthFields> => {
+  const nonce = crypto.randomUUID();
   const message =
     `${buildHeader("Swap", nonce, chainId)}` +
     `\nToken Amounts:\n${renderTokenAmounts(tokenAddresses, amounts)}`;
-  return sign(provider, message, nonce);
+  return sign(session, provider, message, nonce);
 };
 
 export const buildSolanaWithdrawStuckUtxosAuthFields = async (
+  session: TxSessionAuth,
   provider: SolanaWalletProvider,
   chainId: number,
   tokenAddress: string,
   recipientAddress: string,
-): Promise<EnclaveAuthFields> => {
-  const nonce = generateNonce();
+): Promise<EnclaveTxAuthFields> => {
+  const nonce = crypto.randomUUID();
   const message =
     `${buildHeader("WithdrawStuckUtxos", nonce, chainId)}` +
     `\nToken Address: ${tokenAddress}` +
     `\nRecipient: ${recipientAddress}`;
-  return sign(provider, message, nonce);
+  return sign(session, provider, message, nonce);
 };

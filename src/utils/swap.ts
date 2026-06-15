@@ -3,7 +3,6 @@ import { ERC20Token } from "../types";
 import { buildSwapAuthFields, resolveTxAuthFields } from "./enclave-auth";
 import { buildSolanaSwapAuthFields } from "./solana-auth";
 import { enclaveFetch } from "./enclaveApi";
-import { hasKeySignSession, signGetRequest, signWriteRequest } from "./session";
 import { ExternalActionId, getFeeStructure } from "./fees";
 import type { SolanaWalletProvider } from "./solana-wallet";
 import { Auth, TxSessionAuth } from "./types";
@@ -23,10 +22,13 @@ export const getSwapData = async (
   amount: string,
   slippagePercentage?: number,
 ): Promise<SwapData> => {
-  const { signature, nonce, address, chainId } = auth;
+  const { signature, sessionId, address, chainId } = auth;
+  const requestNonce = crypto.randomUUID();
   const params = new URLSearchParams({
     signature,
-    nonce,
+    sessionId,
+    nonce: requestNonce,
+    timestamp: Date.now().toString(),
     address,
     chainId: String(chainId),
     inputTokenAddress,
@@ -37,16 +39,9 @@ export const getSwapData = async (
     params.append("slippagePercentage", String(slippagePercentage));
   }
 
-  const init: RequestInit = {};
-  if (hasKeySignSession()) {
-    const signature = signGetRequest(params);
-    init.headers = { "X-Request-Signature": signature };
-  }
-
   const { res, data } = await enclaveFetch<
-    | (SwapData & { success: true })
-    | { error?: string }
-  >(`/get-swap-data?${params}`, nonce, init);
+    (SwapData & { success: true }) | { error?: string }
+  >(`/get-swap-data?${params}`, requestNonce);
 
   if (!res.ok || !("success" in data && data.success)) {
     throw new Error(
@@ -86,7 +81,9 @@ export const executeSwap = async (
   ];
   const amounts = [(-inAmountWei).toString(), outAdjusted.toString()];
 
-  const feeToken = isSolana ? outToken.erc20TokenAddress : inToken.erc20TokenAddress;
+  const feeToken = isSolana
+    ? outToken.erc20TokenAddress
+    : inToken.erc20TokenAddress;
 
   const feeStructure = await getFeeStructure(
     getterAuth,
@@ -98,18 +95,28 @@ export const executeSwap = async (
     isSolana ? inToken.erc20TokenAddress : undefined,
   );
 
-  const authFields = isSolana
-    ? await buildSolanaSwapAuthFields(solanaProvider, getterAuth.chainId, tokenAddresses, amounts)
-    : await resolveTxAuthFields(session, () =>
-        buildSwapAuthFields(signer!, {
-          chainId: getterAuth.chainId,
-          tokenAddresses,
-          amounts,
-        }),
+  const authFields = await resolveTxAuthFields(session, async () => {
+    if (isSolana) {
+      return buildSolanaSwapAuthFields(
+        session,
+        solanaProvider,
+        getterAuth.chainId,
+        tokenAddresses,
+        amounts,
       );
+    }
+    if (!signer)
+      throw new Error(
+        "EVM signer required for swap without write-access session",
+      );
+    return buildSwapAuthFields(session, signer, {
+      chainId: getterAuth.chainId,
+      tokenAddresses,
+      amounts,
+    });
+  });
 
-  const headers: Record<string, string> = { "Content-Type": "application/json" };
-  let swapBody: Record<string, unknown> = {
+  const swapBody: Record<string, unknown> = {
     ...authFields,
     address: account,
     chainId: getterAuth.chainId,
@@ -120,18 +127,11 @@ export const executeSwap = async (
     ...(isSolana ? { feeStructure } : { feeToken, feeStructure }),
   };
 
-  if (!isSolana && session.hasWriteAccess && hasKeySignSession()) {
-    const signed = signWriteRequest(swapBody);
-    swapBody = signed.body;
-    headers["X-Request-Signature"] = signed.signature;
-  }
-
   const { res, data } = await enclaveFetch<
-    | { success: true; txHash: string }
-    | { error?: string }
+    { success: true; txHash: string } | { error?: string }
   >("/swap", authFields.nonce, {
     method: "POST",
-    headers,
+    headers: { "Content-Type": "application/json" },
     body: JSON.stringify(swapBody),
   });
 

@@ -26,7 +26,7 @@ export const Deposit = () => {
     refreshBalancesSoon,
     chainId,
     signature,
-    nonce,
+    sessionId,
     hasWriteAccess,
     isTron,
     isSolana,
@@ -61,12 +61,12 @@ export const Deposit = () => {
 
   const handleDeposit = useCallback(async () => {
     try {
-      if (!chainId || !selectedToken || !walletAddress || !signature || !nonce)
+      if (!chainId || !selectedToken || !walletAddress || !signature || !sessionId)
         return;
       setIsProcessing(true);
 
       const amountInWei = getAmountInWei(selectedToken, depositAmount);
-      const session = { signature, nonce, hasWriteAccess };
+      const session = { signature, sessionId, hasWriteAccess };
 
       if (isSolana) {
         if (!solanaProvider) throw new Error("Solana provider not set");
@@ -74,6 +74,7 @@ export const Deposit = () => {
         const amountStr = amountInWei.toString();
         const buildReadOnlyAuth = () =>
           buildSolanaDepositAuthFields(
+            session,
             solanaProvider,
             chainId,
             [tokenAddr],
@@ -96,7 +97,7 @@ export const Deposit = () => {
         const tokenAddr = selectedToken.erc20TokenAddress;
         const amountStr = amountInWei.toString();
         const buildReadOnlyAuth = () =>
-          buildTronDepositAuthFields(chainId, [tokenAddr], [amountStr]);
+          buildTronDepositAuthFields(session, chainId, [tokenAddr], [amountStr]);
         const txData = await deposit(
           null,
           session,
@@ -155,7 +156,7 @@ export const Deposit = () => {
     chainId,
     walletAddress,
     signature,
-    nonce,
+    sessionId,
     hasWriteAccess,
   ]);
 

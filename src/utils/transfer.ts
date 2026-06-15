@@ -1,8 +1,7 @@
 import { ethers } from "ethers";
 import { buildTransferAuthFields, resolveTxAuthFields } from "./enclave-auth";
 import { enclaveFetch } from "./enclaveApi";
-import { hasKeySignSession, signWriteRequest } from "./session";
-import type { EnclaveAuthFields, TxSessionAuth } from "./types";
+import type { EnclaveTxAuthFields, TxSessionAuth } from "./types";
 import { FeeStructure } from "./fees";
 
 export const transfer = async (
@@ -15,12 +14,12 @@ export const transfer = async (
   recipientAddress: string,
   feeToken?: string,
   feeStructure?: FeeStructure,
-  buildReadOnlyAuth?: () => Promise<EnclaveAuthFields>,
+  buildReadOnlyAuth?: () => Promise<EnclaveTxAuthFields>,
 ): Promise<string> => {
   const authFields = await resolveTxAuthFields(session, () => {
     if (buildReadOnlyAuth) return buildReadOnlyAuth();
     if (!signer) throw new Error("EVM signer required for transfer without write-access session");
-    return buildTransferAuthFields(signer, { chainId, tokenAddresses, amounts, recipient: recipientAddress });
+    return buildTransferAuthFields(session, signer, { chainId, tokenAddresses, amounts, recipient: recipientAddress });
   });
   const body = {
     ...authFields,
@@ -33,21 +32,13 @@ export const transfer = async (
     feeStructure,
   };
 
-  const headers: Record<string, string> = { "Content-Type": "application/json" };
-  let finalBody: Record<string, unknown> = body;
-  if (session.hasWriteAccess && hasKeySignSession()) {
-    const signed = signWriteRequest(body);
-    finalBody = signed.body;
-    headers["X-Request-Signature"] = signed.signature;
-  }
-
   const { res, data } = await enclaveFetch<
     | { success: true; txHash: string }
     | { error?: string }
   >("/transfer", authFields.nonce, {
     method: "POST",
-    headers,
-    body: JSON.stringify(finalBody),
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify(body),
   });
 
   if (!res.ok || !("success" in data && data.success)) {

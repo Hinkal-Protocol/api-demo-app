@@ -5,10 +5,8 @@ import {
   getTypesForPrimary,
 } from "../constants/enclave.constants";
 import { buildEnclaveSignMessage, EnclaveSessionAccess } from "./auth";
-import type { EnclaveAuthFields, TxSessionAuth } from "./types";
+import type { EnclaveTxAuthFields, TxSessionAuth } from "./types";
 import { Recipient } from "./multiSend";
-
-export const generateNonce = (): string => crypto.randomUUID();
 
 type TokenAmountPair = { token: string; amount: string };
 
@@ -35,10 +33,15 @@ const toTokenAmountValues = (pairs: TokenAmountPair[]) =>
 
 export const resolveTxAuthFields = async (
   session: TxSessionAuth,
-  buildTypedAuth: () => Promise<EnclaveAuthFields>,
-): Promise<EnclaveAuthFields> => {
+  buildTypedAuth: () => Promise<EnclaveTxAuthFields>,
+): Promise<EnclaveTxAuthFields> => {
   if (session.hasWriteAccess) {
-    return { signature: session.signature, nonce: session.nonce };
+    return {
+      signature: session.signature,
+      sessionId: session.sessionId,
+      nonce: crypto.randomUUID(),
+      timestamp: Date.now(),
+    };
   }
   return buildTypedAuth();
 };
@@ -46,43 +49,62 @@ export const resolveTxAuthFields = async (
 /** Personal message signature for getter routes (balance, fees, swap quote, etc.). */
 export const buildEnclaveAuthFields = async (
   signer: ethers.Signer,
-): Promise<EnclaveAuthFields> => {
-  const nonce = generateNonce();
+): Promise<EnclaveTxAuthFields> => {
+  const sessionId = crypto.randomUUID();
   const signature = await signer.signMessage(
-    buildEnclaveSignMessage(nonce, EnclaveSessionAccess.Read),
+    buildEnclaveSignMessage(sessionId, EnclaveSessionAccess.Read),
   );
-  return { signature, nonce };
+  return {
+    signature,
+    sessionId,
+    nonce: crypto.randomUUID(),
+    timestamp: Date.now(),
+  };
 };
 
 const signEnclaveTypedData = async (
+  session: TxSessionAuth,
   signer: ethers.Signer,
   primaryType: EnclaveTypedDataPrimaryType,
   chainId: number,
   buildMessage: (nonce: string) => Record<string, unknown>,
-): Promise<EnclaveAuthFields> => {
-  const nonce = generateNonce();
+): Promise<EnclaveTxAuthFields> => {
+  const nonce = crypto.randomUUID();
   const signature = await signer.signTypedData(
     getEnclaveTypedDataDomain(chainId),
     getTypesForPrimary(primaryType),
     buildMessage(nonce),
   );
-  return { signature, nonce };
+  return {
+    sessionId: session.sessionId,
+    signature,
+    nonce,
+    timestamp: Date.now(),
+  };
 };
 
 export const buildDepositAuthFields = (
+  session: TxSessionAuth,
   signer: ethers.Signer,
   primaryType: "Deposit" | "ProoflessDeposit",
   params: { chainId: number; tokenAddresses: string[]; amounts: string[] },
 ) =>
-  signEnclaveTypedData(signer, primaryType, params.chainId, (nonce) => ({
-    nonce,
-    chainId: BigInt(params.chainId),
-    tokenAmounts: toTokenAmountValues(
-      normalizeTokenAmountPairs(params.tokenAddresses, params.amounts),
-    ),
-  }));
+  signEnclaveTypedData(
+    session,
+    signer,
+    primaryType,
+    params.chainId,
+    (nonce) => ({
+      nonce,
+      chainId: BigInt(params.chainId),
+      tokenAmounts: toTokenAmountValues(
+        normalizeTokenAmountPairs(params.tokenAddresses, params.amounts),
+      ),
+    }),
+  );
 
 export const buildTransferAuthFields = (
+  session: TxSessionAuth,
   signer: ethers.Signer,
   params: {
     chainId: number;
@@ -91,16 +113,23 @@ export const buildTransferAuthFields = (
     recipient: string;
   },
 ) =>
-  signEnclaveTypedData(signer, "Transfer", params.chainId, (nonce) => ({
-    nonce,
-    chainId: BigInt(params.chainId),
-    tokenAmounts: toTokenAmountValues(
-      normalizeTokenAmountPairs(params.tokenAddresses, params.amounts),
-    ),
-    recipient: params.recipient,
-  }));
+  signEnclaveTypedData(
+    session,
+    signer,
+    "Transfer",
+    params.chainId,
+    (nonce) => ({
+      nonce,
+      chainId: BigInt(params.chainId),
+      tokenAmounts: toTokenAmountValues(
+        normalizeTokenAmountPairs(params.tokenAddresses, params.amounts),
+      ),
+      recipient: params.recipient,
+    }),
+  );
 
 export const buildWithdrawAuthFields = (
+  session: TxSessionAuth,
   signer: ethers.Signer,
   params: {
     chainId: number;
@@ -109,16 +138,23 @@ export const buildWithdrawAuthFields = (
     recipient: string;
   },
 ) =>
-  signEnclaveTypedData(signer, "Withdraw", params.chainId, (nonce) => ({
-    nonce,
-    chainId: BigInt(params.chainId),
-    tokenAmounts: toTokenAmountValues(
-      normalizeTokenAmountPairs(params.tokenAddresses, params.amounts),
-    ),
-    recipient: params.recipient,
-  }));
+  signEnclaveTypedData(
+    session,
+    signer,
+    "Withdraw",
+    params.chainId,
+    (nonce) => ({
+      nonce,
+      chainId: BigInt(params.chainId),
+      tokenAmounts: toTokenAmountValues(
+        normalizeTokenAmountPairs(params.tokenAddresses, params.amounts),
+      ),
+      recipient: params.recipient,
+    }),
+  );
 
 export const buildWithdrawStuckUtxosAuthFields = (
+  session: TxSessionAuth,
   signer: ethers.Signer,
   params: {
     chainId: number;
@@ -127,6 +163,7 @@ export const buildWithdrawStuckUtxosAuthFields = (
   },
 ) =>
   signEnclaveTypedData(
+    session,
     signer,
     "WithdrawStuckUtxos",
     params.chainId,
@@ -139,10 +176,11 @@ export const buildWithdrawStuckUtxosAuthFields = (
   );
 
 export const buildSwapAuthFields = (
+  session: TxSessionAuth,
   signer: ethers.Signer,
   params: { chainId: number; tokenAddresses: string[]; amounts: string[] },
 ) =>
-  signEnclaveTypedData(signer, "Swap", params.chainId, (nonce) => ({
+  signEnclaveTypedData(session, signer, "Swap", params.chainId, (nonce) => ({
     nonce,
     chainId: BigInt(params.chainId),
     tokenAmounts: toTokenAmountValues(
@@ -151,6 +189,7 @@ export const buildSwapAuthFields = (
   }));
 
 export const buildDepositAndWithdrawAuthFields = (
+  session: TxSessionAuth,
   signer: ethers.Signer,
   params: {
     chainId: number;
@@ -158,16 +197,22 @@ export const buildDepositAndWithdrawAuthFields = (
     recipients: Recipient[];
   },
 ) =>
-  signEnclaveTypedData(signer, "PrivateSend", params.chainId, (nonce) => ({
-    nonce,
-    chainId: BigInt(params.chainId),
-    tokenAddress: params.tokenAddress,
-    // Must match the server's normalizeDepositAndWithdrawRecipients:
-    // checksum each address, then sort by it (enclaveTypedData.ts).
-    recipients: params.recipients
-      .map(({ address, amount }) => ({
-        recipient: ethers.getAddress(address),
-        amount: BigInt(amount),
-      }))
-      .sort((a, b) => a.recipient.localeCompare(b.recipient)),
-  }));
+  signEnclaveTypedData(
+    session,
+    signer,
+    "PrivateSend",
+    params.chainId,
+    (nonce) => ({
+      nonce,
+      chainId: BigInt(params.chainId),
+      tokenAddress: params.tokenAddress,
+      // Must match the server's normalizeDepositAndWithdrawRecipients:
+      // checksum each address, then sort by it (enclaveTypedData.ts).
+      recipients: params.recipients
+        .map(({ address, amount }) => ({
+          recipient: ethers.getAddress(address),
+          amount: BigInt(amount),
+        }))
+        .sort((a, b) => a.recipient.localeCompare(b.recipient)),
+    }),
+  );

@@ -106,18 +106,21 @@ const ensureVerificationPublicKey = async (): Promise<string> => {
   return verificationPublicKey;
 };
 
-export const verifyResponseWithAttestation = async (
+export const verifyResponseNonce = (
+  rawBody: string,
+  requestNonce: string,
+): void => {
+  const parsed = JSON.parse(rawBody) as { nonce?: unknown };
+  if (parsed.nonce !== requestNonce) {
+    throw new Error("Response nonce mismatch");
+  }
+};
+
+export const verifyResponseAttestation = async (
   res: Response,
   rawBody: string,
-  requestNonce?: string,
 ): Promise<void> => {
   const key = await ensureVerificationPublicKey();
-
-  if (requestNonce) {
-    const parsed = JSON.parse(rawBody) as { nonce?: unknown };
-    if (parsed.nonce !== requestNonce)
-      throw new Error("Response nonce mismatch");
-  }
 
   const signature = res.headers.get("x-hinkal-signature");
   if (!signature) throw new Error("Missing X-Hinkal-Signature header");

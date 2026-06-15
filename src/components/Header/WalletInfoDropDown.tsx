@@ -31,7 +31,7 @@ export const WalletInfoDropDown = () => {
     walletAddress,
     chainId,
     signature,
-    nonce,
+    sessionId,
     hasWriteAccess,
     refreshBalances,
     setWalletAddress,
@@ -102,7 +102,7 @@ export const WalletInfoDropDown = () => {
 
   const handleCopyPrivateAddress = async () => {
     try {
-      if (!walletAddress || !chainId || !signature || !nonce) {
+      if (!walletAddress || !chainId || !signature || !sessionId) {
         toast.error("No active session found");
         return;
       }
@@ -111,7 +111,7 @@ export const WalletInfoDropDown = () => {
         address: walletAddress,
         chainId,
         signature,
-        nonce,
+        sessionId,
       });
       copyToClipboard(recipientInfo);
       toast.success("Private address copied to clipboard");
@@ -127,14 +127,16 @@ export const WalletInfoDropDown = () => {
   const handleWithdrawStuckUtxos = useCallback(
     async (tokenAddress: string) => {
       try {
-        if (!walletAddress || !chainId || !signature || !nonce) return;
+        if (!walletAddress || !chainId || !signature || !sessionId) return;
 
         setWithdrawingStuckTokenAddress(tokenAddress);
         const signer = isTron || isSolana ? null : await getEthersSigner();
+        const session = { signature, sessionId, hasWriteAccess };
         const buildReadOnlyAuth =
           isSolana && solanaProvider
             ? () =>
                 buildSolanaWithdrawStuckUtxosAuthFields(
+                  session,
                   solanaProvider,
                   chainId,
                   tokenAddress,
@@ -143,6 +145,7 @@ export const WalletInfoDropDown = () => {
             : isTron
             ? () =>
                 buildTronWithdrawStuckUtxosAuthFields(
+                  session,
                   chainId,
                   tokenAddress,
                   walletAddress,
@@ -150,7 +153,7 @@ export const WalletInfoDropDown = () => {
             : undefined;
         const txHashes = await withdrawStuckUtxos(
           signer,
-          { signature, nonce, hasWriteAccess },
+          session,
           walletAddress,
           chainId,
           tokenAddress,
@@ -168,7 +171,7 @@ export const WalletInfoDropDown = () => {
         setWithdrawingStuckTokenAddress(null);
       }
     },
-    [walletAddress, chainId, signature, nonce, hasWriteAccess, refreshBalances],
+    [walletAddress, chainId, signature, sessionId, hasWriteAccess, refreshBalances],
   );
 
   return (

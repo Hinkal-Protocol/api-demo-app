@@ -1,8 +1,7 @@
 import { ethers } from "ethers";
 import { buildDepositAuthFields, resolveTxAuthFields } from "./enclave-auth";
 import { enclaveFetch } from "./enclaveApi";
-import { hasKeySignSession, signWriteRequest } from "./session";
-import type { EnclaveAuthFields, TxSessionAuth } from "./types";
+import type { EnclaveTxAuthFields, TxSessionAuth } from "./types";
 
 export type TxData = {
   to: string;
@@ -19,12 +18,12 @@ export const deposit = async (
   chainId: number,
   tokenAddresses: string[],
   amounts: string[],
-  buildReadOnlyAuth?: () => Promise<EnclaveAuthFields>,
+  buildReadOnlyAuth?: () => Promise<EnclaveTxAuthFields>,
 ): Promise<TxData | string> => {
   const authFields = await resolveTxAuthFields(session, () => {
     if (buildReadOnlyAuth) return buildReadOnlyAuth();
     if (!signer) throw new Error("EVM signer required for deposit without write-access session");
-    return buildDepositAuthFields(signer, "Deposit", { chainId, tokenAddresses, amounts });
+    return buildDepositAuthFields(session, signer, "Deposit", { chainId, tokenAddresses, amounts });
   });
   const body = {
     ...authFields,
@@ -34,21 +33,13 @@ export const deposit = async (
     amounts,
   };
 
-  const headers: Record<string, string> = { "Content-Type": "application/json" };
-  let finalBody: Record<string, unknown> = body;
-  if (session.hasWriteAccess && hasKeySignSession()) {
-    const signed = signWriteRequest(body);
-    finalBody = signed.body;
-    headers["X-Request-Signature"] = signed.signature;
-  }
-
   const { res, data } = await enclaveFetch<
     | { success: true; txData: TxData | string }
     | { error?: string }
   >("/deposit", authFields.nonce, {
     method: "POST",
-    headers,
-    body: JSON.stringify(finalBody),
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify(body),
   });
 
   if (!res.ok || !("success" in data && data.success)) {

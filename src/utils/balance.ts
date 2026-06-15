@@ -1,6 +1,5 @@
 import { TokenBalance } from "../types";
 import { enclaveFetch } from "./enclaveApi";
-import { hasKeySignSession, signGetRequest } from "./session";
 import { Auth } from "./types";
 
 type BalanceResponse =
@@ -13,16 +12,10 @@ const fetchBalanceEndpoint = async (
   requestNonce: string,
   signal?: AbortSignal,
 ): Promise<TokenBalance[]> => {
-  const init: RequestInit = { signal };
-  if (hasKeySignSession()) {
-    const signature = signGetRequest(params);
-    init.headers = { "X-Request-Signature": signature };
-  }
-
   const { res, data } = await enclaveFetch<BalanceResponse>(
     `/${endpoint}?${params}`,
     requestNonce,
-    init,
+    { signal },
   );
 
   if (!res.ok || !("success" in data && data.success)) {
@@ -42,16 +35,19 @@ export const fetchBalances = async (
   auth: Auth,
   signal?: AbortSignal,
 ): Promise<TokenBalance[]> => {
-  const { signature, nonce, address, chainId } = auth;
+  const { signature, sessionId, address, chainId } = auth;
+  const requestNonce = crypto.randomUUID();
 
   const params = new URLSearchParams({
     address,
     chainId: String(chainId),
     signature,
-    nonce,
+    sessionId,
+    nonce: requestNonce,
+    timestamp: Date.now().toString(),
   });
 
-  const balances = await fetchBalanceEndpoint("balance", params, nonce, signal);
+  const balances = await fetchBalanceEndpoint("balance", params, requestNonce, signal);
 
   return balances.filter((b) => b.balance !== "0");
 };
@@ -60,19 +56,22 @@ export const fetchStuckUtxoBalances = async (
   auth: Auth,
   signal?: AbortSignal,
 ): Promise<TokenBalance[]> => {
-  const { signature, nonce, address, chainId } = auth;
+  const { signature, sessionId, address, chainId } = auth;
+  const requestNonce = crypto.randomUUID();
 
   const params = new URLSearchParams({
     address,
     chainId: String(chainId),
     signature,
-    nonce,
+    sessionId,
+    nonce: requestNonce,
+    timestamp: Date.now().toString(),
   });
 
   const balances = await fetchBalanceEndpoint(
     "stuck-utxo-balance",
     params,
-    nonce,
+    requestNonce,
     signal,
   );
 

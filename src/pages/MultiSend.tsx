@@ -87,7 +87,7 @@ export const MultiSend = () => {
     refreshBalances,
     chainId,
     signature,
-    nonce,
+    sessionId,
     hasWriteAccess,
     isTron,
     isSolana,
@@ -231,7 +231,7 @@ export const MultiSend = () => {
 
   const handleMultiSend = useCallback(async () => {
     try {
-      if (!chainId || !selectedToken || !walletAddress || !signature || !nonce)
+      if (!chainId || !selectedToken || !walletAddress || !signature || !sessionId)
         return;
       setIsProcessing(true);
 
@@ -248,10 +248,12 @@ export const MultiSend = () => {
       const txCompletionTime =
         delaySeconds > 0 ? resolveTxCompletionTime(delaySeconds) : undefined;
 
+      const session = { signature, sessionId, hasWriteAccess };
       const buildReadOnlyAuth =
         isSolana && solanaProvider
           ? () =>
               buildSolanaPrivateSendAuthFields(
+                session,
                 solanaProvider,
                 chainId,
                 selectedToken.erc20TokenAddress,
@@ -260,6 +262,7 @@ export const MultiSend = () => {
           : isTron
           ? () =>
               buildTronPrivateSendAuthFields(
+                session,
                 chainId,
                 selectedToken.erc20TokenAddress,
                 recipientsWei,
@@ -268,7 +271,7 @@ export const MultiSend = () => {
 
       const order = await depositAndWithdraw(
         signer,
-        { signature, nonce, hasWriteAccess },
+        session,
         walletAddress,
         chainId,
         selectedToken.erc20TokenAddress,
@@ -320,7 +323,7 @@ export const MultiSend = () => {
     recipients,
     refreshBalances,
     signature,
-    nonce,
+    sessionId,
     hasWriteAccess,
     txCompletionTimeLabel,
     isTron,

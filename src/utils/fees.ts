@@ -1,5 +1,4 @@
 import { enclaveFetch } from "./enclaveApi";
-import { hasKeySignSession, signGetRequest } from "./session";
 import { Auth } from "./types";
 
 export enum ExternalActionId {
@@ -31,10 +30,13 @@ export const getFeeStructure = async (
   amounts?: bigint[],
   mintFrom?: string
 ): Promise<FeeStructure> => {
-  const { signature, nonce, address, chainId } = auth;
+  const { signature, sessionId, address, chainId } = auth;
+  const requestNonce = crypto.randomUUID();
   const params = new URLSearchParams({
     signature,
-    nonce,
+    sessionId,
+    nonce: requestNonce,
+    timestamp: Date.now().toString(),
     address,
     chainId: String(chainId),
     feeToken,
@@ -55,16 +57,10 @@ export const getFeeStructure = async (
     params.append("mintFrom", mintFrom);
   }
 
-  const init: RequestInit = {};
-  if (hasKeySignSession()) {
-    const signature = signGetRequest(params);
-    init.headers = { "X-Request-Signature": signature };
-  }
-
   const { res, data } = await enclaveFetch<
     | { success: true; feeStructure: FeeStructure }
     | { error?: string }
-  >(`/get-fee-structure?${params}`, nonce, init);
+  >(`/get-fee-structure?${params}`, requestNonce);
 
   if (!res.ok || !("success" in data && data.success)) {
     throw new Error(

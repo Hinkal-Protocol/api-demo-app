@@ -1,19 +1,24 @@
-export type EnclaveAuthFields = {
+export type EnclaveSessionAuthFields = {
   signature: string;
-  nonce: string;
+  sessionId: string;
 };
 
-export type EnclaveSession = EnclaveAuthFields & {
+export type EnclaveTxAuthFields = EnclaveSessionAuthFields & {
+  nonce: string;
+  timestamp: number;
+};
+
+export type EnclaveSession = EnclaveSessionAuthFields & {
   hasWriteAccess: boolean;
   expiresAt: string;
 };
 
-export type TxSessionAuth = EnclaveAuthFields & {
+export type TxSessionAuth = EnclaveSessionAuthFields & {
   hasWriteAccess: boolean;
 };
 
-/** Getter-route auth: personal message signature + address + chainId. */
-export type Auth = EnclaveAuthFields & {
+/** Getter-route auth: session signature + sessionId + address + chainId. */
+export type Auth = EnclaveSessionAuthFields & {
   address: string;
   chainId: number;
 };

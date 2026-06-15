@@ -1,4 +1,4 @@
-export { generateNonce, buildEnclaveAuthFields } from "./enclave-auth";
+export { buildEnclaveAuthFields } from "./enclave-auth";
 
 export enum EnclaveSessionAccess {
   Read = "read",

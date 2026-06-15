@@ -34,7 +34,7 @@ export const Withdraw = () => {
     refreshBalancesSoon,
     chainId,
     signature,
-    nonce,
+    sessionId,
     hasWriteAccess,
     isTron,
     isSolana,
@@ -101,7 +101,7 @@ export const Withdraw = () => {
 
   const handleWithdraw = useCallback(async () => {
     try {
-      if (!chainId || !selectedToken || !walletAddress || !signature || !nonce)
+      if (!chainId || !selectedToken || !walletAddress || !signature || !sessionId)
         return;
       if (!isRelayerOff && !feeStructure) return;
       setIsProcessing(true);
@@ -111,10 +111,12 @@ export const Withdraw = () => {
 
       const signer = isTron || isSolana ? null : await getEthersSigner(chainId);
       const amountStr = amountInWei.toString();
+      const session = { signature, sessionId, hasWriteAccess };
       const buildReadOnlyAuth =
         isSolana && solanaProvider
           ? () =>
               buildSolanaWithdrawAuthFields(
+                session,
                 solanaProvider,
                 chainId,
                 [tokenAddress],
@@ -124,6 +126,7 @@ export const Withdraw = () => {
           : isTron
           ? () =>
               buildTronWithdrawAuthFields(
+                session,
                 chainId,
                 [tokenAddress],
                 [amountStr],
@@ -132,7 +135,7 @@ export const Withdraw = () => {
           : undefined;
       await withdraw(
         signer,
-        { signature, nonce, hasWriteAccess },
+        session,
         walletAddress,
         chainId,
         [tokenAddress],
@@ -157,7 +160,7 @@ export const Withdraw = () => {
     selectedToken,
     walletAddress,
     signature,
-    nonce,
+    sessionId,
     withdrawAmount,
     recipientAddress,
     isRelayerOff,

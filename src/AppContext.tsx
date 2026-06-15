@@ -27,8 +27,8 @@ export type WalletType = "evm" | "tron" | "solana";
 type AppContextArgumnets = {
   signature: string | null;
   setSignature: Dispatch<SetStateAction<string | null>>;
-  nonce: string | null;
-  setNonce: Dispatch<SetStateAction<string | null>>;
+  sessionId: string | null;
+  setSessionId: Dispatch<SetStateAction<string | null>>;
   hasWriteAccess: boolean;
   sessionExpiresAt: string | null;
   requestedWriteAccess: boolean;
@@ -65,8 +65,8 @@ const WALLET_BALANCES_REFRESH_INTERVAL = 7000;
 const AppContext = createContext<AppContextArgumnets>({
   signature: null,
   setSignature: () => {},
-  nonce: null,
-  setNonce: () => {},
+  sessionId: null,
+  setSessionId: () => {},
   hasWriteAccess: false,
   sessionExpiresAt: null,
   requestedWriteAccess: false,
@@ -103,7 +103,7 @@ export const AppContextProvider: FC<AppContextProps> = ({
   children,
 }: AppContextProps) => {
   const [signature, setSignature] = useState<string | null>(null);
-  const [nonce, setNonce] = useState<string | null>(null);
+  const [sessionId, setSessionId] = useState<string | null>(null);
   const [hasWriteAccess, setHasWriteAccess] = useState(false);
   const [sessionExpiresAt, setSessionExpiresAt] = useState<string | null>(null);
   const [requestedWriteAccess, setRequestedWriteAccess] = useState(false);
@@ -142,14 +142,14 @@ export const AppContextProvider: FC<AppContextProps> = ({
 
   const applyEnclaveSession = useCallback((session: EnclaveSession) => {
     setSignature(session.signature);
-    setNonce(session.nonce);
+    setSessionId(session.sessionId);
     setHasWriteAccess(session.hasWriteAccess);
     setSessionExpiresAt(session.expiresAt);
   }, []);
 
   const clearEnclaveSession = useCallback(() => {
     setSignature(null);
-    setNonce(null);
+    setSessionId(null);
     setHasWriteAccess(false);
     setSessionExpiresAt(null);
     setWalletType(null);
@@ -172,7 +172,7 @@ export const AppContextProvider: FC<AppContextProps> = ({
 
     let cancelled = false;
     setSignature(null);
-    setNonce(null);
+    setSessionId(null);
     setHasWriteAccess(false);
     setSessionExpiresAt(null);
 
@@ -184,7 +184,6 @@ export const AppContextProvider: FC<AppContextProps> = ({
           walletAddress,
           chainId,
           requestedWriteAccess,
-          true
         );
         if (!cancelled) {
           applyEnclaveSession(session);
@@ -219,7 +218,7 @@ export const AppContextProvider: FC<AppContextProps> = ({
   ]);
 
   const refreshBalances = useCallback(async () => {
-    if (!dataLoaded || !chainId || !walletAddress || !signature || !nonce)
+    if (!dataLoaded || !chainId || !walletAddress || !signature || !sessionId)
       return;
 
     abortControllerRef.current?.abort();
@@ -227,7 +226,7 @@ export const AppContextProvider: FC<AppContextProps> = ({
     abortControllerRef.current = controller;
 
     try {
-      const auth = { signature, nonce, address: walletAddress, chainId };
+      const auth = { signature, sessionId, address: walletAddress, chainId };
       const [bals, stuckBals] = await Promise.all([
         fetchBalances(auth, controller.signal),
         fetchStuckUtxoBalances(auth, controller.signal),
@@ -242,7 +241,7 @@ export const AppContextProvider: FC<AppContextProps> = ({
         console.error("Error refreshing balances:", error);
       }
     }
-  }, [dataLoaded, chainId, walletAddress, signature, nonce]);
+  }, [dataLoaded, chainId, walletAddress, signature, sessionId]);
 
   // After a tx the new balance may not be indexed yet, so a single immediate
   // refresh returns stale data. Re-poll a few times spaced out to catch it
@@ -330,8 +329,8 @@ export const AppContextProvider: FC<AppContextProps> = ({
       value={{
         signature,
         setSignature,
-        nonce,
-        setNonce,
+        sessionId,
+        setSessionId,
         hasWriteAccess,
         sessionExpiresAt,
         requestedWriteAccess,

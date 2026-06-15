@@ -1,6 +1,5 @@
 import { buildEnclaveSignMessage, EnclaveSessionAccess } from "./auth";
 import { enclaveFetch } from "./enclaveApi";
-import { generateNonce } from "./enclave-auth";
 import { signTronPersonalMessage } from "./tron-wallet";
 import type { EnclaveSession } from "./types";
 
@@ -18,16 +17,16 @@ export const createTronEnclaveSession = async (
   writeAccess = true,
 ): Promise<EnclaveSession> => {
   const access = writeAccess ? EnclaveSessionAccess.Write : EnclaveSessionAccess.Read;
-  const nonce = generateNonce();
-  const message = buildEnclaveSignMessage(nonce, access);
+  const sessionId = crypto.randomUUID();
+  const requestNonce = crypto.randomUUID();
+  const message = buildEnclaveSignMessage(sessionId, access);
 
-  // TronLink signMessageV2 is synchronous but wrapped in Promise for consistency
   const signature = await Promise.resolve(signTronPersonalMessage(message));
   const normalizedSig = signature.startsWith("0x") ? signature : `0x${signature}`;
 
   const { res, data } = await enclaveFetch<CreateSessionResponse>(
     "/create-session",
-    nonce,
+    requestNonce,
     {
       method: "POST",
       headers: { "Content-Type": "application/json" },
@@ -35,7 +34,9 @@ export const createTronEnclaveSession = async (
         signature: normalizedSig,
         address,
         chainId,
-        nonce,
+        sessionId,
+        nonce: requestNonce,
+        timestamp: Date.now(),
         writeAccess,
       }),
     },
@@ -46,7 +47,7 @@ export const createTronEnclaveSession = async (
 
   return {
     signature: normalizedSig,
-    nonce,
+    sessionId,
     hasWriteAccess: writeAccess,
     expiresAt: data.expiresAt,
   };

@@ -1,6 +1,5 @@
 import { buildEnclaveSignMessage, EnclaveSessionAccess } from "./auth";
 import { enclaveFetch } from "./enclaveApi";
-import { generateNonce } from "./enclave-auth";
 import { signSolanaMessage, SolanaWalletProvider } from "./solana-wallet";
 import type { EnclaveSession } from "./types";
 
@@ -19,14 +18,15 @@ export const createSolanaEnclaveSession = async (
   writeAccess = true,
 ): Promise<EnclaveSession> => {
   const access = writeAccess ? EnclaveSessionAccess.Write : EnclaveSessionAccess.Read;
-  const nonce = generateNonce();
-  const message = buildEnclaveSignMessage(nonce, access);
+  const sessionId = crypto.randomUUID();
+  const requestNonce = crypto.randomUUID();
+  const message = buildEnclaveSignMessage(sessionId, access);
   const signature = await signSolanaMessage(provider, message);
   const normalizedSig = signature.startsWith("0x") ? signature : `0x${signature}`;
 
   const { res, data } = await enclaveFetch<CreateSessionResponse>(
     "/create-session",
-    nonce,
+    requestNonce,
     {
       method: "POST",
       headers: { "Content-Type": "application/json" },
@@ -34,7 +34,9 @@ export const createSolanaEnclaveSession = async (
         signature: normalizedSig,
         address,
         chainId,
-        nonce,
+        sessionId,
+        nonce: requestNonce,
+        timestamp: Date.now(),
         writeAccess,
       }),
     },
@@ -45,7 +47,7 @@ export const createSolanaEnclaveSession = async (
 
   return {
     signature: normalizedSig,
-    nonce,
+    sessionId,
     hasWriteAccess: writeAccess,
     expiresAt: data.expiresAt,
   };

@@ -33,7 +33,7 @@ export const Transfer = () => {
     refreshBalancesSoon,
     chainId,
     signature,
-    nonce,
+    sessionId,
     hasWriteAccess,
     isTron,
     isSolana,
@@ -100,7 +100,7 @@ export const Transfer = () => {
 
   const handleTransfer = useCallback(async () => {
     try {
-      if (!chainId || !selectedToken || !walletAddress || !signature || !nonce)
+      if (!chainId || !selectedToken || !walletAddress || !signature || !sessionId)
         return;
       if (!feeStructure) return;
       setIsProcessing(true);
@@ -110,10 +110,12 @@ export const Transfer = () => {
 
       const signer = isTron || isSolana ? null : await getEthersSigner(chainId);
       const amountStr = amountInWei.toString();
+      const session = { signature, sessionId, hasWriteAccess };
       const buildReadOnlyAuth =
         isSolana && solanaProvider
           ? () =>
               buildSolanaTransferAuthFields(
+                session,
                 solanaProvider,
                 chainId,
                 [tokenAddress],
@@ -123,6 +125,7 @@ export const Transfer = () => {
           : isTron
           ? () =>
               buildTronTransferAuthFields(
+                session,
                 chainId,
                 [tokenAddress],
                 [amountStr],
@@ -131,7 +134,7 @@ export const Transfer = () => {
           : undefined;
       await transfer(
         signer,
-        { signature, nonce, hasWriteAccess },
+        session,
         walletAddress,
         chainId,
         [tokenAddress],
@@ -155,7 +158,7 @@ export const Transfer = () => {
     selectedToken,
     walletAddress,
     signature,
-    nonce,
+    sessionId,
     transferAmount,
     transferAddress,
     feeStructure,
