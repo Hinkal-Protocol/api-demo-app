@@ -4,7 +4,7 @@ import {
   getEnclaveTypedDataDomain,
   getTypesForPrimary,
 } from "../constants/enclave.constants";
-import { buildEnclaveSignMessage, EnclaveSessionAccess } from "./auth";
+import { buildEnclaveSignMessage, EnclaveSessionAuthMode } from "./auth";
 import type { EnclaveTxAuthFields, TxSessionAuth } from "./types";
 import { Recipient } from "./multiSend";
 
@@ -35,13 +35,8 @@ export const resolveTxAuthFields = async (
   session: TxSessionAuth,
   buildTypedAuth: () => Promise<EnclaveTxAuthFields>,
 ): Promise<EnclaveTxAuthFields> => {
-  if (session.hasWriteAccess) {
-    return {
-      signature: session.signature,
-      sessionId: session.sessionId,
-      nonce: crypto.randomUUID(),
-      timestamp: Date.now(),
-    };
+  if (session.authMode === EnclaveSessionAuthMode.Normal) {
+    throw new Error("Normal auth mode requires HMAC signing, which is not yet supported in this app");
   }
   return buildTypedAuth();
 };
@@ -52,7 +47,7 @@ export const buildEnclaveAuthFields = async (
 ): Promise<EnclaveTxAuthFields> => {
   const sessionId = crypto.randomUUID();
   const signature = await signer.signMessage(
-    buildEnclaveSignMessage(sessionId, EnclaveSessionAccess.Read),
+    buildEnclaveSignMessage(sessionId, EnclaveSessionAuthMode.EIP712),
   );
   return {
     signature,

@@ -18,6 +18,7 @@ import { getPublicBalances } from "./utils/public-balances";
 import { createEnclaveSession } from "./utils/session";
 import { getFriendlyErrorMessage } from "./utils/errors";
 import type { EnclaveSession } from "./utils/types";
+import { EnclaveSessionAuthMode } from "./utils/auth";
 import type { SolanaWalletProvider } from "./utils/solana-wallet";
 import { getERC20Registry } from "./constants/token-data";
 import { getEthersSigner } from "./utils/ethers-wallet";
@@ -29,16 +30,16 @@ type AppContextArgumnets = {
   setSignature: Dispatch<SetStateAction<string | null>>;
   sessionId: string | null;
   setSessionId: Dispatch<SetStateAction<string | null>>;
-  hasWriteAccess: boolean;
+  authMode: EnclaveSessionAuthMode;
   sessionExpiresAt: string | null;
-  requestedWriteAccess: boolean;
+  requestedUseEIP712: boolean;
   walletType: WalletType | null;
   setWalletType: Dispatch<SetStateAction<WalletType | null>>;
   isTron: boolean;
   isSolana: boolean;
   solanaProvider: SolanaWalletProvider | null;
   setSolanaProvider: Dispatch<SetStateAction<SolanaWalletProvider | null>>;
-  setRequestedWriteAccess: Dispatch<SetStateAction<boolean>>;
+  setRequestedUseEIP712: Dispatch<SetStateAction<boolean>>;
   applyEnclaveSession: (session: EnclaveSession) => void;
   clearEnclaveSession: () => void;
   walletAddress: string | null;
@@ -67,10 +68,10 @@ const AppContext = createContext<AppContextArgumnets>({
   setSignature: () => {},
   sessionId: null,
   setSessionId: () => {},
-  hasWriteAccess: false,
+  authMode: EnclaveSessionAuthMode.Normal,
   sessionExpiresAt: null,
-  requestedWriteAccess: false,
-  setRequestedWriteAccess: () => {},
+  requestedUseEIP712: false,
+  setRequestedUseEIP712: () => {},
   walletType: null,
   setWalletType: () => {},
   isTron: false,
@@ -104,9 +105,11 @@ export const AppContextProvider: FC<AppContextProps> = ({
 }: AppContextProps) => {
   const [signature, setSignature] = useState<string | null>(null);
   const [sessionId, setSessionId] = useState<string | null>(null);
-  const [hasWriteAccess, setHasWriteAccess] = useState(false);
+  const [authMode, setAuthMode] = useState<EnclaveSessionAuthMode>(
+    EnclaveSessionAuthMode.Normal,
+  );
   const [sessionExpiresAt, setSessionExpiresAt] = useState<string | null>(null);
-  const [requestedWriteAccess, setRequestedWriteAccess] = useState(false);
+  const [requestedUseEIP712, setRequestedUseEIP712] = useState(false);
   const [walletAddress, setWalletAddress] = useState<string | null>(null);
   const [walletType, setWalletType] = useState<WalletType | null>(null);
   const [solanaProvider, setSolanaProvider] =
@@ -143,14 +146,14 @@ export const AppContextProvider: FC<AppContextProps> = ({
   const applyEnclaveSession = useCallback((session: EnclaveSession) => {
     setSignature(session.signature);
     setSessionId(session.sessionId);
-    setHasWriteAccess(session.hasWriteAccess);
+    setAuthMode(session.authMode);
     setSessionExpiresAt(session.expiresAt);
   }, []);
 
   const clearEnclaveSession = useCallback(() => {
     setSignature(null);
     setSessionId(null);
-    setHasWriteAccess(false);
+    setAuthMode(EnclaveSessionAuthMode.Normal);
     setSessionExpiresAt(null);
     setWalletType(null);
     setSolanaProvider(null);
@@ -173,7 +176,7 @@ export const AppContextProvider: FC<AppContextProps> = ({
     let cancelled = false;
     setSignature(null);
     setSessionId(null);
-    setHasWriteAccess(false);
+    setAuthMode(EnclaveSessionAuthMode.Normal);
     setSessionExpiresAt(null);
 
     const refreshAuth = async () => {
@@ -183,7 +186,7 @@ export const AppContextProvider: FC<AppContextProps> = ({
           signer,
           walletAddress,
           chainId,
-          requestedWriteAccess,
+          requestedUseEIP712,
         );
         if (!cancelled) {
           applyEnclaveSession(session);
@@ -212,7 +215,7 @@ export const AppContextProvider: FC<AppContextProps> = ({
     chainId,
     walletAddress,
     dataLoaded,
-    requestedWriteAccess,
+    requestedUseEIP712,
     applyEnclaveSession,
     walletType,
   ]);
@@ -331,10 +334,10 @@ export const AppContextProvider: FC<AppContextProps> = ({
         setSignature,
         sessionId,
         setSessionId,
-        hasWriteAccess,
+        authMode,
         sessionExpiresAt,
-        requestedWriteAccess,
-        setRequestedWriteAccess,
+        requestedUseEIP712,
+        setRequestedUseEIP712,
         applyEnclaveSession,
         clearEnclaveSession,
         walletAddress,

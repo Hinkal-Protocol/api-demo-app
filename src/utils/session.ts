@@ -1,5 +1,9 @@
 import { ethers } from "ethers";
-import { buildEnclaveSignMessage, EnclaveSessionAccess } from "./auth";
+import {
+  buildEnclaveSignMessage,
+  EnclaveSessionAuthMode,
+  resolveSessionAuthMode,
+} from "./auth";
 import { enclaveFetch } from "./enclaveApi";
 import type { EnclaveSession } from "./types";
 
@@ -10,14 +14,14 @@ export type CreateSessionRequest = {
   sessionId: string;
   nonce: string;
   timestamp?: number;
-  writeAccess?: boolean;
+  useEIP712?: boolean;
 };
 
 type CreateSessionResponse =
   | {
       success: true;
       expiresAt: string;
-      hasWriteAccess: boolean;
+      authMode: EnclaveSessionAuthMode;
     }
   | { success: false; error?: string };
 
@@ -25,14 +29,12 @@ export const createEnclaveSession = async (
   signer: ethers.Signer,
   address: string,
   chainId: number,
-  writeAccess: boolean,
+  useEIP712: boolean,
 ): Promise<EnclaveSession> => {
   const sessionId = crypto.randomUUID();
+  const authMode = resolveSessionAuthMode(useEIP712);
   const signature = await signer.signMessage(
-    buildEnclaveSignMessage(
-      sessionId,
-      writeAccess ? EnclaveSessionAccess.Write : EnclaveSessionAccess.Read,
-    ),
+    buildEnclaveSignMessage(sessionId, authMode),
   );
 
   const requestNonce = crypto.randomUUID();
@@ -43,7 +45,7 @@ export const createEnclaveSession = async (
     sessionId,
     nonce: requestNonce,
     timestamp: Date.now(),
-    writeAccess,
+    useEIP712,
   };
 
   const { res, data } = await enclaveFetch<CreateSessionResponse>(
@@ -57,13 +59,15 @@ export const createEnclaveSession = async (
   );
 
   if (!res.ok || !data.success) {
-    throw new Error(("error" in data && data.error) || "Session was not created");
+    throw new Error(
+      ("error" in data && data.error) || "Session was not created",
+    );
   }
 
   return {
     signature,
     sessionId,
-    hasWriteAccess: data.hasWriteAccess,
+    authMode: data.authMode,
     expiresAt: data.expiresAt,
   };
 };

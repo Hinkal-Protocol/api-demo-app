@@ -4,7 +4,7 @@ import { Modal } from "../Modal";
 import { MainWalletView } from "./MainWalletView";
 import { SocialLoginView } from "./SocialLoginView";
 import { WalletModalHeader } from "./WalletModalHeader";
-import { WriteAccessToggle } from "./WriteAccessToggle";
+import { AuthModeToggle } from "./AuthModeToggle";
 import { WalletModalView } from "./types";
 import { useChooseWalletConnections } from "./useChooseWalletConnections";
 
@@ -22,7 +22,7 @@ export const ChooseWallet = ({
   setIsConnecting,
 }: ChooseWalletProps) => {
   const { clientState: turnkeyClientState } = useTurnkey();
-  const [writeAccessEnabled, setWriteAccessEnabled] = useState(false);
+  const [useEIP712Enabled, setUseEIP712Enabled] = useState(false);
   const [view, setView] = useState<WalletModalView>(WalletModalView.Main);
 
   const {
@@ -38,7 +38,7 @@ export const ChooseWallet = ({
     onHide,
     setShieldedAddress,
     setIsConnecting,
-    writeAccessEnabled,
+    useEIP712Enabled,
   });
 
   useEffect(() => {
@@ -61,9 +61,9 @@ export const ChooseWallet = ({
         connecting={connecting}
         onBack={() => setView(WalletModalView.Main)}
       />
-      <WriteAccessToggle
-        writeAccessEnabled={writeAccessEnabled}
-        onToggle={() => setWriteAccessEnabled((prev) => !prev)}
+      <AuthModeToggle
+        useEIP712Enabled={useEIP712Enabled}
+        onToggle={() => setUseEIP712Enabled((prev) => !prev)}
       />
       {view === WalletModalView.Social && turnkeyClientState ? (
         <SocialLoginView

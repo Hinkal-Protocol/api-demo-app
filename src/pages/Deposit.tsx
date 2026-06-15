@@ -27,7 +27,7 @@ export const Deposit = () => {
     chainId,
     signature,
     sessionId,
-    hasWriteAccess,
+    authMode,
     isTron,
     isSolana,
     solanaProvider,
@@ -66,7 +66,7 @@ export const Deposit = () => {
       setIsProcessing(true);
 
       const amountInWei = getAmountInWei(selectedToken, depositAmount);
-      const session = { signature, sessionId, hasWriteAccess };
+      const session = { signature, sessionId, authMode };
 
       if (isSolana) {
         if (!solanaProvider) throw new Error("Solana provider not set");
@@ -157,7 +157,7 @@ export const Deposit = () => {
     walletAddress,
     signature,
     sessionId,
-    hasWriteAccess,
+    authMode,
   ]);
 
   const handleSubmit = (event: SyntheticEvent) => {

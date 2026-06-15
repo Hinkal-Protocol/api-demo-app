@@ -35,7 +35,7 @@ export const Withdraw = () => {
     chainId,
     signature,
     sessionId,
-    hasWriteAccess,
+    authMode,
     isTron,
     isSolana,
     solanaProvider,
@@ -111,7 +111,7 @@ export const Withdraw = () => {
 
       const signer = isTron || isSolana ? null : await getEthersSigner(chainId);
       const amountStr = amountInWei.toString();
-      const session = { signature, sessionId, hasWriteAccess };
+      const session = { signature, sessionId, authMode };
       const buildReadOnlyAuth =
         isSolana && solanaProvider
           ? () =>
@@ -167,7 +167,7 @@ export const Withdraw = () => {
     feeStructure,
     refreshBalances,
     refreshBalancesSoon,
-    hasWriteAccess,
+    authMode,
   ]);
 
   const setRecipientAddressHandler = (

@@ -1,28 +1,30 @@
-import { buildEnclaveSignMessage, EnclaveSessionAccess } from "./auth";
+import {
+  buildEnclaveSignMessage,
+  EnclaveSessionAuthMode,
+  resolveSessionAuthMode,
+} from "./auth";
 import { enclaveFetch } from "./enclaveApi";
 import { signTronPersonalMessage } from "./tron-wallet";
 import type { EnclaveSession } from "./types";
 
 type CreateSessionResponse =
-  | { success: true; expiresAt: string; hasWriteAccess: boolean }
+  | { success: true; expiresAt: string; authMode: EnclaveSessionAuthMode }
   | { success: false; error?: string };
 
-/**
- * Create a Hinkal enclave session signed via TronLink.
- * Always requests write access so Tron users don't need per-tx typed data signing.
- */
 export const createTronEnclaveSession = async (
   address: string,
   chainId: number,
-  writeAccess = true,
+  useEIP712 = false,
 ): Promise<EnclaveSession> => {
-  const access = writeAccess ? EnclaveSessionAccess.Write : EnclaveSessionAccess.Read;
+  const authMode = resolveSessionAuthMode(useEIP712);
   const sessionId = crypto.randomUUID();
   const requestNonce = crypto.randomUUID();
-  const message = buildEnclaveSignMessage(sessionId, access);
+  const message = buildEnclaveSignMessage(sessionId, authMode);
 
   const signature = await Promise.resolve(signTronPersonalMessage(message));
-  const normalizedSig = signature.startsWith("0x") ? signature : `0x${signature}`;
+  const normalizedSig = signature.startsWith("0x")
+    ? signature
+    : `0x${signature}`;
 
   const { res, data } = await enclaveFetch<CreateSessionResponse>(
     "/create-session",
@@ -37,18 +39,20 @@ export const createTronEnclaveSession = async (
         sessionId,
         nonce: requestNonce,
         timestamp: Date.now(),
-        writeAccess,
+        useEIP712,
       }),
     },
   );
   if (!res.ok || !data.success) {
-    throw new Error(("error" in data && data.error) || "Session was not created");
+    throw new Error(
+      ("error" in data && data.error) || "Session was not created",
+    );
   }
 
   return {
     signature: normalizedSig,
     sessionId,
-    hasWriteAccess: writeAccess,
+    authMode: data.authMode,
     expiresAt: data.expiresAt,
   };
 };

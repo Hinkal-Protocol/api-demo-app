@@ -35,7 +35,7 @@ export const Swap = () => {
     chainId,
     signature,
     sessionId,
-    hasWriteAccess,
+    authMode,
     isSolana,
     solanaProvider,
     balances,
@@ -255,7 +255,7 @@ export const Swap = () => {
       const signer = isSolana ? null : await getEthersSigner(chainId);
       await executeSwap(
         signer,
-        { signature, sessionId, hasWriteAccess },
+        { signature, sessionId, authMode },
         walletAddress,
         getterAuth,
         inSwapToken,
@@ -283,7 +283,7 @@ export const Swap = () => {
     chainId,
     inSwapAmount,
     refreshBalancesSoon,
-    hasWriteAccess,
+    authMode,
   ]);
 
   const setTokenAmountHandler = useCallback(

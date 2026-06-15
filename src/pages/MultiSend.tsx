@@ -88,7 +88,7 @@ export const MultiSend = () => {
     chainId,
     signature,
     sessionId,
-    hasWriteAccess,
+    authMode,
     isTron,
     isSolana,
     solanaProvider,
@@ -248,7 +248,7 @@ export const MultiSend = () => {
       const txCompletionTime =
         delaySeconds > 0 ? resolveTxCompletionTime(delaySeconds) : undefined;
 
-      const session = { signature, sessionId, hasWriteAccess };
+      const session = { signature, sessionId, authMode };
       const buildReadOnlyAuth =
         isSolana && solanaProvider
           ? () =>
@@ -324,7 +324,7 @@ export const MultiSend = () => {
     refreshBalances,
     signature,
     sessionId,
-    hasWriteAccess,
+    authMode,
     txCompletionTimeLabel,
     isTron,
     isSolana,

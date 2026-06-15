@@ -32,13 +32,13 @@ export const WalletInfoDropDown = () => {
     chainId,
     signature,
     sessionId,
-    hasWriteAccess,
+    authMode,
     refreshBalances,
     setWalletAddress,
     clearEnclaveSession,
     setChainId,
     setDataLoaded,
-    setRequestedWriteAccess,
+    setRequestedUseEIP712,
     isSolana,
     solanaProvider,
   } = useAppContext();
@@ -80,7 +80,7 @@ export const WalletInfoDropDown = () => {
     setActiveTurnkeyParams(null);
     setWalletAddress(null);
     clearEnclaveSession();
-    setRequestedWriteAccess(false);
+    setRequestedUseEIP712(false);
     setDataLoaded(false);
     setChainId(undefined as any);
   };
@@ -131,7 +131,7 @@ export const WalletInfoDropDown = () => {
 
         setWithdrawingStuckTokenAddress(tokenAddress);
         const signer = isTron || isSolana ? null : await getEthersSigner();
-        const session = { signature, sessionId, hasWriteAccess };
+        const session = { signature, sessionId, authMode };
         const buildReadOnlyAuth =
           isSolana && solanaProvider
             ? () =>
@@ -171,7 +171,7 @@ export const WalletInfoDropDown = () => {
         setWithdrawingStuckTokenAddress(null);
       }
     },
-    [walletAddress, chainId, signature, sessionId, hasWriteAccess, refreshBalances],
+    [walletAddress, chainId, signature, sessionId, authMode, refreshBalances],
   );
 
   return (

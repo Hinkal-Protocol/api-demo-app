@@ -1,3 +1,5 @@
+import type { EnclaveSessionAuthMode } from "./auth";
+
 export type EnclaveSessionAuthFields = {
   signature: string;
   sessionId: string;
@@ -9,12 +11,12 @@ export type EnclaveTxAuthFields = EnclaveSessionAuthFields & {
 };
 
 export type EnclaveSession = EnclaveSessionAuthFields & {
-  hasWriteAccess: boolean;
+  authMode: EnclaveSessionAuthMode;
   expiresAt: string;
 };
 
 export type TxSessionAuth = EnclaveSessionAuthFields & {
-  hasWriteAccess: boolean;
+  authMode: EnclaveSessionAuthMode;
 };
 
 /** Getter-route auth: session signature + sessionId + address + chainId. */
