@@ -1,5 +1,4 @@
 import { fetchAndVerifyAttestation } from "./attestation";
-import type { Auth } from "./types";
 
 export type HmacSession = {
   sessionId: string;
@@ -8,23 +7,15 @@ export type HmacSession = {
 
 const pemToSpkiDer = (pem: string): ArrayBuffer => {
   const b64 = pem.replace(/-----[^-]+-----/g, "").replace(/\s/g, "");
-  const s = atob(b64);
-  const out = new Uint8Array(s.length);
-  for (let i = 0; i < s.length; i++) out[i] = s.charCodeAt(i);
-  return out.buffer;
+  return Buffer.from(b64, "base64").buffer as ArrayBuffer;
 };
 
 const compressP256PublicKey = (raw: Uint8Array): string => {
   if (raw.length !== 65 || raw[0] !== 0x04) {
     throw new Error("Expected uncompressed P-256 public key");
   }
-  const prefix = raw[64]! & 1 ? 0x03 : 0x02;
-  const compressed = new Uint8Array(33);
-  compressed[0] = prefix;
-  compressed.set(raw.subarray(1, 33), 1);
-  return Array.from(compressed)
-    .map((b) => b.toString(16).padStart(2, "0"))
-    .join("");
+  const compressed = new Uint8Array([raw[64]! & 1 ? 0x03 : 0x02, ...raw.subarray(1, 33)]);
+  return Array.from(compressed, (b) => b.toString(16).padStart(2, "0")).join("");
 };
 
 export const computeHmacHex = async (
@@ -121,36 +112,3 @@ export const hmacPostHeader = async (
   ),
 });
 
-type QueryParamValue = string | string[];
-
-const appendQueryParams = (
-  search: URLSearchParams,
-  params: Record<string, QueryParamValue>,
-): void => {
-  for (const [key, value] of Object.entries(params)) {
-    if (Array.isArray(value)) {
-      for (const item of value) search.append(key, item);
-    } else {
-      search.append(key, value);
-    }
-  }
-};
-
-export const buildAuthGet = async (
-  auth: Auth,
-  params: Record<string, QueryParamValue> = {},
-): Promise<{
-  queryString: string;
-  headers: Record<string, string>;
-  requestNonce: string;
-}> => {
-  const base = sessionQueryParams(auth, auth.address, auth.chainId);
-  const search = new URLSearchParams();
-  appendQueryParams(search, { ...base, ...params });
-  const queryString = search.toString();
-  return {
-    queryString,
-    requestNonce: base.nonce,
-    headers: await hmacGetHeader(auth, queryString),
-  };
-};

@@ -1,4 +1,4 @@
-import { buildAuthGet } from "./hmac";
+import { buildAuthGet } from "./enclave-auth";
 import { enclaveFetch } from "./enclaveApi";
 import { Auth } from "./types";
 

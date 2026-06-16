@@ -1,5 +1,5 @@
 import { ERC20Token } from "../types";
-import { buildAuthGet } from "./hmac";
+import { buildAuthGet } from "./enclave-auth";
 import { buildAuthPost } from "./enclave-auth";
 import { enclaveFetch } from "./enclaveApi";
 import { ExternalActionId, getFeeStructure } from "./fees";

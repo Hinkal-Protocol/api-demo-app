@@ -5,8 +5,8 @@ import {
   getTypesForPrimary,
 } from "../constants/enclave.constants";
 import { EnclaveSessionAuthMode } from "./auth";
-import { hmacPostHeader, sessionBodyParams } from "./hmac";
-import type { EnclaveTxAuthFields, TxSessionAuth } from "./types";
+import { hmacGetHeader, hmacPostHeader, sessionBodyParams, sessionQueryParams } from "./hmac";
+import type { Auth, EnclaveTxAuthFields, TxSessionAuth } from "./types";
 import { Recipient } from "./multiSend";
 
 type TokenAmountPair = { token: string; amount: string };
@@ -31,6 +31,17 @@ const toTokenAmountValues = (pairs: TokenAmountPair[]) =>
     token,
     amount: BigInt(amount),
   }));
+
+const buildTokenAmountsBase = (
+  nonce: string,
+  sessionId: string,
+  params: { chainId: number; tokenAddresses: string[]; amounts: string[] },
+) => ({
+  nonce,
+  sessionId,
+  chainId: BigInt(params.chainId),
+  tokenAmounts: toTokenAmountValues(normalizeTokenAmountPairs(params.tokenAddresses, params.amounts)),
+});
 
 export const buildAuthPost = async (
   session: TxSessionAuth,
@@ -101,14 +112,7 @@ export const buildDepositAuthFields = (
     signer,
     primaryType,
     params.chainId,
-    (nonce) => ({
-      nonce,
-      sessionId,
-      chainId: BigInt(params.chainId),
-      tokenAmounts: toTokenAmountValues(
-        normalizeTokenAmountPairs(params.tokenAddresses, params.amounts),
-      ),
-    }),
+    (nonce) => buildTokenAmountsBase(nonce, sessionId, params),
   );
 
 export const buildTransferAuthFields = (
@@ -121,21 +125,10 @@ export const buildTransferAuthFields = (
     recipient: string;
   },
 ) =>
-  signEnclaveTypedData(
-    sessionId,
-    signer,
-    "Transfer",
-    params.chainId,
-    (nonce) => ({
-      nonce,
-      sessionId,
-      chainId: BigInt(params.chainId),
-      tokenAmounts: toTokenAmountValues(
-        normalizeTokenAmountPairs(params.tokenAddresses, params.amounts),
-      ),
-      recipient: params.recipient,
-    }),
-  );
+  signEnclaveTypedData(sessionId, signer, "Transfer", params.chainId, (nonce) => ({
+    ...buildTokenAmountsBase(nonce, sessionId, params),
+    recipient: params.recipient,
+  }));
 
 export const buildWithdrawAuthFields = (
   sessionId: string,
@@ -147,21 +140,10 @@ export const buildWithdrawAuthFields = (
     recipient: string;
   },
 ) =>
-  signEnclaveTypedData(
-    sessionId,
-    signer,
-    "Withdraw",
-    params.chainId,
-    (nonce) => ({
-      nonce,
-      sessionId,
-      chainId: BigInt(params.chainId),
-      tokenAmounts: toTokenAmountValues(
-        normalizeTokenAmountPairs(params.tokenAddresses, params.amounts),
-      ),
-      recipient: params.recipient,
-    }),
-  );
+  signEnclaveTypedData(sessionId, signer, "Withdraw", params.chainId, (nonce) => ({
+    ...buildTokenAmountsBase(nonce, sessionId, params),
+    recipient: params.recipient,
+  }));
 
 export const buildWithdrawStuckUtxosAuthFields = (
   sessionId: string,
@@ -191,14 +173,9 @@ export const buildSwapAuthFields = (
   signer: ethers.Signer,
   params: { chainId: number; tokenAddresses: string[]; amounts: string[] },
 ) =>
-  signEnclaveTypedData(sessionId, signer, "Swap", params.chainId, (nonce) => ({
-    nonce,
-    sessionId,
-    chainId: BigInt(params.chainId),
-    tokenAmounts: toTokenAmountValues(
-      normalizeTokenAmountPairs(params.tokenAddresses, params.amounts),
-    ),
-  }));
+  signEnclaveTypedData(sessionId, signer, "Swap", params.chainId, (nonce) =>
+    buildTokenAmountsBase(nonce, sessionId, params),
+  );
 
 export const buildDepositAndWithdrawAuthFields = (
   sessionId: string,
@@ -229,3 +206,37 @@ export const buildDepositAndWithdrawAuthFields = (
         .sort((a, b) => a.recipient.localeCompare(b.recipient)),
     }),
   );
+
+type QueryParamValue = string | string[];
+
+const appendQueryParams = (
+  search: URLSearchParams,
+  params: Record<string, QueryParamValue>,
+): void => {
+  for (const [key, value] of Object.entries(params)) {
+    if (Array.isArray(value)) {
+      for (const item of value) search.append(key, item);
+    } else {
+      search.append(key, value);
+    }
+  }
+};
+
+export const buildAuthGet = async (
+  auth: Auth,
+  params: Record<string, QueryParamValue> = {},
+): Promise<{
+  queryString: string;
+  headers: Record<string, string>;
+  requestNonce: string;
+}> => {
+  const base = sessionQueryParams(auth, auth.address, auth.chainId);
+  const search = new URLSearchParams();
+  appendQueryParams(search, { ...base, ...params });
+  const queryString = search.toString();
+  return {
+    queryString,
+    requestNonce: base.nonce,
+    headers: await hmacGetHeader(auth, queryString),
+  };
+};
