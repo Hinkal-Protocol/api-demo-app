@@ -10,7 +10,6 @@ import type { TxSessionAuth, TxWallet } from "./types";
 export const withdraw = async (
   wallet: TxWallet,
   session: TxSessionAuth,
-  account: string,
   chainId: number,
   tokenAddresses: string[],
   amounts: string[],
@@ -29,7 +28,6 @@ export const withdraw = async (
   };
   const { bodyJson, headers, requestNonce } = await buildAuthPost(
     session,
-    account,
     chainId,
     txParams,
     () =>
@@ -62,7 +60,6 @@ export const withdraw = async (
 export const withdrawStuckUtxos = async (
   wallet: TxWallet,
   session: TxSessionAuth,
-  account: string,
   chainId: number,
   tokenAddress: string,
   recipientAddress: string,
@@ -70,7 +67,6 @@ export const withdrawStuckUtxos = async (
   const txParams = { tokenAddress, recipientAddress };
   const { bodyJson, headers, requestNonce } = await buildAuthPost(
     session,
-    account,
     chainId,
     txParams,
     () =>

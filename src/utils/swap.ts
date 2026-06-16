@@ -51,7 +51,6 @@ export const getSwapData = async (
 export const executeSwap = async (
   wallet: TxWallet,
   session: TxSessionAuth,
-  account: string,
   getterAuth: Auth,
   inToken: ERC20Token,
   outToken: ERC20Token,
@@ -96,7 +95,6 @@ export const executeSwap = async (
 
   const { bodyJson, headers, requestNonce } = await buildAuthPost(
     session,
-    account,
     getterAuth.chainId,
     txParams,
     () =>

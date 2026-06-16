@@ -27,10 +27,9 @@ export type TxSessionAuth = {
   clientSecret: ArrayBuffer;
 };
 
-/** Getter-route auth: HMAC session + address + chainId. */
+/** Getter-route auth: HMAC session + chainId. */
 export type Auth = {
   sessionId: string;
   clientSecret: ArrayBuffer;
-  address: string;
   chainId: number;
 };

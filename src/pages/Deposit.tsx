@@ -77,7 +77,6 @@ export const Deposit = () => {
         const serializedTx = await deposit(
           wallet,
           session,
-          walletAddress,
           chainId,
           [tokenAddr],
           [amountStr],
@@ -87,7 +86,6 @@ export const Deposit = () => {
         const txData = await deposit(
           wallet,
           session,
-          walletAddress,
           chainId,
           [tokenAddr],
           [amountStr],
@@ -103,7 +101,6 @@ export const Deposit = () => {
         const txData = await deposit(
           wallet,
           session,
-          walletAddress,
           chainId,
           [selectedToken.erc20TokenAddress],
           [amountInWei.toString()],

@@ -7,7 +7,6 @@ import type { TxSessionAuth, TxWallet } from "./types";
 export const transfer = async (
   wallet: TxWallet,
   session: TxSessionAuth,
-  account: string,
   chainId: number,
   tokenAddresses: string[],
   amounts: string[],
@@ -24,7 +23,6 @@ export const transfer = async (
   };
   const { bodyJson, headers, requestNonce } = await buildAuthPost(
     session,
-    account,
     chainId,
     txParams,
     () =>

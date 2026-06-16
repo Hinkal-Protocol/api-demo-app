@@ -255,7 +255,6 @@ export const MultiSend = () => {
       const order = await depositAndWithdraw(
         wallet,
         session,
-        walletAddress,
         chainId,
         selectedToken.erc20TokenAddress,
         recipientsWei,

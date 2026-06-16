@@ -115,7 +115,6 @@ export const Transfer = () => {
       await transfer(
         wallet,
         session,
-        walletAddress,
         chainId,
         [tokenAddress],
         [amountStr],

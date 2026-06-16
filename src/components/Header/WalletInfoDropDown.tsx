@@ -106,7 +106,6 @@ export const WalletInfoDropDown = () => {
       }
       setIsCopyingPrivate(true);
       const recipientInfo = await fetchRecipientInfo({
-        address: walletAddress,
         chainId,
         sessionId,
         clientSecret,
@@ -136,7 +135,6 @@ export const WalletInfoDropDown = () => {
         const txHashes = await withdrawStuckUtxos(
           wallet,
           session,
-          walletAddress,
           chainId,
           tokenAddress,
           walletAddress,

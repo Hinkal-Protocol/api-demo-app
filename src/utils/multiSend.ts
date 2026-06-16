@@ -49,7 +49,6 @@ export type DepositAndWithdrawOrder = {
 export const depositAndWithdraw = async (
   wallet: TxWallet,
   session: TxSessionAuth,
-  account: string,
   chainId: number,
   tokenAddress: string,
   recipients: Recipient[],
@@ -62,7 +61,6 @@ export const depositAndWithdraw = async (
   };
   const { bodyJson, headers, requestNonce } = await buildAuthPost(
     session,
-    account,
     chainId,
     txParams,
     () =>

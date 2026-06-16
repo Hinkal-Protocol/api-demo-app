@@ -82,7 +82,7 @@ export const Swap = () => {
 
     let cancelled = false;
     setIsFeeLoading(true);
-    const auth = { sessionId, clientSecret, address: walletAddress, chainId };
+    const auth = { sessionId, clientSecret, chainId };
     const feeToken = isSolana
       ? outSwapToken.erc20TokenAddress
       : inSwapToken.erc20TokenAddress;
@@ -166,7 +166,7 @@ export const Swap = () => {
     )
       return;
 
-    const auth = { sessionId, clientSecret, address: walletAddress, chainId };
+    const auth = { sessionId, clientSecret, chainId };
     let cancelled = false;
     const timer = setTimeout(async () => {
       try {
@@ -251,7 +251,7 @@ export const Swap = () => {
 
     try {
       setIsProcessing(true);
-      const getterAuth = { sessionId, clientSecret, address: walletAddress, chainId };
+      const getterAuth = { sessionId, clientSecret, chainId };
       const wallet = {
         signer: isSolana ? null : await getEthersSigner(chainId),
         solanaProvider: isSolana ? solanaProvider : undefined,
@@ -259,7 +259,6 @@ export const Swap = () => {
       await executeSwap(
         wallet,
         { sessionId, authMode, clientSecret },
-        walletAddress,
         getterAuth,
         inSwapToken,
         outSwapToken,

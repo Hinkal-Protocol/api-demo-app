@@ -14,7 +14,6 @@ export type TxData = {
 export const deposit = async (
   wallet: TxWallet,
   session: TxSessionAuth,
-  account: string,
   chainId: number,
   tokenAddresses: string[],
   amounts: string[],
@@ -22,7 +21,6 @@ export const deposit = async (
   const txParams = { tokenAddresses, amounts };
   const { bodyJson, headers, requestNonce } = await buildAuthPost(
     session,
-    account,
     chainId,
     txParams,
     () =>

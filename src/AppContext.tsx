@@ -235,7 +235,6 @@ export const AppContextProvider: FC<AppContextProps> = ({
       const auth = {
         sessionId,
         clientSecret,
-        address: walletAddress,
         chainId,
       };
       const [bals, stuckBals] = await Promise.all([

@@ -2312,6 +2312,22 @@
       "symbol": "SOL",
       "decimals": 9,
       "logoURI": "https://assets.coingecko.com/coins/images/22876/thumb/SOL_wh_small.png?1644224316"
+    },
+    {
+      "chainId": 137,
+      "erc20TokenAddress": "0xDBf31dF14B66535aF65AaC99C32e9eA844e14501",
+      "name": "renBTC",
+      "symbol": "renBTC",
+      "decimals": 8,
+      "logoURI": "https://assets.coingecko.com/coins/images/11370/standard/Bitcoin.jpg"
+    },
+    {
+      "chainId": 137,
+      "erc20TokenAddress": "0x8343091F2499FD4b6174A46D067A920a3b851FF9",
+      "name": "JPY Coin",
+      "symbol": "JJPY",
+      "decimals": 18,
+      "logoURI": "https://assets.coingecko.com/coins/images/20885/standard/jjpy.png"
     }
   ]
 }

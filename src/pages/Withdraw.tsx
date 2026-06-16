@@ -116,7 +116,6 @@ export const Withdraw = () => {
       await withdraw(
         wallet,
         session,
-        walletAddress,
         chainId,
         [tokenAddress],
         [amountStr],

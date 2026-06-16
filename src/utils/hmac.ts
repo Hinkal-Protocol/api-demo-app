@@ -67,30 +67,25 @@ export const generateClientKeyMaterial = async (): Promise<{
 
 export const sessionQueryParams = (
   session: HmacSession,
-  address: string,
   chainId: number,
 ): Record<string, string> => ({
   sessionId: session.sessionId,
   nonce: crypto.randomUUID(),
-  address,
   chainId: String(chainId),
   timestamp: Date.now().toString(),
 });
 
 export const sessionBodyParams = (
   session: HmacSession,
-  address: string,
   chainId: number,
 ): {
   sessionId: string;
   nonce: string;
-  address: string;
   chainId: number;
   timestamp: number;
 } => ({
   sessionId: session.sessionId,
   nonce: crypto.randomUUID(),
-  address,
   chainId,
   timestamp: Date.now(),
 });

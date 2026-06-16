@@ -45,7 +45,6 @@ const buildTokenAmountsBase = (
 
 export const buildAuthPost = async (
   session: TxSessionAuth,
-  address: string,
   chainId: number,
   txData: Record<string, unknown>,
   buildTypedDataAuth: () => Promise<EnclaveTxAuthFields>,
@@ -56,7 +55,7 @@ export const buildAuthPost = async (
   requestNonce: string;
 }> => {
   if (session.authMode === EnclaveSessionAuthMode.Normal) {
-    const body = { ...sessionBodyParams(session, address, chainId), ...txData };
+    const body = { ...sessionBodyParams(session, chainId), ...txData };
     const bodyJson = JSON.stringify(body);
     return {
       body,
@@ -70,7 +69,7 @@ export const buildAuthPost = async (
   }
 
   const authFields = await buildTypedDataAuth();
-  const body = { ...authFields, address, chainId, ...txData };
+  const body = { ...authFields, chainId, ...txData };
   const bodyJson = JSON.stringify(body);
   return {
     body,
@@ -230,7 +229,7 @@ export const buildAuthGet = async (
   headers: Record<string, string>;
   requestNonce: string;
 }> => {
-  const base = sessionQueryParams(auth, auth.address, auth.chainId);
+  const base = sessionQueryParams(auth, auth.chainId);
   const search = new URLSearchParams();
   appendQueryParams(search, { ...base, ...params });
   const queryString = search.toString();
