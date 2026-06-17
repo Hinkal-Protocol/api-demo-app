@@ -22,7 +22,6 @@ import type { SolanaWalletProvider } from "./utils/solana-wallet";
 import { getERC20Registry } from "./constants/token-data";
 import { getEthersSigner } from "./utils/ethers-wallet";
 import { ERC20Token, TokenBalance } from "./types";
-
 export type WalletType = "evm" | "tron" | "solana";
 
 type AppContextArgumnets = {
@@ -123,6 +122,7 @@ export const AppContextProvider: FC<AppContextProps> = ({
   );
   const [isWalletBalancesLoading, setIsWalletBalancesLoading] = useState(false);
   const [isBalancesRefreshing, setIsBalancesRefreshing] = useState(false);
+
   const balancesRef = useRef<TokenBalance[]>([]);
   const abortControllerRef = useRef<AbortController | null>(null);
   const prevChainIdRef = useRef<number | undefined>();
@@ -184,6 +184,7 @@ export const AppContextProvider: FC<AppContextProps> = ({
           walletAddress,
           chainId,
           requestedWriteAccess,
+          true
         );
         if (!cancelled) {
           applyEnclaveSession(session);

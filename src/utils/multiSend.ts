@@ -1,9 +1,10 @@
 import { ethers } from "ethers";
-import { API_BASE_URL } from "../constants/server.constants";
 import {
   buildDepositAndWithdrawAuthFields,
   resolveTxAuthFields,
 } from "./enclave-auth";
+import { enclaveFetch } from "./enclaveApi";
+import { hasKeySignSession, signWriteRequest } from "./session";
 import type { EnclaveAuthFields, TxSessionAuth } from "./types";
 
 export enum OrderStatus {
@@ -73,15 +74,22 @@ export const depositAndWithdraw = async (
     ...(txCompletionTime !== undefined && { txCompletionTime }),
   };
 
-  const res = await fetch(`${API_BASE_URL}/private-send`, {
-    method: "POST",
-    headers: { "Content-Type": "application/json" },
-    body: JSON.stringify(body),
-  });
+  const headers: Record<string, string> = { "Content-Type": "application/json" };
+  let finalBody: Record<string, unknown> = body;
+  if (session.hasWriteAccess && hasKeySignSession()) {
+    const signed = signWriteRequest(body);
+    finalBody = signed.body;
+    headers["X-Request-Signature"] = signed.signature;
+  }
 
-  const data = (await res.json()) as
+  const { res, data } = await enclaveFetch<
     | ({ success: true } & DepositAndWithdrawOrder)
-    | { error?: string };
+    | { error?: string }
+  >("/private-send", authFields.nonce, {
+    method: "POST",
+    headers,
+    body: JSON.stringify(finalBody),
+  });
 
   if (!res.ok || !("success" in data && data.success)) {
     throw new Error((data as { error?: string }).error ?? "privateSend failed");
@@ -106,8 +114,9 @@ export type OrderStatusResponse = {
 export const getOrderStatus = async (
   orderId: string,
 ): Promise<OrderStatusResponse> => {
-  const res = await fetch(`${API_BASE_URL}/private-send/${orderId}`);
-  const data = (await res.json()) as OrderStatusResponse & { error?: string };
+  const { res, data } = await enclaveFetch<
+    OrderStatusResponse & { error?: string }
+  >(`/private-send/${orderId}`);
 
   if (!res.ok || data.success === false) {
     throw new Error(data.error ?? "Order status fetch failed");

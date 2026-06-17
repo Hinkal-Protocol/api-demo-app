@@ -1,4 +1,5 @@
-import { API_BASE_URL } from "../constants/server.constants";
+import { enclaveFetch } from "./enclaveApi";
+import { hasKeySignSession, signGetRequest } from "./session";
 import { Auth } from "./types";
 
 type RecipientInfoResponse =
@@ -18,10 +19,17 @@ export const fetchRecipientInfo = async (
     nonce,
   });
 
-  const res = await fetch(`${API_BASE_URL}/recipient-info?${params}`, {
-    signal,
-  });
-  const data = (await res.json()) as RecipientInfoResponse;
+  const init: RequestInit = { signal };
+  if (hasKeySignSession()) {
+    const signature = signGetRequest(params);
+    init.headers = { "X-Request-Signature": signature };
+  }
+
+  const { res, data } = await enclaveFetch<RecipientInfoResponse>(
+    `/recipient-info?${params}`,
+    nonce,
+    init,
+  );
 
   if (!res.ok || !("success" in data && data.success)) {
     const errorMessage = "error" in data ? data.error : undefined;
