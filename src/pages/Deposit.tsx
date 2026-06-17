@@ -164,7 +164,7 @@ export const Deposit = () => {
   };
 
   const exceedsBalance = useMemo(() => {
-    if (!selectedToken || !depositAmount) return false;
+    if (!selectedToken || !depositAmount || isProcessing) return false;
     try {
       const amountInWei = getAmountInWei(selectedToken, depositAmount);
       const balance =
@@ -173,7 +173,7 @@ export const Deposit = () => {
     } catch {
       return false;
     }
-  }, [selectedToken, depositAmount, walletBalances]);
+  }, [selectedToken, depositAmount, walletBalances, isProcessing]);
 
   const isDisabled = useMemo(
     () =>
