@@ -174,7 +174,7 @@ export const Transfer = () => {
   };
 
   const isRecipientAddressValid = useMemo(
-    () => isValidRecipientAddress(transferAddress, isSolana, isTron),
+    () => isValidRecipientAddress(transferAddress, isSolana, isTron, true),
     [transferAddress, isTron, isSolana],
   );
 

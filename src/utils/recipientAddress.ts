@@ -1,7 +1,6 @@
 import { ethers } from "ethers";
 import { PublicKey } from "@solana/web3.js";
 import { TronWeb } from "tronweb";
-import { SOLANA_NATIVE_ADDRESS } from "./solana-wallet";
 
 const REJECT_URLS = [
   "http://",
@@ -29,12 +28,7 @@ export const isValidPrivateAddress = (address: string): boolean => {
     stealthAddress?.length < 64;
   const incorrectSymbols = address.includes('"');
 
-  return !(
-    missingVariable ||
-    incorrectAddressFormat ||
-    incorrectLength ||
-    incorrectSymbols
-  );
+  return !(missingVariable || incorrectAddressFormat || incorrectLength || incorrectSymbols);
 };
 
 export const isValidSolanaPublicKey = (address: string): boolean => {
@@ -58,10 +52,11 @@ export const isValidRecipientAddress = (
   address: string,
   isSolana: boolean,
   isTron: boolean,
+  isPrivate: boolean = false,
 ): boolean => {
   const trimmed = address.trim();
   if (!trimmed) return false;
-  if (isValidPrivateAddress(trimmed)) return true;
+  if (isPrivate) return isValidPrivateAddress(trimmed);
   if (isSolana) return isValidSolanaPublicKey(trimmed);
   if (isTron) return isValidTronAddress(trimmed);
   return ethers.isAddress(trimmed);
