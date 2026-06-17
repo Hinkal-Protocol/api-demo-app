@@ -12,7 +12,7 @@ import { ALCHEMY_API_KEY } from "./chain.constants";
 export const arcTestnet = defineChain({
   id: 5042002,
   name: "Arc Testnet",
-  nativeCurrency: { name: "USD Coin", symbol: "USDC", decimals: 6 },
+  nativeCurrency: { name: "USD Coin", symbol: "USDC", decimals: 18 },
   rpcUrls: {
     default: {
       http: [`https://arc-testnet.g.alchemy.com/v2/${ALCHEMY_API_KEY}`],

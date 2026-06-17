@@ -21,7 +21,7 @@ const dynamicEvmNetworks = SUPPORTED_CHAINS.filter(
 }));
 
 export const dynamicSettings: DynamicContextProps["settings"] = {
-  environmentId: DYNAMIC_ENVIRONMENT_ID,
+  environmentId: DYNAMIC_ENVIRONMENT_ID || "missing-environment-id",
   walletsFilter: () => [],
   overrides: {
     evmNetworks: (networks) => mergeNetworks(dynamicEvmNetworks, networks),

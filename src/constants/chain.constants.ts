@@ -16,7 +16,9 @@ export const chainIds = {
 
 export const SWAP_EXCLUDED_CHAINS: number[] = [chainIds.arcTestnet];
 
-export const ALCHEMY_API_KEY = import.meta.env.VITE_ALCHEMY_API_KEY;
+export const ALCHEMY_API_KEY = import.meta.env.VITE_ALCHEMY_API_KEY || "";
+
+export const isAlchemyConfigured = !!ALCHEMY_API_KEY;
 
 export const networkRegistry: Record<number, Network> = {
   [chainIds.ethMainnet]: {
