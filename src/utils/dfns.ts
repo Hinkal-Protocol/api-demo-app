@@ -9,16 +9,11 @@ const getSigner = () => new WebAuthnSigner({ relyingParty });
 const dfnsApi = (authToken?: string) =>
   new DfnsApiClient({ orgId, authToken, baseUrl: apiUrl, signer: getSigner() });
 
-/** Google OIDC login; registers a passkey + Ethereum wallet if the user is new (401/404). */
-const socialLoginOrRegister = async (idToken: string): Promise<string> => {
-  const body = { orgId, socialLoginProviderKind: "Oidc", idToken } as const;
-  try {
-    return (await dfnsApi().auth.socialLogin({ body })).token;
-  } catch (err) {
-    const status = err instanceof DfnsError ? err.httpStatus : undefined;
-    if (status !== 401 && status !== 404) throw err;
-  }
-
+const register = async (body: {
+  orgId: string;
+  socialLoginProviderKind: "Oidc";
+  idToken: string;
+}): Promise<string> => {
   const challenge = await dfnsApi().auth.createSocialRegistrationChallenge({ body });
   const { authentication } = await dfnsApi(
     challenge.temporaryAuthenticationToken,
@@ -29,6 +24,24 @@ const socialLoginOrRegister = async (idToken: string): Promise<string> => {
     },
   });
   return authentication.token;
+};
+
+/**
+ * Google OIDC login; registers if the user is new (401/404). A user who canceled
+ * passkey setup before is stranded `Invited`: socialLogin succeeds but has no
+ * credential, so listing wallets is denied — fall back to registration to finish.
+ */
+const socialLoginOrRegister = async (idToken: string): Promise<string> => {
+  const body = { orgId, socialLoginProviderKind: "Oidc", idToken } as const;
+  try {
+    const token = (await dfnsApi().auth.socialLogin({ body })).token;
+    await dfnsApi(token).wallets.listWallets();
+    return token;
+  } catch (err) {
+    const status = err instanceof DfnsError ? err.httpStatus : undefined;
+    if (status !== 401 && status !== 403 && status !== 404) throw err;
+  }
+  return register(body);
 };
 
 /** Google idToken -> auth token -> the user's Ethereum wallet -> DfnsWallet signer. */
