@@ -1,5 +1,6 @@
-import { useState } from "react";
-import { Toaster } from "react-hot-toast";
+import { useEffect, useState } from "react";
+import toast, { Toaster } from "react-hot-toast";
+import { isAlchemyConfigured } from "./constants/chain.constants";
 import { Footer } from "./components/Footer";
 import { Header } from "./components/Header";
 import { NavigationBar } from "./components/NavigationBar";
@@ -13,6 +14,13 @@ import { Transfer } from "./pages/Transfer";
 import { MultiSend } from "./pages/MultiSend";
 const App = () => {
   const [activeTab, setActiveTab] = useState(AppTab.Deposit);
+
+  useEffect(() => {
+    if (!isAlchemyConfigured) {
+      toast.error("Alchemy API key missing in .env — RPC calls will fail");
+    }
+  }, []);
+
   return (
     <div className="bg-bgColor h-screen font-generalSans">
       <div className="bg-bgColor flex flex-col min-h-screen">

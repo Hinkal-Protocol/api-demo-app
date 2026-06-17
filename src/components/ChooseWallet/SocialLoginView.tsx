@@ -1,8 +1,10 @@
 import { useState, useMemo } from "react";
 import { ClientState } from "@turnkey/react-wallet-kit";
+import toast from "react-hot-toast";
 import type { ChooseWalletConnections } from "./useChooseWalletConnections";
 import { WalletOptionButton } from "./WalletOptionButton";
 import { DfnsGoogleOverlay } from "./DfnsGoogleOverlay";
+import { isWalletConfigured } from "../../constants";
 
 interface SocialLoginViewProps {
   connectingId: string | null;
@@ -31,26 +33,34 @@ export const SocialLoginView = ({
     () => [
       {
         id: "privy",
-        label: "Continue with Privy",
+        name: "Privy",
         disabled: !!connectingId || !privyReady,
+        configured: true,
         onClick: onConnectPrivy,
       },
       {
         id: "turnkey",
-        label: "Continue with Turnkey",
-        disabled: !!connectingId || turnkeyClientState === ClientState.Loading,
+        name: "Turnkey",
+        disabled:
+          !!connectingId ||
+          (isWalletConfigured.turnkey() &&
+            turnkeyClientState === ClientState.Loading),
+        configured: isWalletConfigured.turnkey(),
         onClick: onConnectTurnkey,
       },
       {
         id: "dynamic",
-        label: "Continue with Dynamic",
-        disabled: !!connectingId || !dynamicReady,
+        name: "Dynamic",
+        disabled:
+          !!connectingId || (isWalletConfigured.dynamic() && !dynamicReady),
+        configured: isWalletConfigured.dynamic(),
         onClick: onConnectDynamic,
       },
       {
         id: "dfns",
-        label: "Continue with DFNS",
+        name: "DFNS",
         disabled: !!connectingId,
+        configured: isWalletConfigured.dfns(),
         onClick: () => setDfnsOpen(true),
       },
     ],
@@ -70,14 +80,21 @@ export const SocialLoginView = ({
       <p className="text-hinkal-gray-100 text-sm text-center w-[80%]">
         Sign in with email.
       </p>
-      {socialProviders.map(({ id, label, disabled, onClick }) => (
+      {socialProviders.map(({ id, name, disabled, configured, onClick }) => (
         <WalletOptionButton
           key={id}
           variant="social"
-          label={label}
+          label={`Continue with ${name}`}
           disabled={disabled}
           loading={connectingId?.startsWith(id) ?? false}
-          onClick={onClick}
+          onClick={
+            configured
+              ? onClick
+              : () =>
+                  toast.error(
+                    `${name} is not configured — missing API keys in .env`,
+                  )
+          }
         />
       ))}
       {dfnsOpen && (

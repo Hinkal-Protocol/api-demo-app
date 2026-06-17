@@ -5,9 +5,9 @@ import { ethers } from "ethers";
 import { dfnsConfig } from "../constants";
 
 const { orgId, apiUrl, relyingParty } = dfnsConfig;
-const signer = new WebAuthnSigner({ relyingParty });
+const getSigner = () => new WebAuthnSigner({ relyingParty });
 const dfnsApi = (authToken?: string) =>
-  new DfnsApiClient({ orgId, authToken, baseUrl: apiUrl, signer });
+  new DfnsApiClient({ orgId, authToken, baseUrl: apiUrl, signer: getSigner() });
 
 /** Google OIDC login; registers a passkey + Ethereum wallet if the user is new (401/404). */
 const socialLoginOrRegister = async (idToken: string): Promise<string> => {
@@ -24,7 +24,7 @@ const socialLoginOrRegister = async (idToken: string): Promise<string> => {
     challenge.temporaryAuthenticationToken,
   ).auth.registerEndUser({
     body: {
-      firstFactorCredential: await signer.create(challenge),
+      firstFactorCredential: await getSigner().create(challenge),
       wallets: [{ network: "Ethereum" }],
     },
   });
