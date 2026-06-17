@@ -10,7 +10,12 @@ import { wagmiConfig } from "./wagmi.config";
 import { AppContextProvider } from "./AppContext";
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
 import { SUPPORTED_CHAINS } from "./constants/supported-chain-ids.constants";
-import { dfnsConfig, PRIVY_APP_ID, turnkeyConfig } from "./constants";
+import {
+  dfnsConfig,
+  isWalletConfigured,
+  PRIVY_APP_ID,
+  turnkeyConfig,
+} from "./constants";
 import { dynamicSettings } from "./constants/dynamic.config";
 import turnkeyStyles from "@turnkey/react-wallet-kit/styles.css?raw";
 
@@ -20,6 +25,21 @@ document.head.appendChild(style);
 
 const queryClient = new QueryClient();
 
+// Privy rejects a placeholder appId and throws at mount, so it
+// can only be skipped (not stubbed). When unconfigured, render the inner tree
+// without it; the Privy button is gated elsewhere and toasts.
+const inner = (
+  <TurnkeyProvider config={turnkeyConfig}>
+    <QueryClientProvider client={queryClient}>
+      <WagmiProvider config={wagmiConfig}>
+        <AppContextProvider>
+          <App />
+        </AppContextProvider>
+      </WagmiProvider>
+    </QueryClientProvider>
+  </TurnkeyProvider>
+);
+
 ReactDOM.createRoot(document.getElementById("root") as HTMLElement).render(
   <GoogleOAuthProvider clientId={dfnsConfig.googleClientId}>
     <DynamicContextProvider
@@ -28,28 +48,24 @@ ReactDOM.createRoot(document.getElementById("root") as HTMLElement).render(
         walletConnectors: [EthereumWalletConnectors],
       }}
     >
-      <PrivyProvider
-        appId={PRIVY_APP_ID}
-        config={{
-          loginMethods: ["email"],
-          supportedChains: [...SUPPORTED_CHAINS],
-          embeddedWallets: {
-            ethereum: { createOnLogin: "users-without-wallets" },
+      {!isWalletConfigured.privy() ? (
+        inner
+      ) : (
+        <PrivyProvider
+          appId={PRIVY_APP_ID}
+          config={{
+            loginMethods: ["email"],
+            supportedChains: [...SUPPORTED_CHAINS],
+            embeddedWallets: {
+              ethereum: { createOnLogin: "users-without-wallets" },
 
-            showWalletUIs: true,
-          },
-        }}
-      >
-        <TurnkeyProvider config={turnkeyConfig}>
-          <QueryClientProvider client={queryClient}>
-            <WagmiProvider config={wagmiConfig}>
-              <AppContextProvider>
-                <App />
-              </AppContextProvider>
-            </WagmiProvider>
-          </QueryClientProvider>
-        </TurnkeyProvider>
-      </PrivyProvider>
+              showWalletUIs: true,
+            },
+          }}
+        >
+          {inner}
+        </PrivyProvider>
+      )}
     </DynamicContextProvider>
   </GoogleOAuthProvider>,
 );

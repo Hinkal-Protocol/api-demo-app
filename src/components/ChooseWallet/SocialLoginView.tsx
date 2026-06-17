@@ -34,8 +34,9 @@ export const SocialLoginView = ({
       {
         id: "privy",
         name: "Privy",
-        disabled: !!connectingId || !privyReady,
-        configured: true,
+        disabled:
+          !!connectingId || (isWalletConfigured.privy() && !privyReady),
+        configured: isWalletConfigured.privy(),
         onClick: onConnectPrivy,
       },
       {

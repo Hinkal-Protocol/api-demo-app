@@ -9,10 +9,10 @@ export const mediaUrls = {
 
 export const zeroAddress = `0x${"00".repeat(20)}`;
 
-export const PRIVY_APP_ID = "cmpzcz5re00et0cjmajy6q25y";
-
 // Fall back to "" when an env key is missing so providers still mount and the
 // app renders; each connect handler then checks its key and shows a toast.
+export const PRIVY_APP_ID = import.meta.env.VITE_PRIVY_APP_ID || "";
+
 export const DYNAMIC_ENVIRONMENT_ID =
   import.meta.env.VITE_DYNAMIC_ENVIRONMENT_ID || "";
 
@@ -34,6 +34,7 @@ export const turnkeyConfig: TurnkeyProviderConfig = {
 
 // True when every env key a wallet needs is present.
 export const isWalletConfigured = {
+  privy: () => !!PRIVY_APP_ID,
   dynamic: () => !!DYNAMIC_ENVIRONMENT_ID,
   turnkey: () =>
     !!turnkeyConfig.organizationId && !!turnkeyConfig.authProxyConfigId,
