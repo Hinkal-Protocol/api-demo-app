@@ -5,6 +5,25 @@ import { hasKeySignSession, signWriteRequest } from "./session";
 import type { EnclaveAuthFields, TxSessionAuth } from "./types";
 import { FeeStructure } from "./fees";
 
+// ONLY FOR WALLET-CONNECT
+// for wallet-connect sessions thier safeJsonParse method identifies long consecutive
+// numbers as a bigint and adds " delimiters which messes up json decoding for this request
+// so as a workaround we conver this to hex
+const normalizeRecipientForSigning = (recipient: string): string => {
+  const parts = recipient.split(",");
+  if (parts.length !== 5) return recipient;
+  return parts
+    .map((part) => {
+      if (part.startsWith("0x")) return part;
+      try {
+        return "0x" + BigInt(part).toString(16);
+      } catch {
+        return part;
+      }
+    })
+    .join(",");
+};
+
 export const transfer = async (
   signer: ethers.Signer | null,
   session: TxSessionAuth,
@@ -20,7 +39,7 @@ export const transfer = async (
   const authFields = await resolveTxAuthFields(session, () => {
     if (buildReadOnlyAuth) return buildReadOnlyAuth();
     if (!signer) throw new Error("EVM signer required for transfer without write-access session");
-    return buildTransferAuthFields(signer, { chainId, tokenAddresses, amounts, recipient: recipientAddress });
+    return buildTransferAuthFields(signer, { chainId, tokenAddresses, amounts, recipient: normalizeRecipientForSigning(recipientAddress) });
   });
   const body = {
     ...authFields,
@@ -28,7 +47,7 @@ export const transfer = async (
     chainId,
     tokenAddresses,
     amounts,
-    recipientAddress,
+    recipientAddress: normalizeRecipientForSigning(recipientAddress),
     feeToken,
     feeStructure,
   };
