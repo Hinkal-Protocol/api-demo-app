@@ -18,6 +18,21 @@ export const TERMINAL_ORDER_STATUSES = new Set<OrderStatus>([
   OrderStatus.Scheduled,
 ]);
 
+const SCHEDULED_TX_STATUS_LABELS: Record<string, string> = {
+  pending: "Pending",
+  processing: "Processing",
+  waiting_for_relayer: "Processing",
+  sent_on_chain: "Confirming",
+  completed: "Completed",
+  failed: "Failed",
+};
+
+export const formatScheduledTxStatus = (status: string): string =>
+  SCHEDULED_TX_STATUS_LABELS[status] ?? status;
+
+export const isScheduledTxTerminal = (status: string): boolean =>
+  status === "completed" || status === "failed";
+
 export type ScheduledTransactionItem = {
   status: string;
   scheduledTime: string;
