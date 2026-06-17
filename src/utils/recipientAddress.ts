@@ -3,16 +3,23 @@ import { PublicKey } from "@solana/web3.js";
 import { TronWeb } from "tronweb";
 import { SOLANA_NATIVE_ADDRESS } from "./solana-wallet";
 
-const REJECT_URLS = ["http://", "https://", "/payment/", ".app/", ".com/", ".netlify."];
+const REJECT_URLS = [
+  "http://",
+  "https://",
+  "/payment/",
+  ".app/",
+  ".com/",
+  ".netlify.",
+];
 
 export const isValidPrivateAddress = (address: string): boolean => {
   const looksLikeUrl = REJECT_URLS.some((url) => address.includes(url));
   if (looksLikeUrl) return false;
 
-  const [randomization, stealthAddress, encryptionKey, H0, H1] = address.split(",");
+  const [stealthAddress, H00, H01, H11, encryptionKey] = address.split(",");
 
   const missingVariable =
-    !randomization || !stealthAddress || !encryptionKey || !H0 || !H1;
+    !stealthAddress || !encryptionKey || !H00 || !H01 || !H11;
   const incorrectAddressFormat =
     stealthAddress?.substring(0, 2) !== "0x" ||
     encryptionKey?.substring(0, 2) !== "0x";
@@ -47,10 +54,6 @@ export const isValidTronAddress = (address: string): boolean => {
   }
 };
 
-
-
-
-
 export const isValidRecipientAddress = (
   address: string,
   isSolana: boolean,
@@ -70,10 +73,16 @@ export const getRecipientAddressError = (
   isPrivate: boolean,
 ): string => {
   if (isSolana) {
-    return isPrivate ? "Invalid private address" : "Invalid address. Use a Solana address";
+    return isPrivate
+      ? "Invalid private address"
+      : "Invalid address. Use a Solana address";
   }
   if (isTron) {
-    return isPrivate ? "Invalid private address" : "Invalid address. Use a Tron address";
+    return isPrivate
+      ? "Invalid private address"
+      : "Invalid address. Use a Tron address";
   }
-  return isPrivate ? "Invalid private address" : "Invalid address. Use an EVM address";
+  return isPrivate
+    ? "Invalid private address"
+    : "Invalid address. Use an EVM address";
 };
