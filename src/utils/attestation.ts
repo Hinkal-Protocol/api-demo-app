@@ -1,4 +1,9 @@
-import { API_BASE_URL } from "../constants/server.constants";
+import {
+  API_BASE_URL,
+  ENCLAVE_API_URL_LOCAL,
+} from "../constants/server.constants";
+
+const IS_LOCAL = API_BASE_URL === ENCLAVE_API_URL_LOCAL;
 
 const toBytes = (b64: string): Uint8Array<ArrayBuffer> => {
   const s = window.atob(b64);
@@ -66,11 +71,22 @@ export const fetchAndVerifyAttestation = async (): Promise<string> => {
   const res = await fetch(`${API_BASE_URL}/attestation?nonce=${nonce}`);
   if (!res.ok) throw new Error("Failed to fetch attestation");
 
-  const { jwt, imageDigest, verificationPublicKey } = (await res.json()) as {
-    jwt: string;
-    imageDigest: string;
-    verificationPublicKey: string;
+  const data = (await res.json()) as {
+    jwt?: string;
+    imageDigest?: string;
+    verificationPublicKey?: string;
   };
+
+  if (!data.verificationPublicKey) {
+    throw new Error("Missing verificationPublicKey in attestation response");
+  }
+
+  if (IS_LOCAL) {
+    return data.verificationPublicKey;
+  }
+
+  const { jwt, imageDigest, verificationPublicKey } = data;
+  if (!jwt) throw new Error("Missing jwt in attestation response");
 
   await verifyJwtSignature(jwt);
 
@@ -106,21 +122,24 @@ const ensureVerificationPublicKey = async (): Promise<string> => {
   return verificationPublicKey;
 };
 
-export const verifyResponseWithAttestation = async (
+export const verifyResponseNonce = (
+  rawBody: string,
+  requestNonce: string,
+): void => {
+  const parsed = JSON.parse(rawBody) as { nonce?: unknown };
+  if (parsed.nonce !== requestNonce) {
+    throw new Error("Response nonce mismatch");
+  }
+};
+
+export const verifyResponseAttestation = async (
   res: Response,
   rawBody: string,
-  requestNonce?: string,
 ): Promise<void> => {
   const key = await ensureVerificationPublicKey();
 
-  if (requestNonce) {
-    const parsed = JSON.parse(rawBody) as { nonce?: unknown };
-    if (parsed.nonce !== requestNonce)
-      throw new Error("Response nonce mismatch");
-  }
-
-  const signature = res.headers.get("x-hinkal-signature");
-  if (!signature) throw new Error("Missing X-Hinkal-Signature header");
+  const signature = res.headers.get("x-hinkal-response-signature");
+  if (!signature) throw new Error("Missing x-hinkal-response-signature header");
   let valid = await verifyEnclaveResponse(rawBody, signature, key);
   if (!valid) {
     const freshKey = await refreshEnclaveAttestation();

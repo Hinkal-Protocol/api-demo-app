@@ -1,5 +1,8 @@
-import { API_BASE_URL, ENCLAVE_API_URL_LOCAL } from "../constants/server.constants";
-import { verifyResponseWithAttestation } from "./attestation";
+import {
+  API_BASE_URL,
+  ENCLAVE_API_URL_LOCAL,
+} from "../constants/server.constants";
+import { verifyResponseAttestation, verifyResponseNonce } from "./attestation";
 
 const IS_LOCAL = API_BASE_URL === ENCLAVE_API_URL_LOCAL;
 
@@ -20,15 +23,11 @@ export const enclaveFetch = async <T>(
   }
 
   const rawBody = await res.text();
-  if (!IS_LOCAL) {
-    let expectedNonce = requestNonce;
-    if (init?.body && typeof init.body === "string") {
-      try {
-        const outgoing = JSON.parse(init.body) as Record<string, unknown>;
-        if (typeof outgoing.requestId === "string") expectedNonce = outgoing.requestId;
-      } catch {}
-    }
-    await verifyResponseWithAttestation(res, rawBody, expectedNonce);
+  if (requestNonce) {
+    verifyResponseNonce(rawBody, requestNonce);
+  }
+  if (!IS_LOCAL && requestNonce) {
+    await verifyResponseAttestation(res, rawBody);
   }
 
   return { res, data: JSON.parse(rawBody) as T };

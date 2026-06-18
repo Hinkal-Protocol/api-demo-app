@@ -29,8 +29,7 @@ import { SUPPORTED_CHAINS } from "../../constants/supported-chain-ids.constants"
 import { getFriendlyErrorMessage } from "../../utils/errors";
 
 interface UseChooseWalletConnectionsParams {
-  writeAccessEnabled: boolean;
-  useKeySign: boolean;
+  useEIP712Enabled: boolean;
   onHide: () => void;
   setShieldedAddress: (value: string | undefined) => void;
   setIsConnecting?: (value: boolean) => void;
@@ -40,8 +39,7 @@ export const useChooseWalletConnections = ({
   onHide,
   setShieldedAddress,
   setIsConnecting,
-  writeAccessEnabled,
-  useKeySign,
+  useEIP712Enabled,
 }: UseChooseWalletConnectionsParams) => {
   const connectors = useConnectors();
   const config = useConfig();
@@ -65,7 +63,7 @@ export const useChooseWalletConnections = ({
     setChainId,
     setDataLoaded,
     setWalletAddress,
-    setRequestedWriteAccess,
+    setRequestedUseEIP712,
     applyEnclaveSession,
     setWalletType,
     setSolanaProvider,
@@ -82,13 +80,11 @@ export const useChooseWalletConnections = ({
   const completeEvmSession = useCallback(
     async (account: string, chainId: number) => {
       const signer = await getEthersSigner(chainId);
-      setRequestedWriteAccess(writeAccessEnabled);
+      setRequestedUseEIP712(useEIP712Enabled);
       const session = await createEnclaveSession(
         signer,
         account,
-        chainId,
-        writeAccessEnabled,
-        useKeySign,
+        useEIP712Enabled,
       );
       setWalletType("evm");
       setWalletAddress(account);
@@ -99,9 +95,8 @@ export const useChooseWalletConnections = ({
       onHide();
     },
     [
-      writeAccessEnabled,
-      useKeySign,
-      setRequestedWriteAccess,
+      useEIP712Enabled,
+      setRequestedUseEIP712,
       applyEnclaveSession,
       setShieldedAddress,
       setChainId,
@@ -316,11 +311,10 @@ export const useChooseWalletConnections = ({
         const { address, chainId } = await connectSolanaWallet(provider);
         const session = await createSolanaEnclaveSession(
           address,
-          chainId,
           provider,
-          writeAccessEnabled,
+          useEIP712Enabled,
         );
-        setRequestedWriteAccess(writeAccessEnabled);
+        setRequestedUseEIP712(useEIP712Enabled);
         setWalletType("solana");
         setSolanaProvider(provider);
         setWalletAddress(address);
@@ -343,13 +337,13 @@ export const useChooseWalletConnections = ({
       }
     },
     [
-      writeAccessEnabled,
+      useEIP712Enabled,
       setIsConnecting,
       setShieldedAddress,
       setChainId,
       setDataLoaded,
       setWalletAddress,
-      setRequestedWriteAccess,
+      setRequestedUseEIP712,
       applyEnclaveSession,
       setWalletType,
       setSolanaProvider,
@@ -365,10 +359,9 @@ export const useChooseWalletConnections = ({
       const { address, chainId } = await connectTronLink();
       const session = await createTronEnclaveSession(
         address,
-        chainId,
-        writeAccessEnabled,
+        useEIP712Enabled,
       );
-      setRequestedWriteAccess(writeAccessEnabled);
+      setRequestedUseEIP712(useEIP712Enabled);
       setWalletType("tron");
       setWalletAddress(address);
       applyEnclaveSession(session);
@@ -382,13 +375,13 @@ export const useChooseWalletConnections = ({
       finishConnecting();
     }
   }, [
-    writeAccessEnabled,
+    useEIP712Enabled,
     setIsConnecting,
     setShieldedAddress,
     setChainId,
     setDataLoaded,
     setWalletAddress,
-    setRequestedWriteAccess,
+    setRequestedUseEIP712,
     applyEnclaveSession,
     setWalletType,
     onHide,

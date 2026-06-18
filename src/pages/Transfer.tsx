@@ -20,8 +20,6 @@ import { useTransactFee } from "../hooks/useTransactFee";
 import { getFriendlyErrorMessage } from "../utils/errors";
 import { transfer } from "../utils/transfer";
 import { getEthersSigner } from "../utils/ethers-wallet";
-import { buildSolanaTransferAuthFields } from "../utils/solana-auth";
-import { buildTronTransferAuthFields } from "../utils/tron-auth";
 import {
   getRecipientAddressError,
   isValidRecipientAddress,
@@ -32,9 +30,9 @@ export const Transfer = () => {
     walletAddress,
     refreshBalancesSoon,
     chainId,
-    signature,
-    nonce,
-    hasWriteAccess,
+    sessionId,
+    privateKey,
+    authMode,
     isTron,
     isSolana,
     solanaProvider,
@@ -100,7 +98,7 @@ export const Transfer = () => {
 
   const handleTransfer = useCallback(async () => {
     try {
-      if (!chainId || !selectedToken || !walletAddress || !signature || !nonce)
+      if (!chainId || !selectedToken || !walletAddress || !sessionId || !privateKey)
         return;
       if (!feeStructure) return;
       setIsProcessing(true);
@@ -108,38 +106,21 @@ export const Transfer = () => {
       const amountInWei = getAmountInWei(selectedToken, transferAmount);
       const tokenAddress = selectedToken.erc20TokenAddress;
 
-      const signer = isTron || isSolana ? null : await getEthersSigner(chainId);
+      const wallet = {
+        signer: isTron || isSolana ? null : await getEthersSigner(chainId),
+        solanaProvider: isSolana ? solanaProvider : undefined,
+      };
       const amountStr = amountInWei.toString();
-      const buildReadOnlyAuth =
-        isSolana && solanaProvider
-          ? () =>
-              buildSolanaTransferAuthFields(
-                solanaProvider,
-                chainId,
-                [tokenAddress],
-                [amountStr],
-                transferAddress,
-              )
-          : isTron
-          ? () =>
-              buildTronTransferAuthFields(
-                chainId,
-                [tokenAddress],
-                [amountStr],
-                transferAddress,
-              )
-          : undefined;
+      const session = { sessionId, authMode, privateKey };
       await transfer(
-        signer,
-        { signature, nonce, hasWriteAccess },
-        walletAddress,
+        wallet,
+        session,
         chainId,
         [tokenAddress],
         [amountStr],
         transferAddress,
         tokenAddress,
         feeStructure,
-        buildReadOnlyAuth,
       );
 
       toast.success("Transfer confirmed");
@@ -154,13 +135,16 @@ export const Transfer = () => {
     chainId,
     selectedToken,
     walletAddress,
-    signature,
-    nonce,
+    sessionId,
+    privateKey,
     transferAmount,
     transferAddress,
     feeStructure,
     refreshBalancesSoon,
-    hasWriteAccess,
+    authMode,
+    isTron,
+    isSolana,
+    solanaProvider,
   ]);
 
   const setTransferAddressHandler = (

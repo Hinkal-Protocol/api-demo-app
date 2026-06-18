@@ -20,8 +20,6 @@ import { useTransactFee } from "../hooks/useTransactFee";
 import { getFriendlyErrorMessage } from "../utils/errors";
 import { withdraw } from "../utils/withdraw";
 import { getEthersSigner } from "../utils/ethers-wallet";
-import { buildSolanaWithdrawAuthFields } from "../utils/solana-auth";
-import { buildTronWithdrawAuthFields } from "../utils/tron-auth";
 import {
   getRecipientAddressError,
   isValidRecipientAddress,
@@ -33,9 +31,9 @@ export const Withdraw = () => {
     refreshBalances,
     refreshBalancesSoon,
     chainId,
-    signature,
-    nonce,
-    hasWriteAccess,
+    sessionId,
+    privateKey,
+    authMode,
     isTron,
     isSolana,
     solanaProvider,
@@ -101,7 +99,7 @@ export const Withdraw = () => {
 
   const handleWithdraw = useCallback(async () => {
     try {
-      if (!chainId || !selectedToken || !walletAddress || !signature || !nonce)
+      if (!chainId || !selectedToken || !walletAddress || !sessionId || !privateKey)
         return;
       if (!isRelayerOff && !feeStructure) return;
       setIsProcessing(true);
@@ -109,31 +107,15 @@ export const Withdraw = () => {
       const amountInWei = getAmountInWei(selectedToken, withdrawAmount);
       const tokenAddress = selectedToken.erc20TokenAddress;
 
-      const signer = isTron || isSolana ? null : await getEthersSigner(chainId);
+      const wallet = {
+        signer: isTron || isSolana ? null : await getEthersSigner(chainId),
+        solanaProvider: isSolana ? solanaProvider : undefined,
+      };
       const amountStr = amountInWei.toString();
-      const buildReadOnlyAuth =
-        isSolana && solanaProvider
-          ? () =>
-              buildSolanaWithdrawAuthFields(
-                solanaProvider,
-                chainId,
-                [tokenAddress],
-                [amountStr],
-                recipientAddress,
-              )
-          : isTron
-          ? () =>
-              buildTronWithdrawAuthFields(
-                chainId,
-                [tokenAddress],
-                [amountStr],
-                recipientAddress,
-              )
-          : undefined;
+      const session = { sessionId, authMode, privateKey };
       await withdraw(
-        signer,
-        { signature, nonce, hasWriteAccess },
-        walletAddress,
+        wallet,
+        session,
         chainId,
         [tokenAddress],
         [amountStr],
@@ -141,7 +123,6 @@ export const Withdraw = () => {
         isRelayerOff,
         tokenAddress,
         feeStructure,
-        buildReadOnlyAuth,
       );
 
       toast.success("Withdraw confirmed");
@@ -156,15 +137,18 @@ export const Withdraw = () => {
     chainId,
     selectedToken,
     walletAddress,
-    signature,
-    nonce,
+    sessionId,
+    privateKey,
     withdrawAmount,
     recipientAddress,
     isRelayerOff,
     feeStructure,
     refreshBalances,
     refreshBalancesSoon,
-    hasWriteAccess,
+    authMode,
+    isTron,
+    isSolana,
+    solanaProvider,
   ]);
 
   const setRecipientAddressHandler = (

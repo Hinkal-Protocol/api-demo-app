@@ -1,11 +1,7 @@
-import { ethers } from "ethers";
-import {
-  buildDepositAndWithdrawAuthFields,
-  resolveTxAuthFields,
-} from "./enclave-auth";
+import { buildAuthPost } from "./enclave-auth";
 import { enclaveFetch } from "./enclaveApi";
-import { hasKeySignSession, signWriteRequest } from "./session";
-import type { EnclaveAuthFields, TxSessionAuth } from "./types";
+import { resolvePrivateSendAuth } from "./resolve-tx-auth";
+import type { TxSessionAuth, TxWallet } from "./types";
 
 export enum OrderStatus {
   Processing = "processing",
@@ -66,44 +62,43 @@ export type DepositAndWithdrawOrder = {
 };
 
 export const depositAndWithdraw = async (
-  signer: ethers.Signer | null,
+  wallet: TxWallet,
   session: TxSessionAuth,
-  account: string,
   chainId: number,
   tokenAddress: string,
   recipients: Recipient[],
   txCompletionTime?: number,
-  buildReadOnlyAuth?: () => Promise<EnclaveAuthFields>,
+  feeToken?: string,
 ): Promise<DepositAndWithdrawOrder> => {
-  const authFields = await resolveTxAuthFields(session, () => {
-    if (buildReadOnlyAuth) return buildReadOnlyAuth();
-    if (!signer) throw new Error("EVM signer required for privateSend without write-access session");
-    return buildDepositAndWithdrawAuthFields(signer, { chainId, tokenAddress, recipients });
-  });
-  const body = {
-    ...authFields,
-    address: account,
-    chainId,
+  const txParams = {
     tokenAddress,
     recipients,
     ...(txCompletionTime !== undefined && { txCompletionTime }),
+    ...(feeToken !== undefined && { feeToken }),
   };
-
-  const headers: Record<string, string> = { "Content-Type": "application/json" };
-  let finalBody: Record<string, unknown> = body;
-  if (session.hasWriteAccess && hasKeySignSession()) {
-    const signed = signWriteRequest(body);
-    finalBody = signed.body;
-    headers["X-Request-Signature"] = signed.signature;
-  }
+  const { bodyJson, headers, requestNonce } = await buildAuthPost(
+    session,
+    chainId,
+    txParams,
+    () =>
+      resolvePrivateSendAuth(
+        wallet,
+        session.sessionId,
+        chainId,
+        tokenAddress,
+        recipients,
+        feeToken,
+        txCompletionTime,
+      ),
+  );
 
   const { res, data } = await enclaveFetch<
     | ({ success: true } & DepositAndWithdrawOrder)
     | { error?: string }
-  >("/private-send", authFields.nonce, {
+  >("/private-send", requestNonce, {
     method: "POST",
     headers,
-    body: JSON.stringify(finalBody),
+    body: bodyJson,
   });
 
   if (!res.ok || !("success" in data && data.success)) {

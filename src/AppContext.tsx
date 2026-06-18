@@ -18,6 +18,7 @@ import { getPublicBalances } from "./utils/public-balances";
 import { createEnclaveSession } from "./utils/session";
 import { getFriendlyErrorMessage } from "./utils/errors";
 import type { EnclaveSession } from "./utils/types";
+import { EnclaveSessionAuthMode } from "./utils/auth";
 import type { SolanaWalletProvider } from "./utils/solana-wallet";
 import { getERC20Registry } from "./constants/token-data";
 import { getEthersSigner } from "./utils/ethers-wallet";
@@ -25,20 +26,19 @@ import { ERC20Token, TokenBalance } from "./types";
 export type WalletType = "evm" | "tron" | "solana";
 
 type AppContextArgumnets = {
-  signature: string | null;
-  setSignature: Dispatch<SetStateAction<string | null>>;
-  nonce: string | null;
-  setNonce: Dispatch<SetStateAction<string | null>>;
-  hasWriteAccess: boolean;
+  sessionId: string | null;
+  setSessionId: Dispatch<SetStateAction<string | null>>;
+  privateKey: Uint8Array | null;
+  authMode: EnclaveSessionAuthMode;
   sessionExpiresAt: string | null;
-  requestedWriteAccess: boolean;
+  requestedUseEIP712: boolean;
   walletType: WalletType | null;
   setWalletType: Dispatch<SetStateAction<WalletType | null>>;
   isTron: boolean;
   isSolana: boolean;
   solanaProvider: SolanaWalletProvider | null;
   setSolanaProvider: Dispatch<SetStateAction<SolanaWalletProvider | null>>;
-  setRequestedWriteAccess: Dispatch<SetStateAction<boolean>>;
+  setRequestedUseEIP712: Dispatch<SetStateAction<boolean>>;
   applyEnclaveSession: (session: EnclaveSession) => void;
   clearEnclaveSession: () => void;
   walletAddress: string | null;
@@ -63,14 +63,13 @@ const BALANCE_REFRESH_INTERVAL = 100000;
 const WALLET_BALANCES_REFRESH_INTERVAL = 7000;
 
 const AppContext = createContext<AppContextArgumnets>({
-  signature: null,
-  setSignature: () => {},
-  nonce: null,
-  setNonce: () => {},
-  hasWriteAccess: false,
+  sessionId: null,
+  setSessionId: () => {},
+  privateKey: null,
+  authMode: EnclaveSessionAuthMode.Normal,
   sessionExpiresAt: null,
-  requestedWriteAccess: false,
-  setRequestedWriteAccess: () => {},
+  requestedUseEIP712: false,
+  setRequestedUseEIP712: () => {},
   walletType: null,
   setWalletType: () => {},
   isTron: false,
@@ -102,11 +101,13 @@ type AppContextProps = { children: ReactNode };
 export const AppContextProvider: FC<AppContextProps> = ({
   children,
 }: AppContextProps) => {
-  const [signature, setSignature] = useState<string | null>(null);
-  const [nonce, setNonce] = useState<string | null>(null);
-  const [hasWriteAccess, setHasWriteAccess] = useState(false);
+  const [sessionId, setSessionId] = useState<string | null>(null);
+  const [privateKey, setPrivateKey] = useState<Uint8Array | null>(null);
+  const [authMode, setAuthMode] = useState<EnclaveSessionAuthMode>(
+    EnclaveSessionAuthMode.Normal,
+  );
   const [sessionExpiresAt, setSessionExpiresAt] = useState<string | null>(null);
-  const [requestedWriteAccess, setRequestedWriteAccess] = useState(false);
+  const [requestedUseEIP712, setRequestedUseEIP712] = useState(false);
   const [walletAddress, setWalletAddress] = useState<string | null>(null);
   const [walletType, setWalletType] = useState<WalletType | null>(null);
   const [solanaProvider, setSolanaProvider] =
@@ -141,16 +142,16 @@ export const AppContextProvider: FC<AppContextProps> = ({
   );
 
   const applyEnclaveSession = useCallback((session: EnclaveSession) => {
-    setSignature(session.signature);
-    setNonce(session.nonce);
-    setHasWriteAccess(session.hasWriteAccess);
+    setSessionId(session.sessionId);
+    setPrivateKey(session.privateKey);
+    setAuthMode(session.authMode);
     setSessionExpiresAt(session.expiresAt);
   }, []);
 
   const clearEnclaveSession = useCallback(() => {
-    setSignature(null);
-    setNonce(null);
-    setHasWriteAccess(false);
+    setSessionId(null);
+    setPrivateKey(null);
+    setAuthMode(EnclaveSessionAuthMode.Normal);
     setSessionExpiresAt(null);
     setWalletType(null);
     setSolanaProvider(null);
@@ -171,9 +172,9 @@ export const AppContextProvider: FC<AppContextProps> = ({
     if (walletType === "tron" || walletType === "solana") return;
 
     let cancelled = false;
-    setSignature(null);
-    setNonce(null);
-    setHasWriteAccess(false);
+    setSessionId(null);
+    setPrivateKey(null);
+    setAuthMode(EnclaveSessionAuthMode.Normal);
     setSessionExpiresAt(null);
 
     const refreshAuth = async () => {
@@ -182,9 +183,7 @@ export const AppContextProvider: FC<AppContextProps> = ({
         const session = await createEnclaveSession(
           signer,
           walletAddress,
-          chainId,
-          requestedWriteAccess,
-          true
+          requestedUseEIP712,
         );
         if (!cancelled) {
           applyEnclaveSession(session);
@@ -213,13 +212,19 @@ export const AppContextProvider: FC<AppContextProps> = ({
     chainId,
     walletAddress,
     dataLoaded,
-    requestedWriteAccess,
+    requestedUseEIP712,
     applyEnclaveSession,
     walletType,
   ]);
 
   const refreshBalances = useCallback(async () => {
-    if (!dataLoaded || !chainId || !walletAddress || !signature || !nonce)
+    if (
+      !dataLoaded ||
+      !chainId ||
+      !walletAddress ||
+      !sessionId ||
+      !privateKey
+    )
       return;
 
     abortControllerRef.current?.abort();
@@ -227,7 +232,11 @@ export const AppContextProvider: FC<AppContextProps> = ({
     abortControllerRef.current = controller;
 
     try {
-      const auth = { signature, nonce, address: walletAddress, chainId };
+      const auth = {
+        sessionId,
+        privateKey,
+        chainId,
+      };
       const [bals, stuckBals] = await Promise.all([
         fetchBalances(auth, controller.signal),
         fetchStuckUtxoBalances(auth, controller.signal),
@@ -242,7 +251,7 @@ export const AppContextProvider: FC<AppContextProps> = ({
         console.error("Error refreshing balances:", error);
       }
     }
-  }, [dataLoaded, chainId, walletAddress, signature, nonce]);
+  }, [dataLoaded, chainId, walletAddress, sessionId, privateKey]);
 
   // After a tx the new balance may not be indexed yet, so a single immediate
   // refresh returns stale data. Re-poll a few times spaced out to catch it
@@ -328,14 +337,13 @@ export const AppContextProvider: FC<AppContextProps> = ({
   return (
     <AppContext.Provider
       value={{
-        signature,
-        setSignature,
-        nonce,
-        setNonce,
-        hasWriteAccess,
+        sessionId,
+        setSessionId,
+        privateKey,
+        authMode,
         sessionExpiresAt,
-        requestedWriteAccess,
-        setRequestedWriteAccess,
+        requestedUseEIP712,
+        setRequestedUseEIP712,
         applyEnclaveSession,
         clearEnclaveSession,
         walletAddress,

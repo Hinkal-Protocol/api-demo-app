@@ -1,5 +1,5 @@
+import { buildAuthGet } from "./enclave-auth";
 import { enclaveFetch } from "./enclaveApi";
-import { hasKeySignSession, signGetRequest } from "./session";
 import { Auth } from "./types";
 
 export enum ExternalActionId {
@@ -29,46 +29,27 @@ export const getFeeStructure = async (
   externalActionId: ExternalActionId,
   variableRate?: string,
   amounts?: bigint[],
-  mintFrom?: string
+  mintFrom?: string,
 ): Promise<FeeStructure> => {
-  const { signature, nonce, address, chainId } = auth;
-  const params = new URLSearchParams({
-    signature,
-    nonce,
-    address,
-    chainId: String(chainId),
+  const { queryString, headers, requestNonce } = await buildAuthGet(auth, {
     feeToken,
     externalActionId,
+    tokenAddresses,
+    ...(variableRate !== undefined ? { variableRate } : {}),
+    ...(mintFrom !== undefined ? { mintFrom } : {}),
+    ...(amounts !== undefined
+      ? { amounts: amounts.map((amount) => amount.toString()) }
+      : {}),
   });
-  for (const tokenAddress of tokenAddresses) {
-    params.append("tokenAddresses", tokenAddress);
-  }
-  if (variableRate !== undefined) {
-    params.append("variableRate", variableRate);
-  }
-  if (amounts !== undefined) {
-    for (const amount of amounts) {
-      params.append("amounts", amount.toString());
-    }
-  }
-  if (mintFrom !== undefined) {
-    params.append("mintFrom", mintFrom);
-  }
-
-  const init: RequestInit = {};
-  if (hasKeySignSession()) {
-    const signature = signGetRequest(params);
-    init.headers = { "X-Request-Signature": signature };
-  }
 
   const { res, data } = await enclaveFetch<
     | { success: true; feeStructure: FeeStructure }
     | { error?: string }
-  >(`/get-fee-structure?${params}`, nonce, init);
+  >(`/get-fee-structure?${queryString}`, requestNonce, { headers });
 
   if (!res.ok || !("success" in data && data.success)) {
     throw new Error(
-      (data as { error?: string }).error ?? "Fee structure fetch failed"
+      (data as { error?: string }).error ?? "Fee structure fetch failed",
     );
   }
 

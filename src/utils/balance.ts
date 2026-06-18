@@ -1,6 +1,6 @@
 import { TokenBalance } from "../types";
+import { buildAuthGet } from "./enclave-auth";
 import { enclaveFetch } from "./enclaveApi";
-import { hasKeySignSession, signGetRequest } from "./session";
 import { Auth } from "./types";
 
 type BalanceResponse =
@@ -9,20 +9,15 @@ type BalanceResponse =
 
 const fetchBalanceEndpoint = async (
   endpoint: "balance" | "stuck-utxo-balance",
-  params: URLSearchParams,
-  requestNonce: string,
+  auth: Auth,
   signal?: AbortSignal,
 ): Promise<TokenBalance[]> => {
-  const init: RequestInit = { signal };
-  if (hasKeySignSession()) {
-    const signature = signGetRequest(params);
-    init.headers = { "X-Request-Signature": signature };
-  }
+  const { queryString, headers, requestNonce } = await buildAuthGet(auth);
 
   const { res, data } = await enclaveFetch<BalanceResponse>(
-    `/${endpoint}?${params}`,
+    `/${endpoint}?${queryString}`,
     requestNonce,
-    init,
+    { signal, headers },
   );
 
   if (!res.ok || !("success" in data && data.success)) {
@@ -42,17 +37,7 @@ export const fetchBalances = async (
   auth: Auth,
   signal?: AbortSignal,
 ): Promise<TokenBalance[]> => {
-  const { signature, nonce, address, chainId } = auth;
-
-  const params = new URLSearchParams({
-    address,
-    chainId: String(chainId),
-    signature,
-    nonce,
-  });
-
-  const balances = await fetchBalanceEndpoint("balance", params, nonce, signal);
-
+  const balances = await fetchBalanceEndpoint("balance", auth, signal);
   return balances.filter((b) => b.balance !== "0");
 };
 
@@ -60,21 +45,6 @@ export const fetchStuckUtxoBalances = async (
   auth: Auth,
   signal?: AbortSignal,
 ): Promise<TokenBalance[]> => {
-  const { signature, nonce, address, chainId } = auth;
-
-  const params = new URLSearchParams({
-    address,
-    chainId: String(chainId),
-    signature,
-    nonce,
-  });
-
-  const balances = await fetchBalanceEndpoint(
-    "stuck-utxo-balance",
-    params,
-    nonce,
-    signal,
-  );
-
+  const balances = await fetchBalanceEndpoint("stuck-utxo-balance", auth, signal);
   return balances.filter((b) => b.balance !== "0");
 };

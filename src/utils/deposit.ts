@@ -1,8 +1,7 @@
-import { ethers } from "ethers";
-import { buildDepositAuthFields, resolveTxAuthFields } from "./enclave-auth";
+import { buildAuthPost } from "./enclave-auth";
 import { enclaveFetch } from "./enclaveApi";
-import { hasKeySignSession, signWriteRequest } from "./session";
-import type { EnclaveAuthFields, TxSessionAuth } from "./types";
+import { resolveDepositAuth } from "./resolve-tx-auth";
+import type { TxSessionAuth, TxWallet } from "./types";
 
 export type TxData = {
   to: string;
@@ -13,42 +12,28 @@ export type TxData = {
 };
 
 export const deposit = async (
-  signer: ethers.Signer | null,
+  wallet: TxWallet,
   session: TxSessionAuth,
-  account: string,
   chainId: number,
   tokenAddresses: string[],
   amounts: string[],
-  buildReadOnlyAuth?: () => Promise<EnclaveAuthFields>,
 ): Promise<TxData | string> => {
-  const authFields = await resolveTxAuthFields(session, () => {
-    if (buildReadOnlyAuth) return buildReadOnlyAuth();
-    if (!signer) throw new Error("EVM signer required for deposit without write-access session");
-    return buildDepositAuthFields(signer, "Deposit", { chainId, tokenAddresses, amounts });
-  });
-  const body = {
-    ...authFields,
-    address: account,
+  const txParams = { tokenAddresses, amounts };
+  const { bodyJson, headers, requestNonce } = await buildAuthPost(
+    session,
     chainId,
-    tokenAddresses,
-    amounts,
-  };
-
-  const headers: Record<string, string> = { "Content-Type": "application/json" };
-  let finalBody: Record<string, unknown> = body;
-  if (session.hasWriteAccess && hasKeySignSession()) {
-    const signed = signWriteRequest(body);
-    finalBody = signed.body;
-    headers["X-Request-Signature"] = signed.signature;
-  }
+    txParams,
+    () =>
+      resolveDepositAuth(wallet, session.sessionId, chainId, tokenAddresses, amounts),
+  );
 
   const { res, data } = await enclaveFetch<
     | { success: true; txData: TxData | string }
     | { error?: string }
-  >("/deposit", authFields.nonce, {
+  >("/deposit", requestNonce, {
     method: "POST",
     headers,
-    body: JSON.stringify(finalBody),
+    body: bodyJson,
   });
 
   if (!res.ok || !("success" in data && data.success)) {

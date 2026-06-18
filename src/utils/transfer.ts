@@ -1,9 +1,8 @@
-import { ethers } from "ethers";
-import { buildTransferAuthFields, resolveTxAuthFields } from "./enclave-auth";
+import { buildAuthPost } from "./enclave-auth";
 import { enclaveFetch } from "./enclaveApi";
-import { hasKeySignSession, signWriteRequest } from "./session";
-import type { EnclaveAuthFields, TxSessionAuth } from "./types";
 import { FeeStructure } from "./fees";
+import { resolveTransferAuth } from "./resolve-tx-auth";
+import type { TxSessionAuth, TxWallet } from "./types";
 
 // ONLY FOR WALLET-CONNECT
 // for wallet-connect sessions thier safeJsonParse method identifies long consecutive
@@ -25,48 +24,47 @@ const normalizeRecipientForSigning = (recipient: string): string => {
 };
 
 export const transfer = async (
-  signer: ethers.Signer | null,
+  wallet: TxWallet,
   session: TxSessionAuth,
-  account: string,
   chainId: number,
   tokenAddresses: string[],
   amounts: string[],
   recipientAddress: string,
   feeToken?: string,
   feeStructure?: FeeStructure,
-  buildReadOnlyAuth?: () => Promise<EnclaveAuthFields>,
 ): Promise<string> => {
-  const authFields = await resolveTxAuthFields(session, () => {
-    if (buildReadOnlyAuth) return buildReadOnlyAuth();
-    if (!signer) throw new Error("EVM signer required for transfer without write-access session");
-    return buildTransferAuthFields(signer, { chainId, tokenAddresses, amounts, recipient: normalizeRecipientForSigning(recipientAddress) });
-  });
-  const body = {
-    ...authFields,
-    address: account,
-    chainId,
+  const normalizedRecipient = normalizeRecipientForSigning(recipientAddress);
+  const txParams = {
     tokenAddresses,
     amounts,
-    recipientAddress: normalizeRecipientForSigning(recipientAddress),
+    recipientAddress: normalizedRecipient,
     feeToken,
     feeStructure,
   };
-
-  const headers: Record<string, string> = { "Content-Type": "application/json" };
-  let finalBody: Record<string, unknown> = body;
-  if (session.hasWriteAccess && hasKeySignSession()) {
-    const signed = signWriteRequest(body);
-    finalBody = signed.body;
-    headers["X-Request-Signature"] = signed.signature;
-  }
+  const { bodyJson, headers, requestNonce } = await buildAuthPost(
+    session,
+    chainId,
+    txParams,
+    () =>
+      resolveTransferAuth(
+        wallet,
+        session.sessionId,
+        chainId,
+        tokenAddresses,
+        amounts,
+        normalizedRecipient,
+        feeToken,
+        feeStructure,
+      ),
+  );
 
   const { res, data } = await enclaveFetch<
     | { success: true; txHash: string }
     | { error?: string }
-  >("/transfer", authFields.nonce, {
+  >("/transfer", requestNonce, {
     method: "POST",
     headers,
-    body: JSON.stringify(finalBody),
+    body: bodyJson,
   });
 
   if (!res.ok || !("success" in data && data.success)) {
