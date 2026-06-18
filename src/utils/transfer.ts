@@ -33,10 +33,11 @@ export const transfer = async (
   feeToken?: string,
   feeStructure?: FeeStructure,
 ): Promise<string> => {
+  const normalizedRecipient = normalizeRecipientForSigning(recipientAddress);
   const txParams = {
     tokenAddresses,
     amounts,
-    recipientAddress: normalizeRecipientForSigning(recipientAddress),
+    recipientAddress: normalizedRecipient,
     feeToken,
     feeStructure,
   };
@@ -51,7 +52,7 @@ export const transfer = async (
         chainId,
         tokenAddresses,
         amounts,
-        recipientAddress,
+        normalizedRecipient,
         feeToken,
         feeStructure,
       ),
