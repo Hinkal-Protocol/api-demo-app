@@ -5,31 +5,45 @@ import type { FeeStructure } from "./fees";
 
 const DOMAIN_NAME = "Hinkal Enclave";
 
-const buildHeader = (primaryType: string, nonce: string, sessionId: string, chainId: number): string =>
+const buildHeader = (
+  primaryType: string,
+  nonce: string,
+  sessionId: string,
+  chainId: number,
+): string =>
   `${DOMAIN_NAME}\n\nPrimary Type: ${primaryType}\nSession ID: ${sessionId}\nNonce: ${nonce}\nChain ID: ${chainId}`;
 
-const renderTokenAmounts = (tokenAddresses: string[], amounts: string[]): string => {
+const renderTokenAmounts = (
+  tokenAddresses: string[],
+  amounts: string[],
+): string => {
   const pairs = tokenAddresses
     .map((tokenAddress, i) => ({ tokenAddress, amount: amounts[i] }))
     .sort((a, b) => a.tokenAddress.localeCompare(b.tokenAddress));
   return pairs
-    .map(({ tokenAddress, amount }, i) => `  ${i}:\n    Token: ${tokenAddress}\n    Amount: ${amount}`)
+    .map(
+      ({ tokenAddress, amount }, i) =>
+        `  ${i}:\n    Token: ${tokenAddress}\n    Amount: ${amount}`,
+    )
     .join("\n");
 };
 
 const renderRecipients = (recipients: Recipient[]): string => {
-  const sorted = [...recipients].sort((a, b) => a.address.localeCompare(b.address));
+  const sorted = [...recipients].sort((a, b) =>
+    a.address.localeCompare(b.address),
+  );
   return sorted
-    .map(({ address, amount }, i) => `  ${i}:\n    Recipient: ${address}\n    Amount: ${amount}`)
+    .map(
+      ({ address, amount }, i) =>
+        `  ${i}:\n    Recipient: ${address}\n    Amount: ${amount}`,
+    )
     .join("\n");
 };
 
-const renderFeeFields = (feeToken?: string, feeStructure?: FeeStructure): string => {
-  const ft = feeToken ?? "";
-  const flatFee = feeStructure?.flatFee ?? "0";
-  const variableRate = feeStructure?.variableRate ?? "0";
-  const feeFeeToken = feeStructure?.feeToken ?? "";
-  return `\nFee Token: ${ft}\nFee Structure Fee Token: ${feeFeeToken}\nFee Flat: ${flatFee}\nFee Variable Rate: ${variableRate}`;
+const renderFeeFields = (feeStructure?: FeeStructure): string => {
+  if (!feeStructure) return "";
+  const { feeToken, flatFee, variableRate } = feeStructure;
+  return `\nFee Structure:\n    Fee Token: ${feeToken}\n    Flat Fee: ${flatFee}\n    Variable Rate: ${variableRate}`;
 };
 
 const sign = async (
@@ -76,7 +90,7 @@ export const buildSolanaTransferAuthFields = async (
     `${buildHeader("Transfer", nonce, sessionId, chainId)}` +
     `\nToken Amounts:\n${renderTokenAmounts(tokenAddresses, amounts)}` +
     `\nRecipient: ${recipientAddress}` +
-    renderFeeFields(feeToken, feeStructure);
+    renderFeeFields(feeStructure);
   return sign(sessionId, provider, message, nonce);
 };
 
@@ -95,7 +109,7 @@ export const buildSolanaWithdrawAuthFields = async (
     `${buildHeader("Withdraw", nonce, sessionId, chainId)}` +
     `\nToken Amounts:\n${renderTokenAmounts(tokenAddresses, amounts)}` +
     `\nRecipient: ${recipientAddress}` +
-    renderFeeFields(feeToken, feeStructure);
+    renderFeeFields(feeStructure);
   return sign(sessionId, provider, message, nonce);
 };
 
@@ -135,7 +149,7 @@ export const buildSolanaSwapAuthFields = async (
     `\nToken Amounts:\n${renderTokenAmounts(tokenAddresses, amounts)}` +
     `\nExternal Action ID: ${externalActionId}` +
     `\nSwap Data: ${swapData}` +
-    renderFeeFields(feeToken, feeStructure);
+    renderFeeFields(feeStructure);
   return sign(sessionId, provider, message, nonce);
 };
 
