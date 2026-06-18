@@ -128,8 +128,8 @@ export const AppContextProvider: FC<AppContextProps> = ({
   const abortControllerRef = useRef<AbortController | null>(null);
   const prevChainIdRef = useRef<number | undefined>();
 
-  const isTron = walletType === "tron";
-  const isSolana = walletType === "solana";
+  const isTron = useMemo(() => walletType === "tron", [walletType]);
+  const isSolana = useMemo(() => walletType === "solana", [walletType]);
 
   const erc20List = useMemo<ERC20Token[]>(
     () => (chainId ? getERC20Registry(chainId) : []),
