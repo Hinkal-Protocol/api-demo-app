@@ -18,13 +18,15 @@ import { getERC20Token, getERC20TokenBySymbol } from "../utils/tokens.utils";
 import { RecipientInputRow } from "../utils/recipientInfoRow";
 import {
   depositAndWithdraw,
-  OrderStatus,
-  TERMINAL_ORDER_STATUSES,
-  TX_COMPLETION_TIME_OPTIONS,
-  TxCompletionTimeLabel,
+  formatScheduledTxStatus,
   getOrderStatus,
+  isScheduledTxTerminal,
+  OrderStatus,
   Recipient,
   resolveTxCompletionTime,
+  ScheduledTransactionItem,
+  TX_COMPLETION_TIME_OPTIONS,
+  TxCompletionTimeLabel,
 } from "../utils/multiSend";
 import {
   approveErc20,
@@ -54,18 +56,27 @@ import {
 } from "../utils/recipientAddress";
 
 const NON_NATIVE_GAS_TOKENS = ["USDC", "USDT", "DAI"];
-const POLL_INTERVAL_MS = 5000;
+const POLL_INTERVAL_MS = 2000;
 const POLL_TIMEOUT_MS = 5 * 60_000;
 
-const waitForOrderTerminal = async (orderId: string): Promise<OrderStatus> => {
+const waitForScheduledTxsComplete = async (
+  orderId: string,
+  onUpdate: (txs: ScheduledTransactionItem[]) => void,
+): Promise<void> => {
   const deadline = Date.now() + POLL_TIMEOUT_MS;
   while (Date.now() < deadline) {
     const data = await getOrderStatus(orderId);
-    if (TERMINAL_ORDER_STATUSES.has(data.status)) {
-      if (data.status === OrderStatus.Failed) {
-        throw new Error("Order failed");
-      }
-      return data.status;
+    if (data.status === OrderStatus.Failed) {
+      throw new Error("Order failed");
+    }
+    const txs = data.scheduledTransactions ?? [];
+    onUpdate(txs);
+    if (
+      data.status === OrderStatus.Scheduled &&
+      txs.length > 0 &&
+      txs.every((tx) => isScheduledTxTerminal(tx.status))
+    ) {
+      return;
     }
     await new Promise((r) => setTimeout(r, POLL_INTERVAL_MS));
   }
@@ -112,6 +123,9 @@ export const MultiSend = () => {
   const [txCompletionTimeLabel, setTxCompletionTimeLabel] =
     useState<TxCompletionTimeLabel>(DEFAULT_TX_COMPLETION_TIME_LABEL);
   const [isProcessing, setIsProcessing] = useState(false);
+  const [scheduledStatuses, setScheduledStatuses] = useState<
+    ScheduledTransactionItem[]
+  >([]);
   const [walletBalanceDisplay, setWalletBalanceDisplay] = useState<
     string | null
   >(null);
@@ -233,6 +247,7 @@ export const MultiSend = () => {
       if (!chainId || !selectedToken || !walletAddress || !sessionId || !clientSecret)
         return;
       setIsProcessing(true);
+      setScheduledStatuses([]);
 
       const wallet = {
         signer: isTron || isSolana ? null : await getEthersSigner(chainId),
@@ -288,9 +303,9 @@ export const MultiSend = () => {
         await broadcastDepositTx(signer, order.serializedTx);
       }
 
-      await waitForOrderTerminal(order.orderId);
+      await waitForScheduledTxsComplete(order.orderId, setScheduledStatuses);
 
-      toast.success("Multi send scheduled");
+      toast.success("Multi send completed");
       await refreshBalances();
       handleReset();
     } catch (err) {
@@ -311,6 +326,7 @@ export const MultiSend = () => {
     isTron,
     isSolana,
     solanaProvider,
+    handleReset,
   ]);
 
   const handleSubmit = (event: SyntheticEvent) => {
@@ -356,7 +372,14 @@ export const MultiSend = () => {
       exceedsBalance ||
       hasInvalidRecipient ||
       recipients.some((r) => !r.address || !r.amount),
-    [walletAddress, selectedToken, isProcessing, exceedsBalance, recipients],
+    [
+      walletAddress,
+      selectedToken,
+      isProcessing,
+      exceedsBalance,
+      hasInvalidRecipient,
+      recipients,
+    ],
   );
 
   return (
@@ -457,6 +480,18 @@ export const MultiSend = () => {
           </button>
         </div>
       </form>
+
+      {scheduledStatuses.length > 0 && (
+        <div className="w-[90%] mx-[5%] mt-2 p-3 rounded-lg bg-hinkal-blue-900 text-sm">
+          <p className="font-semibold mb-2">Scheduled sends</p>
+          {scheduledStatuses.map((tx, i) => (
+            <p key={i} className="text-hinkal-gray-200">
+              Send {i + 1}: {formatScheduledTxStatus(tx.status)}
+              {tx.txHash ? ` (${tx.txHash})` : ""}
+            </p>
+          ))}
+        </div>
+      )}
     </div>
   );
 };
