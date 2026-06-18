@@ -38,6 +38,8 @@ export const withdraw = async (
         tokenAddresses,
         amounts,
         recipientAddress,
+        feeToken,
+        feeStructure,
       ),
   );
 

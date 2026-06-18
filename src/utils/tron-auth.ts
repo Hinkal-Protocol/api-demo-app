@@ -3,6 +3,7 @@ import {
   getEnclaveTypedDataDomain,
   getTypesForPrimary,
 } from "../constants/enclave.constants";
+import type { FeeStructure } from "./fees";
 import { getTronWeb, tronBase58ToHex } from "./tron-wallet";
 import type { EnclaveTxAuthFields } from "./types";
 import type { Recipient } from "./multiSend";
@@ -56,6 +57,8 @@ export const buildTronTransferAuthFields = (
   tokenAddresses: string[],
   amounts: string[],
   recipient: string,
+  feeToken?: string,
+  feeStructure?: FeeStructure,
 ): Promise<EnclaveTxAuthFields> =>
   signTypedData(sessionId, "Transfer", chainId, (nonce) => ({
     nonce,
@@ -66,6 +69,12 @@ export const buildTronTransferAuthFields = (
       amount: BigInt(amounts[i]),
     })).sort((a, b) => a.token.localeCompare(b.token)),
     recipient,
+    feeToken: ethers.getAddress(feeToken ?? ethers.ZeroAddress),
+    feeStructure: {
+      feeToken: ethers.getAddress(feeStructure?.feeToken ?? ethers.ZeroAddress),
+      flatFee: BigInt(feeStructure?.flatFee ?? 0),
+      variableRate: BigInt(feeStructure?.variableRate ?? 0),
+    },
   }));
 
 export const buildTronWithdrawAuthFields = (
@@ -74,6 +83,8 @@ export const buildTronWithdrawAuthFields = (
   tokenAddresses: string[],
   amounts: string[],
   recipient: string,
+  feeToken?: string,
+  feeStructure?: FeeStructure,
 ): Promise<EnclaveTxAuthFields> =>
   signTypedData(sessionId, "Withdraw", chainId, (nonce) => ({
     nonce,
@@ -84,6 +95,12 @@ export const buildTronWithdrawAuthFields = (
       amount: BigInt(amounts[i]),
     })).sort((a, b) => a.token.localeCompare(b.token)),
     recipient,
+    feeToken: ethers.getAddress(feeToken ?? ethers.ZeroAddress),
+    feeStructure: {
+      feeToken: ethers.getAddress(feeStructure?.feeToken ?? ethers.ZeroAddress),
+      flatFee: BigInt(feeStructure?.flatFee ?? 0),
+      variableRate: BigInt(feeStructure?.variableRate ?? 0),
+    },
   }));
 
 export const buildTronPrivateSendAuthFields = (
@@ -91,6 +108,8 @@ export const buildTronPrivateSendAuthFields = (
   chainId: number,
   tokenAddress: string,
   recipients: Recipient[],
+  feeToken?: string,
+  txCompletionTime?: number,
 ): Promise<EnclaveTxAuthFields> =>
   signTypedData(sessionId, "PrivateSend", chainId, (nonce) => ({
     nonce,
@@ -103,6 +122,8 @@ export const buildTronPrivateSendAuthFields = (
         amount: BigInt(amount),
       }))
       .sort((a, b) => a.recipient.localeCompare(b.recipient)),
+    feeToken: ethers.getAddress(feeToken ?? ethers.ZeroAddress),
+    txCompletionTime: BigInt(txCompletionTime ?? 0),
   }));
 
 export const buildTronWithdrawStuckUtxosAuthFields = (

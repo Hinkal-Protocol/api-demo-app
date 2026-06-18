@@ -104,6 +104,10 @@ export const executeSwap = async (
         getterAuth.chainId,
         tokenAddresses,
         amounts,
+        quotedData.externalActionId,
+        quotedData.swapData,
+        isSolana ? undefined : feeToken,
+        feeStructure,
       ),
   );
 

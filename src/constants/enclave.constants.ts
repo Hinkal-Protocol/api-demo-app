@@ -23,6 +23,11 @@ const ENCLAVE_TYPED_DATA_TYPES: Record<string, TypedDataField[]> = {
     { name: "recipient", type: "address" },
     { name: "amount", type: "int256" },
   ],
+  FeeStructure: [
+    { name: "feeToken", type: "address" },
+    { name: "flatFee", type: "uint256" },
+    { name: "variableRate", type: "uint256" },
+  ],
   Deposit: [
     { name: "nonce", type: "string" },
     { name: "sessionId", type: "string" },
@@ -48,6 +53,8 @@ const ENCLAVE_TYPED_DATA_TYPES: Record<string, TypedDataField[]> = {
     { name: "chainId", type: "uint256" },
     { name: "tokenAmounts", type: "TokenAmount[]" },
     { name: "recipient", type: "string" },
+    { name: "feeToken", type: "address" },
+    { name: "feeStructure", type: "FeeStructure" },
   ],
   Withdraw: [
     { name: "nonce", type: "string" },
@@ -55,12 +62,18 @@ const ENCLAVE_TYPED_DATA_TYPES: Record<string, TypedDataField[]> = {
     { name: "chainId", type: "uint256" },
     { name: "tokenAmounts", type: "TokenAmount[]" },
     { name: "recipient", type: "string" },
+    { name: "feeToken", type: "address" },
+    { name: "feeStructure", type: "FeeStructure" },
   ],
   Swap: [
     { name: "nonce", type: "string" },
     { name: "sessionId", type: "string" },
     { name: "chainId", type: "uint256" },
     { name: "tokenAmounts", type: "TokenAmount[]" },
+    { name: "externalActionId", type: "string" },
+    { name: "swapData", type: "string" },
+    { name: "feeToken", type: "address" },
+    { name: "feeStructure", type: "FeeStructure" },
   ],
   PrivateSend: [
     { name: "nonce", type: "string" },
@@ -68,6 +81,8 @@ const ENCLAVE_TYPED_DATA_TYPES: Record<string, TypedDataField[]> = {
     { name: "chainId", type: "uint256" },
     { name: "tokenAddress", type: "address" },
     { name: "recipients", type: "RecipientAmount[]" },
+    { name: "feeToken", type: "address" },
+    { name: "txCompletionTime", type: "uint256" },
   ],
   WithdrawStuckUtxos: [
     { name: "nonce", type: "string" },
@@ -105,6 +120,10 @@ export const getTypesForPrimary = (
   );
   if (usesRecipientAmount) {
     types.RecipientAmount = ENCLAVE_TYPED_DATA_TYPES.RecipientAmount;
+  }
+
+  if (ENCLAVE_TYPED_DATA_TYPES[primaryType].some((f: TypedDataField) => f.type === "FeeStructure")) {
+    types.FeeStructure = ENCLAVE_TYPED_DATA_TYPES.FeeStructure;
   }
 
   return types;

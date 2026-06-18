@@ -52,6 +52,8 @@ export const transfer = async (
         tokenAddresses,
         amounts,
         recipientAddress,
+        feeToken,
+        feeStructure,
       ),
   );
 

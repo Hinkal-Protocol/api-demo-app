@@ -61,14 +61,14 @@ export const requestSignatureGetHeader = async (
   session: Session,
   queryString: string,
 ): Promise<Record<string, string>> => ({
-  "X-Request-Signature": await signPayload(session.privateKey, queryString),
+  "x-hinkal-request-signature": await signPayload(session.privateKey, queryString),
 });
 
 export const requestSignaturePostHeader = async (
   session: Session,
   body: Record<string, unknown>,
 ): Promise<Record<string, string>> => ({
-  "X-Request-Signature": await signPayload(
+  "x-hinkal-request-signature": await signPayload(
     session.privateKey,
     JSON.stringify(body),
   ),

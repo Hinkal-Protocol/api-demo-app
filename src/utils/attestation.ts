@@ -138,8 +138,8 @@ export const verifyResponseAttestation = async (
 ): Promise<void> => {
   const key = await ensureVerificationPublicKey();
 
-  const signature = res.headers.get("x-hinkal-signature");
-  if (!signature) throw new Error("Missing X-Hinkal-Signature header");
+  const signature = res.headers.get("x-hinkal-response-signature");
+  if (!signature) throw new Error("Missing x-hinkal-response-signature header");
   let valid = await verifyEnclaveResponse(rawBody, signature, key);
   if (!valid) {
     const freshKey = await refreshEnclaveAttestation();
