@@ -4,8 +4,8 @@ import type { Recipient } from "./multiSend";
 
 const DOMAIN_NAME = "Hinkal Enclave";
 
-const buildHeader = (primaryType: string, nonce: string, chainId: number): string =>
-  `${DOMAIN_NAME}\n\nPrimary Type: ${primaryType}\nNonce: ${nonce}\nChain ID: ${chainId}`;
+const buildHeader = (primaryType: string, nonce: string, sessionId: string, chainId: number): string =>
+  `${DOMAIN_NAME}\n\nPrimary Type: ${primaryType}\nSession ID: ${sessionId}\nNonce: ${nonce}\nChain ID: ${chainId}`;
 
 const renderTokenAmounts = (tokenAddresses: string[], amounts: string[]): string => {
   const pairs = tokenAddresses
@@ -47,7 +47,7 @@ export const buildSolanaDepositAuthFields = async (
 ): Promise<EnclaveTxAuthFields> => {
   const nonce = crypto.randomUUID();
   const message =
-    `${buildHeader("Deposit", nonce, chainId)}` +
+    `${buildHeader("Deposit", nonce, sessionId, chainId)}` +
     `\nToken Amounts:\n${renderTokenAmounts(tokenAddresses, amounts)}`;
   return sign(sessionId, provider, message, nonce);
 };
@@ -62,7 +62,7 @@ export const buildSolanaTransferAuthFields = async (
 ): Promise<EnclaveTxAuthFields> => {
   const nonce = crypto.randomUUID();
   const message =
-    `${buildHeader("Transfer", nonce, chainId)}` +
+    `${buildHeader("Transfer", nonce, sessionId, chainId)}` +
     `\nToken Amounts:\n${renderTokenAmounts(tokenAddresses, amounts)}` +
     `\nRecipient: ${recipientAddress}`;
   return sign(sessionId, provider, message, nonce);
@@ -78,7 +78,7 @@ export const buildSolanaWithdrawAuthFields = async (
 ): Promise<EnclaveTxAuthFields> => {
   const nonce = crypto.randomUUID();
   const message =
-    `${buildHeader("Withdraw", nonce, chainId)}` +
+    `${buildHeader("Withdraw", nonce, sessionId, chainId)}` +
     `\nToken Amounts:\n${renderTokenAmounts(tokenAddresses, amounts)}` +
     `\nRecipient: ${recipientAddress}`;
   return sign(sessionId, provider, message, nonce);
@@ -93,7 +93,7 @@ export const buildSolanaPrivateSendAuthFields = async (
 ): Promise<EnclaveTxAuthFields> => {
   const nonce = crypto.randomUUID();
   const message =
-    `${buildHeader("PrivateSend", nonce, chainId)}` +
+    `${buildHeader("PrivateSend", nonce, sessionId, chainId)}` +
     `\nToken Address: ${tokenAddress}` +
     `\nRecipients:\n${renderRecipients(recipients)}`;
   return sign(sessionId, provider, message, nonce);
@@ -108,7 +108,7 @@ export const buildSolanaSwapAuthFields = async (
 ): Promise<EnclaveTxAuthFields> => {
   const nonce = crypto.randomUUID();
   const message =
-    `${buildHeader("Swap", nonce, chainId)}` +
+    `${buildHeader("Swap", nonce, sessionId, chainId)}` +
     `\nToken Amounts:\n${renderTokenAmounts(tokenAddresses, amounts)}`;
   return sign(sessionId, provider, message, nonce);
 };
@@ -122,7 +122,7 @@ export const buildSolanaWithdrawStuckUtxosAuthFields = async (
 ): Promise<EnclaveTxAuthFields> => {
   const nonce = crypto.randomUUID();
   const message =
-    `${buildHeader("WithdrawStuckUtxos", nonce, chainId)}` +
+    `${buildHeader("WithdrawStuckUtxos", nonce, sessionId, chainId)}` +
     `\nToken Address: ${tokenAddress}` +
     `\nRecipient: ${recipientAddress}`;
   return sign(sessionId, provider, message, nonce);

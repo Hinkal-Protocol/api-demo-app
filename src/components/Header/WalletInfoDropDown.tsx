@@ -32,7 +32,7 @@ export const WalletInfoDropDown = () => {
     walletAddress,
     chainId,
     sessionId,
-    clientSecret,
+    privateKey,
     authMode,
     refreshBalances,
     setWalletAddress,
@@ -111,7 +111,7 @@ export const WalletInfoDropDown = () => {
 
   const handleCopyPrivateAddress = async () => {
     try {
-      if (!walletAddress || !chainId || !sessionId || !clientSecret) {
+      if (!walletAddress || !chainId || !sessionId || !privateKey) {
         toast.error("No active session found");
         return;
       }
@@ -119,7 +119,7 @@ export const WalletInfoDropDown = () => {
       const recipientInfo = await fetchRecipientInfo({
         chainId,
         sessionId,
-        clientSecret,
+        privateKey,
       });
       copyToClipboard(recipientInfo);
       toast.success("Private address copied to clipboard");
@@ -135,10 +135,10 @@ export const WalletInfoDropDown = () => {
   const handleWithdrawStuckUtxos = useCallback(
     async (tokenAddress: string) => {
       try {
-        if (!walletAddress || !chainId || !sessionId || !clientSecret) return;
+        if (!walletAddress || !chainId || !sessionId || !privateKey) return;
 
         setWithdrawingStuckTokenAddress(tokenAddress);
-        const session = { sessionId, authMode, clientSecret };
+        const session = { sessionId, authMode, privateKey };
         const wallet = {
           signer: isTron || isSolana ? null : await getEthersSigner(),
           solanaProvider: isSolana ? solanaProvider : undefined,
@@ -161,7 +161,7 @@ export const WalletInfoDropDown = () => {
         setWithdrawingStuckTokenAddress(null);
       }
     },
-    [walletAddress, chainId, sessionId, clientSecret, authMode, refreshBalances, isSolana, isTron, solanaProvider],
+    [walletAddress, chainId, sessionId, privateKey, authMode, refreshBalances, isSolana, isTron, solanaProvider],
   );
 
   return (

@@ -18,18 +18,18 @@ export type EnclaveSession = {
   sessionId: string;
   authMode: EnclaveSessionAuthMode;
   expiresAt: string;
-  clientSecret: ArrayBuffer;
+  privateKey: Uint8Array;
 };
 
 export type TxSessionAuth = {
   sessionId: string;
   authMode: EnclaveSessionAuthMode;
-  clientSecret: ArrayBuffer;
+  privateKey: Uint8Array;
 };
 
-/** Getter-route auth: HMAC session + chainId. */
+/** Getter-route auth: session + chainId. */
 export type Auth = {
   sessionId: string;
-  clientSecret: ArrayBuffer;
+  privateKey: Uint8Array;
   chainId: number;
 };

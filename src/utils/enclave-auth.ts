@@ -5,7 +5,7 @@ import {
   getTypesForPrimary,
 } from "../constants/enclave.constants";
 import { EnclaveSessionAuthMode } from "./auth";
-import { hmacGetHeader, hmacPostHeader, sessionBodyParams, sessionQueryParams } from "./hmac";
+import { requestSignatureGetHeader, requestSignaturePostHeader, sessionBodyParams, sessionQueryParams } from "./request-signature";
 import type { Auth, EnclaveTxAuthFields, TxSessionAuth } from "./types";
 import { Recipient } from "./multiSend";
 
@@ -62,7 +62,7 @@ export const buildAuthPost = async (
       bodyJson,
       headers: {
         "Content-Type": "application/json",
-        ...(await hmacPostHeader(session, body)),
+        ...(await requestSignaturePostHeader(session, body)),
       },
       requestNonce: body.nonce,
     };
@@ -236,6 +236,6 @@ export const buildAuthGet = async (
   return {
     queryString,
     requestNonce: base.nonce,
-    headers: await hmacGetHeader(auth, queryString),
+    headers: await requestSignatureGetHeader(auth, queryString),
   };
 };

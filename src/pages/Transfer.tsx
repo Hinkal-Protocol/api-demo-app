@@ -31,7 +31,7 @@ export const Transfer = () => {
     refreshBalancesSoon,
     chainId,
     sessionId,
-    clientSecret,
+    privateKey,
     authMode,
     isTron,
     isSolana,
@@ -98,7 +98,7 @@ export const Transfer = () => {
 
   const handleTransfer = useCallback(async () => {
     try {
-      if (!chainId || !selectedToken || !walletAddress || !sessionId || !clientSecret)
+      if (!chainId || !selectedToken || !walletAddress || !sessionId || !privateKey)
         return;
       if (!feeStructure) return;
       setIsProcessing(true);
@@ -111,7 +111,7 @@ export const Transfer = () => {
         solanaProvider: isSolana ? solanaProvider : undefined,
       };
       const amountStr = amountInWei.toString();
-      const session = { sessionId, authMode, clientSecret };
+      const session = { sessionId, authMode, privateKey };
       await transfer(
         wallet,
         session,
@@ -136,7 +136,7 @@ export const Transfer = () => {
     selectedToken,
     walletAddress,
     sessionId,
-    clientSecret,
+    privateKey,
     transferAmount,
     transferAddress,
     feeStructure,

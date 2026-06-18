@@ -1,8 +1,8 @@
 import {
   buildEnclaveSignMessage,
-  EnclaveSessionAuthMode,
   resolveSessionAuthMode,
 } from "./auth";
+import { generateClientKeyPair } from "./request-signature";
 import { signSolanaMessage, SolanaWalletProvider } from "./solana-wallet";
 import { registerEnclaveSession } from "./session";
 import type { EnclaveSession } from "./types";
@@ -12,9 +12,10 @@ export const createSolanaEnclaveSession = async (
   provider: SolanaWalletProvider,
   useEIP712 = false,
 ): Promise<EnclaveSession> => {
+  const { privateKey, clientPublicKey } = generateClientKeyPair();
   const authMode = resolveSessionAuthMode(useEIP712);
   const sessionId = crypto.randomUUID();
-  const message = buildEnclaveSignMessage(sessionId, authMode);
+  const message = buildEnclaveSignMessage(sessionId, clientPublicKey, authMode);
   const signature = await signSolanaMessage(provider, message);
   const normalizedSig = signature.startsWith("0x")
     ? signature
@@ -25,5 +26,7 @@ export const createSolanaEnclaveSession = async (
     address,
     sessionId,
     useEIP712,
+    clientPublicKey,
+    privateKey,
   });
 };

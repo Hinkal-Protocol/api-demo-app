@@ -28,7 +28,7 @@ export type WalletType = "evm" | "tron" | "solana";
 type AppContextArgumnets = {
   sessionId: string | null;
   setSessionId: Dispatch<SetStateAction<string | null>>;
-  clientSecret: ArrayBuffer | null;
+  privateKey: Uint8Array | null;
   authMode: EnclaveSessionAuthMode;
   sessionExpiresAt: string | null;
   requestedUseEIP712: boolean;
@@ -65,7 +65,7 @@ const WALLET_BALANCES_REFRESH_INTERVAL = 7000;
 const AppContext = createContext<AppContextArgumnets>({
   sessionId: null,
   setSessionId: () => {},
-  clientSecret: null,
+  privateKey: null,
   authMode: EnclaveSessionAuthMode.Normal,
   sessionExpiresAt: null,
   requestedUseEIP712: false,
@@ -102,7 +102,7 @@ export const AppContextProvider: FC<AppContextProps> = ({
   children,
 }: AppContextProps) => {
   const [sessionId, setSessionId] = useState<string | null>(null);
-  const [clientSecret, setClientSecret] = useState<ArrayBuffer | null>(null);
+  const [privateKey, setPrivateKey] = useState<Uint8Array | null>(null);
   const [authMode, setAuthMode] = useState<EnclaveSessionAuthMode>(
     EnclaveSessionAuthMode.Normal,
   );
@@ -143,14 +143,14 @@ export const AppContextProvider: FC<AppContextProps> = ({
 
   const applyEnclaveSession = useCallback((session: EnclaveSession) => {
     setSessionId(session.sessionId);
-    setClientSecret(session.clientSecret);
+    setPrivateKey(session.privateKey);
     setAuthMode(session.authMode);
     setSessionExpiresAt(session.expiresAt);
   }, []);
 
   const clearEnclaveSession = useCallback(() => {
     setSessionId(null);
-    setClientSecret(null);
+    setPrivateKey(null);
     setAuthMode(EnclaveSessionAuthMode.Normal);
     setSessionExpiresAt(null);
     setWalletType(null);
@@ -173,7 +173,7 @@ export const AppContextProvider: FC<AppContextProps> = ({
 
     let cancelled = false;
     setSessionId(null);
-    setClientSecret(null);
+    setPrivateKey(null);
     setAuthMode(EnclaveSessionAuthMode.Normal);
     setSessionExpiresAt(null);
 
@@ -223,7 +223,7 @@ export const AppContextProvider: FC<AppContextProps> = ({
       !chainId ||
       !walletAddress ||
       !sessionId ||
-      !clientSecret
+      !privateKey
     )
       return;
 
@@ -234,7 +234,7 @@ export const AppContextProvider: FC<AppContextProps> = ({
     try {
       const auth = {
         sessionId,
-        clientSecret,
+        privateKey,
         chainId,
       };
       const [bals, stuckBals] = await Promise.all([
@@ -251,7 +251,7 @@ export const AppContextProvider: FC<AppContextProps> = ({
         console.error("Error refreshing balances:", error);
       }
     }
-  }, [dataLoaded, chainId, walletAddress, sessionId, clientSecret]);
+  }, [dataLoaded, chainId, walletAddress, sessionId, privateKey]);
 
   // After a tx the new balance may not be indexed yet, so a single immediate
   // refresh returns stale data. Re-poll a few times spaced out to catch it
@@ -339,7 +339,7 @@ export const AppContextProvider: FC<AppContextProps> = ({
       value={{
         sessionId,
         setSessionId,
-        clientSecret,
+        privateKey,
         authMode,
         sessionExpiresAt,
         requestedUseEIP712,

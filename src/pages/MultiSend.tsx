@@ -97,7 +97,7 @@ export const MultiSend = () => {
     refreshBalances,
     chainId,
     sessionId,
-    clientSecret,
+    privateKey,
     authMode,
     isTron,
     isSolana,
@@ -244,7 +244,7 @@ export const MultiSend = () => {
 
   const handleMultiSend = useCallback(async () => {
     try {
-      if (!chainId || !selectedToken || !walletAddress || !sessionId || !clientSecret)
+      if (!chainId || !selectedToken || !walletAddress || !sessionId || !privateKey)
         return;
       setIsProcessing(true);
       setScheduledStatuses([]);
@@ -265,7 +265,7 @@ export const MultiSend = () => {
       const txCompletionTime =
         delaySeconds > 0 ? resolveTxCompletionTime(delaySeconds) : undefined;
 
-      const session = { sessionId, authMode, clientSecret };
+      const session = { sessionId, authMode, privateKey };
 
       const order = await depositAndWithdraw(
         wallet,
@@ -320,7 +320,7 @@ export const MultiSend = () => {
     recipients,
     refreshBalances,
     sessionId,
-    clientSecret,
+    privateKey,
     authMode,
     txCompletionTimeLabel,
     isTron,

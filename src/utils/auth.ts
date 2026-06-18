@@ -8,9 +8,14 @@ export const resolveSessionAuthMode = (useEIP712: boolean): EnclaveSessionAuthMo
 
 export const buildEnclaveSignMessage = (
   sessionId: string,
+  clientPublicKey: string,
   authMode: EnclaveSessionAuthMode = EnclaveSessionAuthMode.EIP712,
 ): string => {
-  const lines = ["Authorize Hinkal session", `Session ID: ${sessionId}`];
+  const lines = [
+    "Authorize Hinkal session",
+    `Session ID: ${sessionId}`,
+    `Public Key: ${clientPublicKey}`,
+  ];
 
   if (authMode === EnclaveSessionAuthMode.Normal) {
     lines.push("This signature can also be used to submit transactions.");

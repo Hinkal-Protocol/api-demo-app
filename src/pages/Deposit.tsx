@@ -24,7 +24,7 @@ export const Deposit = () => {
     refreshBalancesSoon,
     chainId,
     sessionId,
-    clientSecret,
+    privateKey,
     authMode,
     isTron,
     isSolana,
@@ -59,12 +59,12 @@ export const Deposit = () => {
 
   const handleDeposit = useCallback(async () => {
     try {
-      if (!chainId || !selectedToken || !walletAddress || !sessionId || !clientSecret)
+      if (!chainId || !selectedToken || !walletAddress || !sessionId || !privateKey)
         return;
       setIsProcessing(true);
 
       const amountInWei = getAmountInWei(selectedToken, depositAmount);
-      const session = { sessionId, authMode, clientSecret };
+      const session = { sessionId, authMode, privateKey };
       const wallet = {
         signer: isTron || isSolana ? null : await getEthersSigner(chainId),
         solanaProvider: isSolana ? solanaProvider : undefined,
@@ -138,7 +138,7 @@ export const Deposit = () => {
     chainId,
     walletAddress,
     sessionId,
-    clientSecret,
+    privateKey,
     authMode,
     isSolana,
     isTron,

@@ -32,7 +32,7 @@ export const Withdraw = () => {
     refreshBalancesSoon,
     chainId,
     sessionId,
-    clientSecret,
+    privateKey,
     authMode,
     isTron,
     isSolana,
@@ -99,7 +99,7 @@ export const Withdraw = () => {
 
   const handleWithdraw = useCallback(async () => {
     try {
-      if (!chainId || !selectedToken || !walletAddress || !sessionId || !clientSecret)
+      if (!chainId || !selectedToken || !walletAddress || !sessionId || !privateKey)
         return;
       if (!isRelayerOff && !feeStructure) return;
       setIsProcessing(true);
@@ -112,7 +112,7 @@ export const Withdraw = () => {
         solanaProvider: isSolana ? solanaProvider : undefined,
       };
       const amountStr = amountInWei.toString();
-      const session = { sessionId, authMode, clientSecret };
+      const session = { sessionId, authMode, privateKey };
       await withdraw(
         wallet,
         session,
@@ -138,7 +138,7 @@ export const Withdraw = () => {
     selectedToken,
     walletAddress,
     sessionId,
-    clientSecret,
+    privateKey,
     withdrawAmount,
     recipientAddress,
     isRelayerOff,
