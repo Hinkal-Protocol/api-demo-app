@@ -24,9 +24,9 @@ const signTypedData = async (
   buildValue: (nonce: string) => Record<string, unknown>,
 ): Promise<EnclaveTxAuthFields> => {
   const nonce = crypto.randomUUID();
-  const domain = getEnclaveTypedDataDomain(chainId);
-  const types = getTypesForPrimary(primaryType);
   const value = buildValue(nonce);
+  const domain = getEnclaveTypedDataDomain(chainId);
+  const types = getTypesForPrimary(primaryType, value);
 
   const tw = getTronWeb();
   const serializedDomain = serializeBigInts(domain);
@@ -60,22 +60,31 @@ export const buildTronTransferAuthFields = (
   feeToken?: string,
   feeStructure?: FeeStructure,
 ): Promise<EnclaveTxAuthFields> =>
-  signTypedData(sessionId, "Transfer", chainId, (nonce) => ({
-    nonce,
-    sessionId,
-    chainId: BigInt(chainId),
-    tokenAmounts: tokenAddresses.map((token, i) => ({
-      token: ethers.getAddress(token),
-      amount: BigInt(amounts[i]),
-    })).sort((a, b) => a.token.localeCompare(b.token)),
-    recipient,
-    feeToken: ethers.getAddress(feeToken ?? ethers.ZeroAddress),
-    feeStructure: {
-      feeToken: ethers.getAddress(feeStructure?.feeToken ?? ethers.ZeroAddress),
-      flatFee: BigInt(feeStructure?.flatFee ?? 0),
-      variableRate: BigInt(feeStructure?.variableRate ?? 0),
-    },
-  }));
+  signTypedData(sessionId, "Transfer", chainId, (nonce) => {
+    const value: Record<string, unknown> = {
+      nonce,
+      sessionId,
+      chainId: BigInt(chainId),
+      tokenAmounts: tokenAddresses.map((token, i) => ({
+        token: ethers.getAddress(token),
+        amount: BigInt(amounts[i]),
+      })).sort((a, b) => a.token.localeCompare(b.token)),
+      recipient,
+    };
+
+    if (feeToken) {
+      value.feeToken = ethers.getAddress(feeToken);
+    }
+    if (feeStructure) {
+      value.feeStructure = {
+        feeToken: ethers.getAddress(feeStructure.feeToken),
+        flatFee: BigInt(feeStructure.flatFee),
+        variableRate: BigInt(feeStructure.variableRate),
+      };
+    }
+
+    return value;
+  });
 
 export const buildTronWithdrawAuthFields = (
   sessionId: string,
@@ -86,22 +95,31 @@ export const buildTronWithdrawAuthFields = (
   feeToken?: string,
   feeStructure?: FeeStructure,
 ): Promise<EnclaveTxAuthFields> =>
-  signTypedData(sessionId, "Withdraw", chainId, (nonce) => ({
-    nonce,
-    sessionId,
-    chainId: BigInt(chainId),
-    tokenAmounts: tokenAddresses.map((token, i) => ({
-      token: ethers.getAddress(token),
-      amount: BigInt(amounts[i]),
-    })).sort((a, b) => a.token.localeCompare(b.token)),
-    recipient,
-    feeToken: ethers.getAddress(feeToken ?? ethers.ZeroAddress),
-    feeStructure: {
-      feeToken: ethers.getAddress(feeStructure?.feeToken ?? ethers.ZeroAddress),
-      flatFee: BigInt(feeStructure?.flatFee ?? 0),
-      variableRate: BigInt(feeStructure?.variableRate ?? 0),
-    },
-  }));
+  signTypedData(sessionId, "Withdraw", chainId, (nonce) => {
+    const value: Record<string, unknown> = {
+      nonce,
+      sessionId,
+      chainId: BigInt(chainId),
+      tokenAmounts: tokenAddresses.map((token, i) => ({
+        token: ethers.getAddress(token),
+        amount: BigInt(amounts[i]),
+      })).sort((a, b) => a.token.localeCompare(b.token)),
+      recipient,
+    };
+
+    if (feeToken) {
+      value.feeToken = ethers.getAddress(feeToken);
+    }
+    if (feeStructure) {
+      value.feeStructure = {
+        feeToken: ethers.getAddress(feeStructure.feeToken),
+        flatFee: BigInt(feeStructure.flatFee),
+        variableRate: BigInt(feeStructure.variableRate),
+      };
+    }
+
+    return value;
+  });
 
 export const buildTronPrivateSendAuthFields = (
   sessionId: string,
@@ -111,20 +129,29 @@ export const buildTronPrivateSendAuthFields = (
   feeToken?: string,
   txCompletionTime?: number,
 ): Promise<EnclaveTxAuthFields> =>
-  signTypedData(sessionId, "PrivateSend", chainId, (nonce) => ({
-    nonce,
-    sessionId,
-    chainId: BigInt(chainId),
-    tokenAddress: ethers.getAddress(tokenAddress),
-    recipients: [...recipients]
-      .map(({ address, amount }) => ({
-        recipient: ethers.getAddress(tronBase58ToHex(address)),
-        amount: BigInt(amount),
-      }))
-      .sort((a, b) => a.recipient.localeCompare(b.recipient)),
-    feeToken: ethers.getAddress(feeToken ?? ethers.ZeroAddress),
-    txCompletionTime: BigInt(txCompletionTime ?? 0),
-  }));
+  signTypedData(sessionId, "PrivateSend", chainId, (nonce) => {
+    const value: Record<string, unknown> = {
+      nonce,
+      sessionId,
+      chainId: BigInt(chainId),
+      tokenAddress: ethers.getAddress(tokenAddress),
+      recipients: [...recipients]
+        .map(({ address, amount }) => ({
+          recipient: ethers.getAddress(tronBase58ToHex(address)),
+          amount: BigInt(amount),
+        }))
+        .sort((a, b) => a.recipient.localeCompare(b.recipient)),
+    };
+
+    if (feeToken) {
+      value.feeToken = ethers.getAddress(feeToken);
+    }
+    if (txCompletionTime !== undefined) {
+      value.txCompletionTime = BigInt(txCompletionTime);
+    }
+
+    return value;
+  });
 
 export const buildTronWithdrawStuckUtxosAuthFields = (
   sessionId: string,

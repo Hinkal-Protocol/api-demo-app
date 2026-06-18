@@ -53,8 +53,6 @@ const ENCLAVE_TYPED_DATA_TYPES: Record<string, TypedDataField[]> = {
     { name: "chainId", type: "uint256" },
     { name: "tokenAmounts", type: "TokenAmount[]" },
     { name: "recipient", type: "string" },
-    { name: "feeToken", type: "address" },
-    { name: "feeStructure", type: "FeeStructure" },
   ],
   Withdraw: [
     { name: "nonce", type: "string" },
@@ -62,8 +60,6 @@ const ENCLAVE_TYPED_DATA_TYPES: Record<string, TypedDataField[]> = {
     { name: "chainId", type: "uint256" },
     { name: "tokenAmounts", type: "TokenAmount[]" },
     { name: "recipient", type: "string" },
-    { name: "feeToken", type: "address" },
-    { name: "feeStructure", type: "FeeStructure" },
   ],
   Swap: [
     { name: "nonce", type: "string" },
@@ -72,8 +68,6 @@ const ENCLAVE_TYPED_DATA_TYPES: Record<string, TypedDataField[]> = {
     { name: "tokenAmounts", type: "TokenAmount[]" },
     { name: "externalActionId", type: "string" },
     { name: "swapData", type: "string" },
-    { name: "feeToken", type: "address" },
-    { name: "feeStructure", type: "FeeStructure" },
   ],
   PrivateSend: [
     { name: "nonce", type: "string" },
@@ -81,8 +75,6 @@ const ENCLAVE_TYPED_DATA_TYPES: Record<string, TypedDataField[]> = {
     { name: "chainId", type: "uint256" },
     { name: "tokenAddress", type: "address" },
     { name: "recipients", type: "RecipientAmount[]" },
-    { name: "feeToken", type: "address" },
-    { name: "txCompletionTime", type: "uint256" },
   ],
   WithdrawStuckUtxos: [
     { name: "nonce", type: "string" },
@@ -91,6 +83,23 @@ const ENCLAVE_TYPED_DATA_TYPES: Record<string, TypedDataField[]> = {
     { name: "tokenAddress", type: "address" },
     { name: "recipient", type: "address" },
   ],
+};
+
+const FEE_TOKEN_FIELD: TypedDataField = { name: "feeToken", type: "address" };
+const FEE_STRUCTURE_FIELD: TypedDataField = { name: "feeStructure", type: "FeeStructure" };
+const TX_COMPLETION_TIME_FIELD: TypedDataField = { name: "txCompletionTime", type: "uint256" };
+
+const getPrimaryFields = (
+  primaryType: EnclaveTypedDataPrimaryType,
+  value: Record<string, unknown>,
+): TypedDataField[] => {
+  const fields = [...ENCLAVE_TYPED_DATA_TYPES[primaryType]];
+
+  if (value.feeToken) fields.push(FEE_TOKEN_FIELD);
+  if (value.feeStructure) fields.push(FEE_STRUCTURE_FIELD);
+  if (value.txCompletionTime !== undefined) fields.push(TX_COMPLETION_TIME_FIELD);
+
+  return fields;
 };
 
 export const getEnclaveTypedDataDomain = (
@@ -102,19 +111,21 @@ export const getEnclaveTypedDataDomain = (
 
 export const getTypesForPrimary = (
   primaryType: EnclaveTypedDataPrimaryType,
+  value: Record<string, unknown>,
 ): Record<string, TypedDataField[]> => {
+  const fields = getPrimaryFields(primaryType, value);
   const types: Record<string, TypedDataField[]> = {
-    [primaryType]: ENCLAVE_TYPED_DATA_TYPES[primaryType],
+    [primaryType]: fields,
   };
 
-  const usesTokenAmount = ENCLAVE_TYPED_DATA_TYPES[primaryType].some(
+  const usesTokenAmount = fields.some(
     (field) => field.type === "TokenAmount" || field.type === "TokenAmount[]",
   );
   if (usesTokenAmount) {
     types.TokenAmount = ENCLAVE_TYPED_DATA_TYPES.TokenAmount;
   }
 
-  const usesRecipientAmount = ENCLAVE_TYPED_DATA_TYPES[primaryType].some(
+  const usesRecipientAmount = fields.some(
     (field) =>
       field.type === "RecipientAmount" || field.type === "RecipientAmount[]",
   );
@@ -122,7 +133,7 @@ export const getTypesForPrimary = (
     types.RecipientAmount = ENCLAVE_TYPED_DATA_TYPES.RecipientAmount;
   }
 
-  if (ENCLAVE_TYPED_DATA_TYPES[primaryType].some((f: TypedDataField) => f.type === "FeeStructure")) {
+  if (fields.some((f: TypedDataField) => f.type === "FeeStructure")) {
     types.FeeStructure = ENCLAVE_TYPED_DATA_TYPES.FeeStructure;
   }
 

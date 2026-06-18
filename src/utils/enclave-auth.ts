@@ -87,10 +87,11 @@ const signEnclaveTypedData = async (
   buildMessage: (nonce: string) => Record<string, unknown>,
 ): Promise<EnclaveTxAuthFields> => {
   const nonce = crypto.randomUUID();
+  const value = buildMessage(nonce);
   const signature = await signer.signTypedData(
     getEnclaveTypedDataDomain(chainId),
-    getTypesForPrimary(primaryType),
-    buildMessage(nonce),
+    getTypesForPrimary(primaryType, value),
+    value,
   );
   return {
     sessionId,
@@ -126,16 +127,25 @@ export const buildTransferAuthFields = (
     feeStructure?: { feeToken: string; flatFee: string; variableRate: string };
   },
 ) =>
-  signEnclaveTypedData(sessionId, signer, "Transfer", params.chainId, (nonce) => ({
-    ...buildTokenAmountsBase(nonce, sessionId, params),
-    recipient: params.recipient,
-    feeToken: ethers.getAddress(params.feeToken ?? ethers.ZeroAddress),
-    feeStructure: {
-      feeToken: ethers.getAddress(params.feeStructure?.feeToken ?? ethers.ZeroAddress),
-      flatFee: BigInt(params.feeStructure?.flatFee ?? 0),
-      variableRate: BigInt(params.feeStructure?.variableRate ?? 0),
-    },
-  }));
+  signEnclaveTypedData(sessionId, signer, "Transfer", params.chainId, (nonce) => {
+    const value: Record<string, unknown> = {
+      ...buildTokenAmountsBase(nonce, sessionId, params),
+      recipient: params.recipient,
+    };
+
+    if (params.feeToken) {
+      value.feeToken = ethers.getAddress(params.feeToken);
+    }
+    if (params.feeStructure) {
+      value.feeStructure = {
+        feeToken: ethers.getAddress(params.feeStructure.feeToken),
+        flatFee: BigInt(params.feeStructure.flatFee),
+        variableRate: BigInt(params.feeStructure.variableRate),
+      };
+    }
+
+    return value;
+  });
 
 export const buildWithdrawAuthFields = (
   sessionId: string,
@@ -149,16 +159,25 @@ export const buildWithdrawAuthFields = (
     feeStructure?: { feeToken: string; flatFee: string; variableRate: string };
   },
 ) =>
-  signEnclaveTypedData(sessionId, signer, "Withdraw", params.chainId, (nonce) => ({
-    ...buildTokenAmountsBase(nonce, sessionId, params),
-    recipient: params.recipient,
-    feeToken: ethers.getAddress(params.feeToken ?? ethers.ZeroAddress),
-    feeStructure: {
-      feeToken: ethers.getAddress(params.feeStructure?.feeToken ?? ethers.ZeroAddress),
-      flatFee: BigInt(params.feeStructure?.flatFee ?? 0),
-      variableRate: BigInt(params.feeStructure?.variableRate ?? 0),
-    },
-  }));
+  signEnclaveTypedData(sessionId, signer, "Withdraw", params.chainId, (nonce) => {
+    const value: Record<string, unknown> = {
+      ...buildTokenAmountsBase(nonce, sessionId, params),
+      recipient: params.recipient,
+    };
+
+    if (params.feeToken) {
+      value.feeToken = ethers.getAddress(params.feeToken);
+    }
+    if (params.feeStructure) {
+      value.feeStructure = {
+        feeToken: ethers.getAddress(params.feeStructure.feeToken),
+        flatFee: BigInt(params.feeStructure.flatFee),
+        variableRate: BigInt(params.feeStructure.variableRate),
+      };
+    }
+
+    return value;
+  });
 
 export const buildWithdrawStuckUtxosAuthFields = (
   sessionId: string,
@@ -196,17 +215,26 @@ export const buildSwapAuthFields = (
     feeStructure?: { feeToken: string; flatFee: string; variableRate: string };
   },
 ) =>
-  signEnclaveTypedData(sessionId, signer, "Swap", params.chainId, (nonce) => ({
-    ...buildTokenAmountsBase(nonce, sessionId, params),
-    externalActionId: params.externalActionId,
-    swapData: params.swapData,
-    feeToken: ethers.getAddress(params.feeToken ?? ethers.ZeroAddress),
-    feeStructure: {
-      feeToken: ethers.getAddress(params.feeStructure?.feeToken ?? ethers.ZeroAddress),
-      flatFee: BigInt(params.feeStructure?.flatFee ?? 0),
-      variableRate: BigInt(params.feeStructure?.variableRate ?? 0),
-    },
-  }));
+  signEnclaveTypedData(sessionId, signer, "Swap", params.chainId, (nonce) => {
+    const value: Record<string, unknown> = {
+      ...buildTokenAmountsBase(nonce, sessionId, params),
+      externalActionId: params.externalActionId,
+      swapData: params.swapData,
+    };
+
+    if (params.feeToken) {
+      value.feeToken = ethers.getAddress(params.feeToken);
+    }
+    if (params.feeStructure) {
+      value.feeStructure = {
+        feeToken: ethers.getAddress(params.feeStructure.feeToken),
+        flatFee: BigInt(params.feeStructure.flatFee),
+        variableRate: BigInt(params.feeStructure.variableRate),
+      };
+    }
+
+    return value;
+  });
 
 export const buildDepositAndWithdrawAuthFields = (
   sessionId: string,
@@ -224,22 +252,31 @@ export const buildDepositAndWithdrawAuthFields = (
     signer,
     "PrivateSend",
     params.chainId,
-    (nonce) => ({
-      nonce,
-      sessionId,
-      chainId: BigInt(params.chainId),
-      tokenAddress: params.tokenAddress,
-      // Must match the server's normalizeDepositAndWithdrawRecipients:
-      // checksum each address, then sort by it (enclaveTypedData.ts).
-      recipients: params.recipients
-        .map(({ address, amount }) => ({
-          recipient: ethers.getAddress(address),
-          amount: BigInt(amount),
-        }))
-        .sort((a, b) => a.recipient.localeCompare(b.recipient)),
-      feeToken: ethers.getAddress(params.feeToken ?? ethers.ZeroAddress),
-      txCompletionTime: BigInt(params.txCompletionTime ?? 0),
-    }),
+    (nonce) => {
+      const value: Record<string, unknown> = {
+        nonce,
+        sessionId,
+        chainId: BigInt(params.chainId),
+        tokenAddress: params.tokenAddress,
+        // Must match the server's normalizeDepositAndWithdrawRecipients:
+        // checksum each address, then sort by it (enclaveTypedData.ts).
+        recipients: params.recipients
+          .map(({ address, amount }) => ({
+            recipient: ethers.getAddress(address),
+            amount: BigInt(amount),
+          }))
+          .sort((a, b) => a.recipient.localeCompare(b.recipient)),
+      };
+
+      if (params.feeToken) {
+        value.feeToken = ethers.getAddress(params.feeToken);
+      }
+      if (params.txCompletionTime !== undefined) {
+        value.txCompletionTime = BigInt(params.txCompletionTime);
+      }
+
+      return value;
+    },
   );
 
 type QueryParamValue = string | string[];
