@@ -13,6 +13,7 @@ type CreateSessionResponse =
       success: true;
       expiresAt: string;
       authMode: EnclaveSessionAuthMode;
+      clientPublicKey: string;
     }
   | { success: false; error?: string };
 
@@ -59,6 +60,10 @@ export const registerEnclaveSession = async ({
     throw new Error(
       ("error" in data && data.error) || "Session was not created",
     );
+  }
+
+  if (data.clientPublicKey !== clientPublicKey) {
+    throw new Error("Response clientPublicKey does not match request");
   }
 
   return {
