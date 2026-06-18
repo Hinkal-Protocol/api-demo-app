@@ -15,7 +15,7 @@ export const AuthModeToggle = ({
       <p className="text-hinkal-gray-100 text-xs mt-0.5">
         {useEIP712Enabled
           ? "Sign each transaction with EIP-712"
-          : "Normal mode — HMAC for transactions"}
+          : "Normal mode"}
       </p>
     </div>
     <ToggleSwitch isOff={!useEIP712Enabled} setIsOff={() => onToggle()} />
