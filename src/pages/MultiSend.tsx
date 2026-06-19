@@ -41,6 +41,7 @@ import {
   approveAndBroadcastTronSerializedTx,
   getTronErc20Balance,
   getTronNativeBalance,
+  isTempo,
   isTronChain,
 } from "../utils/tron-wallet";
 import {
@@ -57,6 +58,7 @@ import {
 } from "../utils/recipientAddress";
 
 const NON_NATIVE_GAS_TOKENS = ["USDC", "USDT", "DAI"];
+const TEMPO_GAS_COST_TOKEN_SYMBOL_OPTIONS = ["pathUSD", "USDT0", "USDC.e"];
 const POLL_INTERVAL_MS = 2000;
 const POLL_TIMEOUT_MS = 5 * 60_000;
 
@@ -111,11 +113,16 @@ export const MultiSend = () => {
       ? SOLANA_NATIVE_ADDRESS
       : zeroAddress;
     const nativeToken = getERC20Token(nativeAddress, chainId);
-    const stablecoins = NON_NATIVE_GAS_TOKENS.map((symbol) =>
-      getERC20TokenBySymbol(symbol, chainId),
-    ).filter((token): token is ERC20Token => token !== undefined);
-    const tokens = nativeToken ? [nativeToken, ...stablecoins] : stablecoins;
-    return tokens.length > 0 ? tokens : getERC20Registry(chainId);
+
+    const tokenSymbols = isTempo(chainId)
+      ? TEMPO_GAS_COST_TOKEN_SYMBOL_OPTIONS
+      : NON_NATIVE_GAS_TOKENS;
+
+    const stablecoins = tokenSymbols
+      .map((symbol) => getERC20TokenBySymbol(symbol, chainId))
+      .filter((token): token is ERC20Token => token !== undefined);
+
+    return nativeToken ? [nativeToken, ...stablecoins] : stablecoins;
   }, [chainId]);
 
   const [selectedToken, setSelectedToken] = useState<ERC20Token | undefined>(
@@ -246,7 +253,13 @@ export const MultiSend = () => {
 
   const handleMultiSend = useCallback(async () => {
     try {
-      if (!chainId || !selectedToken || !walletAddress || !sessionId || !privateKey)
+      if (
+        !chainId ||
+        !selectedToken ||
+        !walletAddress ||
+        !sessionId ||
+        !privateKey
+      )
         return;
       setIsProcessing(true);
       setScheduledStatuses([]);
