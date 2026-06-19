@@ -23,14 +23,14 @@ const firstMeaningfulLine = (text: string): string => {
     .map((l) => l.trim())
     .find(
       (l) =>
-        l && !/^(details|version|contract call|request arguments):/i.test(l)
+        l && !/^(details|version|contract call|request arguments):/i.test(l),
     );
   return (line ?? text.trim()).replace(/\.$/, "");
 };
 
 export const getFriendlyErrorMessage = (
   error: unknown,
-  fallback = "Something went wrong. Please try again."
+  fallback = "Something went wrong. Please try again.",
 ): string => {
   const chain = collectErrorChain(error);
 
@@ -49,6 +49,16 @@ export const getFriendlyErrorMessage = (
     return "Insufficient funds for this transaction";
   }
   if (
+    chain.some(
+      (e) =>
+        e?.code === "CALL_EXCEPTION" &&
+        e?.action === "estimateGas" &&
+        e?.data == null,
+    )
+  ) {
+    return "Transaction rejected - likely not enough balance for the amount plus gas";
+  }
+  if (
     /network|timeout|failed to fetch|fetch failed|connection/i.test(combined)
   ) {
     return "Network error — check your connection and try again";
@@ -60,8 +70,8 @@ export const getFriendlyErrorMessage = (
     (error instanceof Error
       ? error.message
       : typeof error === "string"
-        ? error
-        : "");
+      ? error
+      : "");
 
   const message = best ? firstMeaningfulLine(String(best)) : "";
   return message || fallback;

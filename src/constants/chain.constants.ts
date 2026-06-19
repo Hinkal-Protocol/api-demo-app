@@ -12,6 +12,7 @@ export const chainIds = {
   tronLocalnet: 103,
   tronMainnet: 728126428,
   solanaMainnet: 501,
+  tempo: 4217,
 };
 
 export const SWAP_EXCLUDED_CHAINS: number[] = [chainIds.arcTestnet];
@@ -66,6 +67,11 @@ export const networkRegistry: Record<number, Network> = {
     chainId: chainIds.solanaMainnet,
     fetchRpcUrl:
       "https://mainnet.helius-rpc.com/?api-key=54ad9ec9-dad6-41de-b961-e3e8ea7a7188",
+  },
+  [chainIds.tempo]: {
+    name: "Tempo",
+    chainId: chainIds.tempo,
+    fetchRpcUrl: "https://rpc.tempo.xyz",
   },
 };
 

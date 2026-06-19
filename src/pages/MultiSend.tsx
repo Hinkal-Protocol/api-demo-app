@@ -55,7 +55,14 @@ import {
   isValidRecipientAddress,
 } from "../utils/recipientAddress";
 
-const NON_NATIVE_GAS_TOKENS = ["USDC", "USDT", "DAI"];
+const NON_NATIVE_GAS_TOKENS = [
+  "USDC",
+  "USDT",
+  "DAI",
+  "USDC.e",
+  "USDT0",
+  "pathUSD",
+];
 const POLL_INTERVAL_MS = 2000;
 const POLL_TIMEOUT_MS = 5 * 60_000;
 

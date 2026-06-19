@@ -5,6 +5,7 @@ import {
   polygon,
   base,
   sepolia,
+  tempo,
 } from "wagmi/chains";
 import { defineChain } from "viem";
 import { ALCHEMY_API_KEY } from "./chain.constants";
@@ -28,6 +29,7 @@ export const SUPPORTED_CHAINS = [
   base, // 8453
   arcTestnet, // 5042002
   sepolia, // 11155111
+  tempo, // 4217
 ] as const;
 
 export const SUPPORTED_CHAIN_IDS: number[] = SUPPORTED_CHAINS.map(
