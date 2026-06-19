@@ -15,6 +15,7 @@ import { ERC20Token } from "../types";
 import { getAmountInWei } from "../utils/amount.utils";
 import { getFriendlyErrorMessage } from "../utils/errors";
 import { getERC20Token, getERC20TokenBySymbol } from "../utils/tokens.utils";
+import { getERC20Registry } from "../constants/token-data";
 import { RecipientInputRow } from "../utils/recipientInfoRow";
 import {
   depositAndWithdraw,
@@ -113,7 +114,8 @@ export const MultiSend = () => {
     const stablecoins = NON_NATIVE_GAS_TOKENS.map((symbol) =>
       getERC20TokenBySymbol(symbol, chainId),
     ).filter((token): token is ERC20Token => token !== undefined);
-    return nativeToken ? [nativeToken, ...stablecoins] : stablecoins;
+    const tokens = nativeToken ? [nativeToken, ...stablecoins] : stablecoins;
+    return tokens.length > 0 ? tokens : getERC20Registry(chainId);
   }, [chainId]);
 
   const [selectedToken, setSelectedToken] = useState<ERC20Token | undefined>(

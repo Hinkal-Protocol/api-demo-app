@@ -6,6 +6,7 @@ export const chainIds = {
   ethMainnet: 1,
   optimism: 10,
   base: 8453,
+  tempo: 4217,
   arcTestnet: 5042002,
   sepolia: 11155111,
   tronNile: 3448148188,
@@ -45,6 +46,11 @@ export const networkRegistry: Record<number, Network> = {
     name: "Base",
     chainId: chainIds.base,
     fetchRpcUrl: `https://base-mainnet.g.alchemy.com/v2/${ALCHEMY_API_KEY}`,
+  },
+  [chainIds.tempo]: {
+    name: "Tempo",
+    chainId: chainIds.tempo,
+    fetchRpcUrl: "https://rpc.tempo.xyz",
   },
   [chainIds.arcTestnet]: {
     name: "Arc Testnet",
