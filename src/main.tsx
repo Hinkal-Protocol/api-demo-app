@@ -57,7 +57,7 @@ ReactDOM.createRoot(document.getElementById("root") as HTMLElement).render(
             loginMethods: ["email"],
             supportedChains: [...SUPPORTED_CHAINS],
             embeddedWallets: {
-              ethereum: { createOnLogin: "users-without-wallets" },
+              ethereum: { createOnLogin: "off" },
 
               showWalletUIs: true,
             },
