@@ -5,6 +5,7 @@ import {
   polygon,
   base,
   sepolia,
+  tempoMainnet,
 } from "wagmi/chains";
 import { defineChain } from "viem";
 import { ALCHEMY_API_KEY } from "./chain.constants";
@@ -26,6 +27,7 @@ export const SUPPORTED_CHAINS = [
   arbitrum, // 42161
   optimism, // 10
   base, // 8453
+  tempoMainnet, // 4217
   arcTestnet, // 5042002
   sepolia, // 11155111
 ] as const;

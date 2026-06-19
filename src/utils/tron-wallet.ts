@@ -1,3 +1,5 @@
+import { chainIds } from "../constants/chain.constants";
+
 export const TRON_NILE_CHAIN_ID = 3448148188;
 export const TRON_MAINNET_CHAIN_ID = 728126428;
 
@@ -14,6 +16,10 @@ declare global {
     tronWeb?: any;
   }
 }
+
+
+export const isTempo = (chainId: number): boolean =>
+  chainId === chainIds.tempo;
 
 export const isTronChain = (chainId: number): boolean =>
   chainId === TRON_NILE_CHAIN_ID || chainId === TRON_MAINNET_CHAIN_ID;
