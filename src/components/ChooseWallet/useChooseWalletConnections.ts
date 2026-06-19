@@ -3,7 +3,7 @@ import { ethers } from "ethers";
 import { useConfig, useConnectors } from "wagmi";
 import { connect, disconnect } from "wagmi/actions";
 import type { Connector } from "wagmi";
-import { usePrivy, useWallets } from "@privy-io/react-auth";
+import { usePrivy, useWallets, useCreateWallet } from "@privy-io/react-auth";
 import { AuthState, useTurnkey } from "@turnkey/react-wallet-kit";
 import { useDynamicContext } from "@dynamic-labs/sdk-react-core";
 import { isEthereumWallet } from "@dynamic-labs/ethereum";
@@ -45,6 +45,8 @@ export const useChooseWalletConnections = ({
   const config = useConfig();
   const { login, authenticated, ready: privyReady } = usePrivy();
   const { wallets } = useWallets();
+  const { createWallet } = useCreateWallet();
+
   const {
     handleLogin: turnkeyLogin,
     authState: turnkeyAuthState,
@@ -141,14 +143,25 @@ export const useChooseWalletConnections = ({
   }, [authenticated, login, setIsConnecting, config]);
 
   useEffect(() => {
-    if (connectingId !== "privy" || !authenticated) return;
+    if (
+      (connectingId !== "privy" && connectingId !== "privy-creating") ||
+      !authenticated
+    ) {
+      return;
+    }
     const embedded = wallets.find((w) => w.walletClientType === "privy");
-    if (!embedded) return;
-    setActivePrivyWallet(embedded);
+    if (!embedded) {
+      if (connectingId === "privy") {
+        setConnectingId("privy-creating");
+        createWallet().catch(() => {});
+      }
+      return;
+    }
     setConnectingId("privy-signing");
 
     (async () => {
       try {
+        setActivePrivyWallet(embedded);
         const chainId = Number(embedded.chainId.split(":")[1]);
         await completeEvmSession(embedded.address, chainId);
       } catch (err) {
@@ -167,6 +180,7 @@ export const useChooseWalletConnections = ({
     connectingId,
     authenticated,
     wallets,
+    createWallet,
     completeEvmSession,
     finishConnecting,
   ]);
@@ -357,10 +371,7 @@ export const useChooseWalletConnections = ({
       setIsConnecting?.(true);
       setConnectingId("tronlink");
       const { address, chainId } = await connectTronLink();
-      const session = await createTronEnclaveSession(
-        address,
-        useEIP712Enabled,
-      );
+      const session = await createTronEnclaveSession(address, useEIP712Enabled);
       setRequestedUseEIP712(useEIP712Enabled);
       setWalletType("tron");
       setWalletAddress(address);
