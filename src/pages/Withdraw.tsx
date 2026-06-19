@@ -51,7 +51,6 @@ export const Withdraw = () => {
   const [withdrawAmount, setWithdrawAmount] = useState("");
   const [recipientAddress, setRecipientAddress] = useState("");
   const [isProcessing, setIsProcessing] = useState(false);
-  const [isRelayerOff, setIsRelayerOff] = useState(false);
 
   const amountWei = useMemo(() => {
     if (!selectedToken || !withdrawAmount) return 0n;
@@ -65,7 +64,7 @@ export const Withdraw = () => {
   const { feeStructure, isFeeLoading } = useTransactFee({
     token: selectedToken,
     amountWei,
-    enabled: !isRelayerOff,
+    enabled: true,
   });
 
   const feeAmount = getFeeAmount(feeStructure);
@@ -86,7 +85,6 @@ export const Withdraw = () => {
     setSelectedToken(undefined);
     setWithdrawAmount("");
     setRecipientAddress("");
-    setIsRelayerOff(false);
   };
 
   useEffect(() => {
@@ -94,14 +92,19 @@ export const Withdraw = () => {
     setSelectedToken(undefined);
     setWithdrawAmount("");
     setRecipientAddress("");
-    setIsRelayerOff(false);
   }, [chainId]);
 
   const handleWithdraw = useCallback(async () => {
     try {
-      if (!chainId || !selectedToken || !walletAddress || !sessionId || !privateKey)
+      if (
+        !chainId ||
+        !selectedToken ||
+        !walletAddress ||
+        !sessionId ||
+        !privateKey
+      )
         return;
-      if (!isRelayerOff && !feeStructure) return;
+      if (!feeStructure) return;
       setIsProcessing(true);
 
       const amountInWei = getAmountInWei(selectedToken, withdrawAmount);
@@ -120,7 +123,6 @@ export const Withdraw = () => {
         [tokenAddress],
         [amountStr],
         recipientAddress,
-        isRelayerOff,
         tokenAddress,
         feeStructure,
       );
@@ -141,7 +143,6 @@ export const Withdraw = () => {
     privateKey,
     withdrawAmount,
     recipientAddress,
-    isRelayerOff,
     feeStructure,
     refreshBalances,
     refreshBalancesSoon,
@@ -184,7 +185,7 @@ export const Withdraw = () => {
       isProcessing ||
       isFeeLoading ||
       hasInsufficientFunds ||
-      (!isRelayerOff && !feeStructure),
+      !feeStructure,
     [
       walletAddress,
       selectedToken,
@@ -194,7 +195,6 @@ export const Withdraw = () => {
       isProcessing,
       isFeeLoading,
       hasInsufficientFunds,
-      isRelayerOff,
       feeStructure,
     ],
   );
@@ -231,22 +231,6 @@ export const Withdraw = () => {
               {recipientAddressError}
             </p>
           )}
-        </div>
-        <div className="flex items-center gap-x-2 pl-[5%] mb-4">
-          <input
-            type="checkbox"
-            id="relayerOff"
-            checked={isRelayerOff}
-            onChange={(e) => setIsRelayerOff(e.target.checked)}
-            disabled={isProcessing}
-            className="cursor-pointer"
-          />
-          <label
-            htmlFor="relayerOff"
-            className="text-white text-[14px] font-[300] cursor-pointer"
-          >
-            Withdraw without relayer
-          </label>
         </div>
         <div className="px-[5%] mb-2 text-[13px]">
           {isFeeLoading ? (

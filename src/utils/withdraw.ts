@@ -14,7 +14,6 @@ export const withdraw = async (
   tokenAddresses: string[],
   amounts: string[],
   recipientAddress: string,
-  isRelayerOff?: boolean,
   feeToken?: string,
   feeStructure?: FeeStructure,
 ): Promise<string> => {
@@ -22,7 +21,6 @@ export const withdraw = async (
     tokenAddresses,
     amounts,
     recipientAddress,
-    isRelayerOff,
     feeToken,
     feeStructure,
   };
@@ -44,8 +42,7 @@ export const withdraw = async (
   );
 
   const { res, data } = await enclaveFetch<
-    | { success: true; txHash: string }
-    | { error?: string }
+    { success: true; txHash: string } | { error?: string }
   >("/withdraw", requestNonce, {
     method: "POST",
     headers,
@@ -82,8 +79,7 @@ export const withdrawStuckUtxos = async (
   );
 
   const { res, data } = await enclaveFetch<
-    | { success: true; txHashes: string[] }
-    | { error?: string }
+    { success: true; txHashes: string[] } | { error?: string }
   >("/withdraw-stuck-utxos", requestNonce, {
     method: "POST",
     headers,
