@@ -4,6 +4,7 @@ import toast from "react-hot-toast";
 import type { ChooseWalletConnections } from "./useChooseWalletConnections";
 import { WalletOptionButton } from "./WalletOptionButton";
 import { DfnsGoogleOverlay } from "./DfnsGoogleOverlay";
+import { OpenfortOverlay } from "./OpenfortOverlay";
 import { isWalletConfigured } from "../../constants";
 
 interface SocialLoginViewProps {
@@ -15,6 +16,8 @@ interface SocialLoginViewProps {
   onConnectTurnkey: ChooseWalletConnections["handleConnectTurnkey"];
   onConnectDynamic: ChooseWalletConnections["handleConnectDynamic"];
   onConnectDfns: ChooseWalletConnections["handleConnectDfns"];
+  onRequestOpenfortOtp: ChooseWalletConnections["handleRequestOpenfortOtp"];
+  onVerifyOpenfortOtp: ChooseWalletConnections["handleVerifyOpenfortOtp"];
 }
 
 export const SocialLoginView = ({
@@ -26,8 +29,11 @@ export const SocialLoginView = ({
   onConnectTurnkey,
   onConnectDynamic,
   onConnectDfns,
+  onRequestOpenfortOtp,
+  onVerifyOpenfortOtp,
 }: SocialLoginViewProps) => {
   const [dfnsOpen, setDfnsOpen] = useState(false);
+  const [openfortOpen, setOpenfortOpen] = useState(false);
 
   const socialProviders = useMemo(
     () => [
@@ -63,6 +69,13 @@ export const SocialLoginView = ({
         disabled: !!connectingId,
         configured: isWalletConfigured.dfns(),
         onClick: () => setDfnsOpen(true),
+      },
+      {
+        id: "openfort",
+        name: "Openfort",
+        disabled: !!connectingId,
+        configured: isWalletConfigured.openfort(),
+        onClick: () => setOpenfortOpen(true),
       },
     ],
     [
@@ -102,6 +115,13 @@ export const SocialLoginView = ({
         <DfnsGoogleOverlay
           onClose={() => setDfnsOpen(false)}
           onConnect={onConnectDfns}
+        />
+      )}
+      {openfortOpen && (
+        <OpenfortOverlay
+          onClose={() => setOpenfortOpen(false)}
+          onRequestOtp={onRequestOpenfortOtp}
+          onVerifyOtp={onVerifyOpenfortOtp}
         />
       )}
     </div>

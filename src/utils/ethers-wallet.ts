@@ -10,6 +10,7 @@ import type { DfnsWallet } from "@dfns/lib-ethersjs6";
 import { ERC20_ABI } from "../constants/erc20.constants";
 import { networkRegistry } from "../constants/chain.constants";
 import { wagmiConfig } from "../wagmi.config";
+import { buildSigner as buildOpenfortSigner } from "./openfort";
 
 export const requireEvmSigner = (
   signer: ethers.Signer | null | undefined,
@@ -50,6 +51,12 @@ export const setActiveDynamicWallet = (wallet: Wallet | null): void => {
 let activeDfnsWallet: DfnsWallet | null = null;
 export const setActiveDfnsWallet = (wallet: DfnsWallet | null): void => {
   activeDfnsWallet = wallet;
+};
+
+// Openfort: rebuild the EIP-1193-backed signer per chain via connectOpenfort.
+let activeOpenfort = false;
+export const setActiveOpenfort = (value: boolean): void => {
+  activeOpenfort = value;
 };
 
 /**
@@ -115,6 +122,12 @@ const clientToSigner = (
 export const getEthersSigner = async (
   chainId?: number,
 ): Promise<ethers.Signer> => {
+  if (activeOpenfort) {
+    const targetChainId = chainId ?? wagmiConfig.chains[0].id;
+    const { signer } = await buildOpenfortSigner(targetChainId);
+    return signer;
+  }
+
   if (activeDfnsWallet) {
     const provider = getJsonRpcProvider(chainId ?? wagmiConfig.chains[0].id);
     return wrapDfnsSigner(
@@ -181,6 +194,7 @@ export const getEthersSigner = async (
 export const switchActiveWalletChain = async (
   chainId: number,
 ): Promise<void> => {
+  if (activeOpenfort) return; // signer is rebuilt per chain in getEthersSigner
   if (activeDfnsWallet) return;
   if (activeDynamicWallet) {
     await activeDynamicWallet.switchNetwork(chainId);
@@ -220,15 +234,50 @@ export const getErc20Balance = async (
   return contract.balanceOf(walletAddress);
 };
 
+/**
+ * Openfort routes eth_estimateGas to its backend, which 400s for EOA wallets.
+ * Pre-fill gas/fees/nonce from our own RPC so ethers skips estimation; Openfort's
+ * EOA path then just signs locally and broadcasts.
+ */
+const populateOpenfortGas = async (
+  signer: ethers.Signer,
+  txRequest: ethers.TransactionRequest,
+): Promise<void> => {
+  const from = await signer.getAddress();
+  const { chainId } = await signer.provider!.getNetwork();
+  const rpc = getJsonRpcProvider(Number(chainId));
+  const [gasLimit, feeData, nonce] = await Promise.all([
+    rpc.estimateGas({
+      from,
+      to: txRequest.to ?? undefined,
+      data: txRequest.data,
+      value: txRequest.value,
+    }),
+    rpc.getFeeData(),
+    rpc.getTransactionCount(from, "pending"),
+  ]);
+  txRequest.gasLimit = (gasLimit * 12n) / 10n; // 20% headroom
+  txRequest.nonce = nonce;
+  if (feeData.maxFeePerGas && feeData.maxPriorityFeePerGas) {
+    txRequest.maxFeePerGas = feeData.maxFeePerGas;
+    txRequest.maxPriorityFeePerGas = feeData.maxPriorityFeePerGas;
+  } else if (feeData.gasPrice) {
+    txRequest.gasPrice = feeData.gasPrice;
+  }
+};
+
 const sendViaWallet = async (
   signer: ethers.Signer,
   tx: { to: string; data?: string; value?: bigint },
 ): Promise<ethers.TransactionReceipt> => {
-  const txRequest = {
+  const txRequest: ethers.TransactionRequest = {
     to: tx.to,
     data: tx.data ?? "0x",
     ...(tx.value && tx.value > 0n ? { value: tx.value } : {}),
   };
+
+  if (activeOpenfort) await populateOpenfortGas(signer, txRequest);
+
   const hash = (signer as any).sendUncheckedTransaction
     ? await (signer as ethers.JsonRpcSigner).sendUncheckedTransaction(txRequest)
     : (await signer.sendTransaction(txRequest)).hash;
