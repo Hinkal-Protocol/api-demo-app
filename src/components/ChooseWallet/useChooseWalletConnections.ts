@@ -16,8 +16,10 @@ import {
   setActivePrivyWallet,
   setActiveDfnsWallet,
   setActiveTurnkeyParams,
+  setActiveOpenfort,
 } from "../../utils/ethers-wallet";
 import { connectDfns } from "../../utils/dfns";
+import { requestOpenfortOtp, loginOpenfort } from "../../utils/openfort";
 import { connectTronLink } from "../../utils/tron-wallet";
 import { createTronEnclaveSession } from "../../utils/tron-session";
 import {
@@ -317,6 +319,31 @@ export const useChooseWalletConnections = ({
     [config, completeEvmSession, finishConnecting, setIsConnecting],
   );
 
+  const handleRequestOpenfortOtp = useCallback(async (email: string) => {
+    await requestOpenfortOtp(email);
+  }, []);
+
+  const handleVerifyOpenfortOtp = useCallback(
+    async (email: string, otp: string) => {
+      try {
+        setIsConnecting?.(true);
+        setConnectingId("openfort");
+        await disconnect(config);
+        const chainId = SUPPORTED_CHAINS[0].id;
+        const { address } = await loginOpenfort(email, otp, chainId);
+        setActiveOpenfort(true);
+        await completeEvmSession(address, chainId);
+      } catch (err) {
+        setActiveOpenfort(false);
+        toast.error(getFriendlyErrorMessage(err, "Openfort connection failed"));
+        throw err;
+      } finally {
+        finishConnecting();
+      }
+    },
+    [config, completeEvmSession, finishConnecting, setIsConnecting],
+  );
+
   const handleConnectSolana = useCallback(
     async (provider: SolanaWalletProvider) => {
       try {
@@ -409,6 +436,8 @@ export const useChooseWalletConnections = ({
     handleConnectTurnkey,
     handleConnectDynamic,
     handleConnectDfns,
+    handleRequestOpenfortOtp,
+    handleVerifyOpenfortOtp,
     handleConnectSolana,
     handleConnectTronLink,
   };
