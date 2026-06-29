@@ -35,6 +35,8 @@ export const getTokenBalanceDisplay = (
       b.tokenAddress.toLowerCase() === token.erc20TokenAddress.toLowerCase()
   );
   if (!bal) return null;
-  return `${Number(getAmountInToken(token, bal.balance))} ${token.symbol
-    }`;
+  const amount = Number(getAmountInToken(token, bal.balance));
+  const formatted =
+    amount === 0 ? "0" : amount < 0.0001 ? "<0.0001" : amount.toFixed(4);
+  return `${formatted} ${token.symbol}`;
 };

@@ -16,6 +16,11 @@ export const PRIVY_APP_ID = import.meta.env.VITE_PRIVY_APP_ID || "";
 export const DYNAMIC_ENVIRONMENT_ID =
   import.meta.env.VITE_DYNAMIC_ENVIRONMENT_ID || "";
 
+export const OPENFORT_PUBLISHABLE_KEY =
+  import.meta.env.VITE_OPENFORT_PUBLISHABLE_KEY || "";
+export const OPENFORT_SHIELD_PUBLISHABLE_KEY =
+  import.meta.env.VITE_OPENFORT_SHIELD_PUBLISHABLE_KEY || "";
+
 export const dfnsConfig = {
   apiUrl: "https://api.dfns.io",
   orgId: import.meta.env.VITE_DFNS_ORG_ID || "",
@@ -39,4 +44,6 @@ export const isWalletConfigured = {
   turnkey: () =>
     !!turnkeyConfig.organizationId && !!turnkeyConfig.authProxyConfigId,
   dfns: () => !!dfnsConfig.orgId && !!dfnsConfig.googleClientId,
+  openfort: () =>
+    !!OPENFORT_PUBLISHABLE_KEY && !!OPENFORT_SHIELD_PUBLISHABLE_KEY,
 };

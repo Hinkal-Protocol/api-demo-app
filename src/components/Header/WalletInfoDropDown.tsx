@@ -17,7 +17,9 @@ import {
   setActivePrivyWallet,
   setActiveTurnkeyParams,
   setActiveDfnsWallet,
+  setActiveOpenfort,
 } from "../../utils/ethers-wallet";
+import { logoutOpenfort } from "../../utils/openfort";
 import { withdrawStuckUtxos } from "../../utils/withdraw";
 import { WalletInfoBalance } from "./WalletInfoBalance";
 import { useAppContext } from "../../AppContext";
@@ -83,10 +85,16 @@ export const WalletInfoDropDown = () => {
     } catch (err) {
       console.error("dynamic logout failed", err);
     }
+    try {
+      await logoutOpenfort();
+    } catch (err) {
+      console.error("openfort logout failed", err);
+    }
     setActiveDfnsWallet(null);
     setActiveDynamicWallet(null);
     setActivePrivyWallet(null);
     setActiveTurnkeyParams(null);
+    setActiveOpenfort(false);
     setWalletAddress(null);
     clearEnclaveSession();
     setRequestedUseEIP712(false);
