@@ -29,6 +29,7 @@ import {
 import { createSolanaEnclaveSession } from "../../utils/solana-session";
 import { SUPPORTED_CHAINS } from "../../constants/supported-chain-ids.constants";
 import { getFriendlyErrorMessage } from "../../utils/errors";
+import { WalletConnectId, solanaConnectId } from "./connecting-id";
 
 interface UseChooseWalletConnectionsParams {
   useEIP712Enabled: boolean;
@@ -139,27 +140,28 @@ export const useChooseWalletConnections = ({
 
   const handleConnectPrivy = useCallback(async () => {
     setIsConnecting?.(true);
-    setConnectingId("privy");
+    setConnectingId(WalletConnectId.Privy);
     await disconnect(config);
     if (!authenticated) login();
   }, [authenticated, login, setIsConnecting, config]);
 
   useEffect(() => {
     if (
-      (connectingId !== "privy" && connectingId !== "privy-creating") ||
+      (connectingId !== WalletConnectId.Privy &&
+        connectingId !== WalletConnectId.PrivyCreating) ||
       !authenticated
     ) {
       return;
     }
     const embedded = wallets.find((w) => w.walletClientType === "privy");
     if (!embedded) {
-      if (connectingId === "privy") {
-        setConnectingId("privy-creating");
+      if (connectingId === WalletConnectId.Privy) {
+        setConnectingId(WalletConnectId.PrivyCreating);
         createWallet().catch(() => {});
       }
       return;
     }
-    setConnectingId("privy-signing");
+    setConnectingId(WalletConnectId.PrivySigning);
 
     (async () => {
       try {
@@ -189,20 +191,24 @@ export const useChooseWalletConnections = ({
 
   const handleConnectTurnkey = useCallback(async () => {
     setIsConnecting?.(true);
-    setConnectingId("turnkey");
+    setConnectingId(WalletConnectId.Turnkey);
     await disconnect(config);
     if (turnkeyAuthState !== AuthState.Authenticated) await turnkeyLogin();
   }, [turnkeyAuthState, turnkeyLogin, setIsConnecting, config]);
 
   useEffect(() => {
-    if (connectingId !== "turnkey" && connectingId !== "turnkey-signing") {
+    if (
+      connectingId !== WalletConnectId.Turnkey &&
+      connectingId !== WalletConnectId.TurnkeySigning
+    ) {
       return;
     }
     if (turnkeyAuthState !== AuthState.Authenticated) return;
     if (turnkeySessionStarted.current) return;
     turnkeySessionStarted.current = true;
 
-    if (connectingId === "turnkey") setConnectingId("turnkey-signing");
+    if (connectingId === WalletConnectId.Turnkey)
+      setConnectingId(WalletConnectId.TurnkeySigning);
 
     (async () => {
       try {
@@ -270,16 +276,16 @@ export const useChooseWalletConnections = ({
 
   const handleConnectDynamic = useCallback(async () => {
     setIsConnecting?.(true);
-    setConnectingId("dynamic");
+    setConnectingId(WalletConnectId.Dynamic);
     await disconnect(config);
     setDynamicShowAuthFlow(true);
   }, [config, setDynamicShowAuthFlow, setIsConnecting]);
 
   useEffect(() => {
-    if (connectingId !== "dynamic" || !dynamicWallet) return;
+    if (connectingId !== WalletConnectId.Dynamic || !dynamicWallet) return;
     if (!isEthereumWallet(dynamicWallet)) return;
     setActiveDynamicWallet(dynamicWallet);
-    setConnectingId("dynamic-signing");
+    setConnectingId(WalletConnectId.DynamicSigning);
 
     (async () => {
       try {
@@ -304,7 +310,7 @@ export const useChooseWalletConnections = ({
     async (idToken: string) => {
       try {
         setIsConnecting?.(true);
-        setConnectingId("dfns");
+        setConnectingId(WalletConnectId.Dfns);
         await disconnect(config);
         const chainId = SUPPORTED_CHAINS[0].id;
         const { wallet, address } = await connectDfns(idToken);
@@ -327,7 +333,7 @@ export const useChooseWalletConnections = ({
     async (email: string, otp: string) => {
       try {
         setIsConnecting?.(true);
-        setConnectingId("openfort");
+        setConnectingId(WalletConnectId.Openfort);
         await disconnect(config);
         const chainId = SUPPORTED_CHAINS[0].id;
         const { address } = await loginOpenfort(email, otp, chainId);
@@ -348,7 +354,7 @@ export const useChooseWalletConnections = ({
     async (provider: SolanaWalletProvider) => {
       try {
         setIsConnecting?.(true);
-        setConnectingId(`solana-${provider}`);
+        setConnectingId(solanaConnectId(provider));
         const { address, chainId } = await connectSolanaWallet(provider);
         const session = await createSolanaEnclaveSession(
           address,
@@ -396,7 +402,7 @@ export const useChooseWalletConnections = ({
   const handleConnectTronLink = useCallback(async () => {
     try {
       setIsConnecting?.(true);
-      setConnectingId("tronlink");
+      setConnectingId(WalletConnectId.TronLink);
       const { address, chainId } = await connectTronLink();
       const session = await createTronEnclaveSession(address, useEIP712Enabled);
       setRequestedUseEIP712(useEIP712Enabled);

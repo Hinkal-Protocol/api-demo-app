@@ -7,6 +7,7 @@ import SolflareLogo from "../../assets/SolflareWalletLogo.jpeg";
 import type { ChooseWalletConnections } from "./useChooseWalletConnections";
 import { WalletOptionButton } from "./WalletOptionButton";
 import { WagmiConnectorButton } from "./WagmiConnectorButton";
+import { WalletConnectId, solanaConnectId } from "./connecting-id";
 
 interface MainWalletViewProps {
   connectors: readonly Connector[];
@@ -53,7 +54,7 @@ export const MainWalletView = ({
           <WalletOptionButton
             label="TronLink (Tron)"
             disabled={disabled}
-            loading={connectingId === "tronlink"}
+            loading={connectingId === WalletConnectId.TronLink}
             onClick={onConnectTronLink}
             icon={
               connectorIcon("TronLink") ? (
@@ -68,7 +69,7 @@ export const MainWalletView = ({
           <WalletOptionButton
             label="Phantom (Solana)"
             disabled={disabled}
-            loading={connectingId === "solana-phantom"}
+            loading={connectingId === solanaConnectId("phantom")}
             onClick={() =>
               onConnectSolana("phantom" satisfies SolanaWalletProvider)
             }
@@ -85,7 +86,7 @@ export const MainWalletView = ({
           <WalletOptionButton
             label="Solflare (Solana)"
             disabled={disabled}
-            loading={connectingId === "solana-solflare"}
+            loading={connectingId === solanaConnectId("solflare")}
             onClick={() =>
               onConnectSolana("solflare" satisfies SolanaWalletProvider)
             }
@@ -100,7 +101,7 @@ export const MainWalletView = ({
           <WalletOptionButton
             label="MetaMask (Solana)"
             disabled={disabled}
-            loading={connectingId === "solana-metamask"}
+            loading={connectingId === solanaConnectId("metamask")}
             onClick={() =>
               onConnectSolana("metamask" satisfies SolanaWalletProvider)
             }

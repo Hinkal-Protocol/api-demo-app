@@ -1,8 +1,13 @@
-import { useState, type ReactElement } from "react";
+import { useCallback, useMemo, useState, type ReactElement } from "react";
 import { createPortal } from "react-dom";
 import toast from "react-hot-toast";
 import { getFriendlyErrorMessage } from "../../utils/errors";
 import { WalletOptionButton } from "./WalletOptionButton";
+
+enum OpenfortStep {
+  Email = "email",
+  Otp = "otp",
+}
 
 interface OpenfortOverlayProps {
   onClose: () => void;
@@ -15,25 +20,25 @@ export const OpenfortOverlay = ({
   onRequestOtp,
   onVerifyOtp,
 }: OpenfortOverlayProps): ReactElement => {
-  const [step, setStep] = useState<"email" | "otp">("email");
+  const [step, setStep] = useState<OpenfortStep>(OpenfortStep.Email);
   const [loading, setLoading] = useState(false);
   const [email, setEmail] = useState("");
   const [otp, setOtp] = useState("");
 
-  const sendCode = async () => {
+  const sendCode = useCallback(async () => {
     setLoading(true);
     try {
       await onRequestOtp(email);
-      setStep("otp");
+      setStep(OpenfortStep.Otp);
       toast.success("Code sent — check your email");
     } catch (error) {
       toast.error(getFriendlyErrorMessage(error));
     } finally {
       setLoading(false);
     }
-  };
+  }, [email, onRequestOtp]);
 
-  const verify = async () => {
+  const verify = useCallback(async () => {
     setLoading(true);
     try {
       await onVerifyOtp(email, otp);
@@ -43,10 +48,13 @@ export const OpenfortOverlay = ({
     } finally {
       setLoading(false);
     }
-  };
+  }, [email, otp, onVerifyOtp, onClose]);
 
-  const inputClass =
-    "w-full px-3 py-2 rounded-lg bg-hinkal-blue-900 text-white border-[2px] border-hinkal-blue-200 focus:border-hinkal-lavender-200 outline-none text-sm";
+  const inputClass = useMemo(
+    () =>
+      "w-full px-3 py-2 rounded-lg bg-hinkal-blue-900 text-white border-[2px] border-hinkal-blue-200 focus:border-hinkal-lavender-200 outline-none text-sm",
+    [],
+  );
 
   return createPortal(
     <div
@@ -69,7 +77,7 @@ export const OpenfortOverlay = ({
         </p>
 
         <div className="flex flex-col items-center gap-y-3">
-          {step === "email" ? (
+          {step === OpenfortStep.Email ? (
             <>
               <input
                 className={inputClass}
