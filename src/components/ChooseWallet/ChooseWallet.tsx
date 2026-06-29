@@ -35,6 +35,7 @@ export const ChooseWallet = ({
     handleConnectTurnkey,
     handleConnectDynamic,
     handleConnectDfns,
+    handleConnectUtila,
     handleConnectSolana,
     handleConnectTronLink,
   } = useChooseWalletConnections({
@@ -78,6 +79,7 @@ export const ChooseWallet = ({
           onConnectTurnkey={handleConnectTurnkey}
           onConnectDynamic={handleConnectDynamic}
           onConnectDfns={handleConnectDfns}
+          onConnectUtila={handleConnectUtila}
         />
       ) : (
         <MainWalletView

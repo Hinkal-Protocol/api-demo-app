@@ -14,7 +14,7 @@ import { ERC20Token } from "../types";
 import { getAmountInWei } from "../utils/amount.utils";
 import { deposit } from "../utils/deposit";
 import { getFriendlyErrorMessage } from "../utils/errors";
-import { approveErc20, getEthersSigner, requireEvmSigner, sendTx } from "../utils/ethers-wallet";
+import { approveErc20, getEthersSigner, requireEvmSigner, sendTx, isUtilaSigner } from "../utils/ethers-wallet";
 import { approveAndBroadcastTronDepositTx } from "../utils/tron-wallet";
 import { broadcastSolanaTransaction } from "../utils/solana-wallet";
 
@@ -62,6 +62,7 @@ export const Deposit = () => {
       if (!chainId || !selectedToken || !walletAddress || !sessionId || !privateKey)
         return;
       setIsProcessing(true);
+      if (isUtilaSigner()) toast("Check your Utila mobile app to approve", { id: "utila-approval", duration: 10000 });
 
       const amountInWei = getAmountInWei(selectedToken, depositAmount);
       const session = { sessionId, authMode, privateKey };
@@ -128,6 +129,7 @@ export const Deposit = () => {
     } catch (err) {
       toast.error(getFriendlyErrorMessage(err, "Deposit failed"));
     } finally {
+      toast.dismiss("utila-approval");
       setIsProcessing(false);
     }
   }, [

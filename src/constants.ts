@@ -39,4 +39,5 @@ export const isWalletConfigured = {
   turnkey: () =>
     !!turnkeyConfig.organizationId && !!turnkeyConfig.authProxyConfigId,
   dfns: () => !!dfnsConfig.orgId && !!dfnsConfig.googleClientId,
+  utila: () => true,
 };

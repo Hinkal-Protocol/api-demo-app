@@ -36,6 +36,7 @@ import {
   getErc20Balance,
   getNativeBalance,
   requireEvmSigner,
+  isUtilaSigner,
 } from "../utils/ethers-wallet";
 import {
   approveAndBroadcastTronSerializedTx,
@@ -262,6 +263,7 @@ export const MultiSend = () => {
       )
         return;
       setIsProcessing(true);
+      if (isUtilaSigner()) toast("Check your Utila mobile app to approve", { id: "utila-approval", duration: 10000 });
       setScheduledStatuses([]);
 
       const wallet = {
@@ -326,6 +328,7 @@ export const MultiSend = () => {
     } catch (err) {
       toast.error(getFriendlyErrorMessage(err, "Multi send failed"));
     } finally {
+      toast.dismiss("utila-approval");
       setIsProcessing(false);
     }
   }, [

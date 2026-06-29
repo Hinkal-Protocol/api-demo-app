@@ -16,8 +16,11 @@ import {
   setActivePrivyWallet,
   setActiveDfnsWallet,
   setActiveTurnkeyParams,
+  setActiveUtilaSigner,
 } from "../../utils/ethers-wallet";
 import { connectDfns } from "../../utils/dfns";
+import { UtilaSigner } from "../../utils/utila";
+import type { UtilaCreds, UtilaWallet } from "../../utils/utila";
 import { connectTronLink } from "../../utils/tron-wallet";
 import { createTronEnclaveSession } from "../../utils/tron-session";
 import {
@@ -317,6 +320,25 @@ export const useChooseWalletConnections = ({
     [config, completeEvmSession, finishConnecting, setIsConnecting],
   );
 
+  const handleConnectUtila = useCallback(
+    async (creds: UtilaCreds, wallet: UtilaWallet) => {
+      try {
+        setIsConnecting?.(true);
+        setConnectingId("utila");
+        await disconnect(config);
+        const chainId = SUPPORTED_CHAINS[0].id;
+        setActiveUtilaSigner(new UtilaSigner(creds, wallet));
+        await completeEvmSession(wallet.address, chainId);
+      } catch (err) {
+        setActiveUtilaSigner(null);
+        toast.error(getFriendlyErrorMessage(err, "Utila connection failed"));
+      } finally {
+        finishConnecting();
+      }
+    },
+    [config, completeEvmSession, finishConnecting, setIsConnecting],
+  );
+
   const handleConnectSolana = useCallback(
     async (provider: SolanaWalletProvider) => {
       try {
@@ -409,6 +431,7 @@ export const useChooseWalletConnections = ({
     handleConnectTurnkey,
     handleConnectDynamic,
     handleConnectDfns,
+    handleConnectUtila,
     handleConnectSolana,
     handleConnectTronLink,
   };

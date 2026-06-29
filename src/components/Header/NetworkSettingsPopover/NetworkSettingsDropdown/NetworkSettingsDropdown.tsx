@@ -1,6 +1,10 @@
 import { NetworkDropdownItem } from "./NetworkDropdownItem";
 import { useCallback, useMemo } from "react";
-import { switchActiveWalletChain } from "../../../../utils/ethers-wallet";
+import toast from "react-hot-toast";
+import {
+  switchActiveWalletChain,
+  isUtilaSigner,
+} from "../../../../utils/ethers-wallet";
 import { useAppContext } from "../../../../AppContext";
 import { SUPPORTED_CHAIN_IDS } from "../../../../constants/supported-chain-ids.constants";
 import { networkRegistry } from "../../../../constants/chain.constants";
@@ -31,6 +35,12 @@ export const NetworkSettingsDropdown = ({
       } catch (err) {
         console.error("switchChain failed", err);
         return;
+      }
+      if (isUtilaSigner()) {
+        toast("Check your Utila mobile app to approve", {
+          id: "utila-approval",
+          duration: 5000,
+        });
       }
       setChainId(network.chainId);
       close();

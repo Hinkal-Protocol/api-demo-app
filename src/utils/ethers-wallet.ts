@@ -7,6 +7,7 @@ import { getSigner } from "@dynamic-labs/ethers-v6";
 import { isEthereumWallet } from "@dynamic-labs/ethereum";
 import type { Wallet } from "@dynamic-labs/sdk-react-core";
 import type { DfnsWallet } from "@dfns/lib-ethersjs6";
+import type { UtilaSigner } from "./utila";
 import { ERC20_ABI } from "../constants/erc20.constants";
 import { networkRegistry } from "../constants/chain.constants";
 import { wagmiConfig } from "../wagmi.config";
@@ -51,6 +52,12 @@ let activeDfnsWallet: DfnsWallet | null = null;
 export const setActiveDfnsWallet = (wallet: DfnsWallet | null): void => {
   activeDfnsWallet = wallet;
 };
+
+let activeUtilaSigner: UtilaSigner | null = null;
+export const setActiveUtilaSigner = (signer: UtilaSigner | null): void => {
+  activeUtilaSigner = signer;
+};
+export const isUtilaSigner = () => !!activeUtilaSigner;
 
 /**
  * ethers serializes the EIP-712 domain chainId to a hex string ("0xa"), which
@@ -115,6 +122,11 @@ const clientToSigner = (
 export const getEthersSigner = async (
   chainId?: number,
 ): Promise<ethers.Signer> => {
+  if (activeUtilaSigner) {
+    const provider = getJsonRpcProvider(chainId ?? wagmiConfig.chains[0].id);
+    return activeUtilaSigner.connect(provider);
+  }
+
   if (activeDfnsWallet) {
     const provider = getJsonRpcProvider(chainId ?? wagmiConfig.chains[0].id);
     return wrapDfnsSigner(
@@ -181,6 +193,7 @@ export const getEthersSigner = async (
 export const switchActiveWalletChain = async (
   chainId: number,
 ): Promise<void> => {
+  if (activeUtilaSigner) return;
   if (activeDfnsWallet) return;
   if (activeDynamicWallet) {
     await activeDynamicWallet.switchNetwork(chainId);

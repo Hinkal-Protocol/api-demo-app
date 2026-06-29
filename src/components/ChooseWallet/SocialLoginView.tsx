@@ -4,6 +4,7 @@ import toast from "react-hot-toast";
 import type { ChooseWalletConnections } from "./useChooseWalletConnections";
 import { WalletOptionButton } from "./WalletOptionButton";
 import { DfnsGoogleOverlay } from "./DfnsGoogleOverlay";
+import { UtilaOverlay } from "./UtilaOverlay";
 import { isWalletConfigured } from "../../constants";
 
 interface SocialLoginViewProps {
@@ -15,6 +16,7 @@ interface SocialLoginViewProps {
   onConnectTurnkey: ChooseWalletConnections["handleConnectTurnkey"];
   onConnectDynamic: ChooseWalletConnections["handleConnectDynamic"];
   onConnectDfns: ChooseWalletConnections["handleConnectDfns"];
+  onConnectUtila: ChooseWalletConnections["handleConnectUtila"];
 }
 
 export const SocialLoginView = ({
@@ -26,8 +28,10 @@ export const SocialLoginView = ({
   onConnectTurnkey,
   onConnectDynamic,
   onConnectDfns,
+  onConnectUtila,
 }: SocialLoginViewProps) => {
   const [dfnsOpen, setDfnsOpen] = useState(false);
+  const [utilaOpen, setUtilaOpen] = useState(false);
 
   const socialProviders = useMemo(
     () => [
@@ -63,6 +67,13 @@ export const SocialLoginView = ({
         disabled: !!connectingId,
         configured: isWalletConfigured.dfns(),
         onClick: () => setDfnsOpen(true),
+      },
+      {
+        id: "utila",
+        name: "Utila",
+        disabled: !!connectingId,
+        configured: isWalletConfigured.utila(),
+        onClick: () => setUtilaOpen(true),
       },
     ],
     [
@@ -102,6 +113,12 @@ export const SocialLoginView = ({
         <DfnsGoogleOverlay
           onClose={() => setDfnsOpen(false)}
           onConnect={onConnectDfns}
+        />
+      )}
+      {utilaOpen && (
+        <UtilaOverlay
+          onClose={() => setUtilaOpen(false)}
+          onConnect={onConnectUtila}
         />
       )}
     </div>
