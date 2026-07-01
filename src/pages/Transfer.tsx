@@ -22,6 +22,7 @@ import { transfer } from "../utils/transfer";
 import { getEthersSigner } from "../utils/ethers-wallet";
 import {
   getRecipientAddressError,
+  isValidPrivateAddress,
   isValidRecipientAddress,
 } from "../utils/recipientAddress";
 
@@ -158,14 +159,16 @@ export const Transfer = () => {
   };
 
   const isRecipientAddressValid = useMemo(
-    () => isValidRecipientAddress(transferAddress, isSolana, isTron, true),
+    () =>
+      isValidPrivateAddress(transferAddress) ||
+      isValidRecipientAddress(transferAddress, isSolana, isTron, false),
     [transferAddress, isTron, isSolana],
   );
 
   const recipientAddressError = useMemo(
     () =>
       transferAddress && !isRecipientAddressValid
-        ? getRecipientAddressError(isTron, isSolana, true)
+        ? getRecipientAddressError(isTron, isSolana, false)
         : undefined,
     [transferAddress, isRecipientAddressValid, isTron, isSolana],
   );
