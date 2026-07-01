@@ -12,9 +12,10 @@ import { useAppContext } from "../AppContext";
 import { zeroAddress } from "../constants";
 import { ERC20Token } from "../types";
 import { getAmountInWei } from "../utils/amount.utils";
-import { deposit } from "../utils/deposit";
+import { deposit, depositForOther } from "../utils/deposit";
 import { getFriendlyErrorMessage } from "../utils/errors";
 import { approveErc20, getEthersSigner, requireEvmSigner, sendTx } from "../utils/ethers-wallet";
+import { isValidPrivateAddress, isValidRecipientAddress } from "../utils/recipientAddress";
 import { approveAndBroadcastTronDepositTx } from "../utils/tron-wallet";
 import { broadcastSolanaTransaction } from "../utils/solana-wallet";
 
@@ -38,6 +39,7 @@ export const Deposit = () => {
     undefined,
   );
   const [depositAmount, setDepositAmount] = useState<string>("");
+  const [recipientAddress, setRecipientAddress] = useState<string>("");
   const [isProcessing, setIsProcessing] = useState(false);
 
   const tokenFilter = useCallback(
@@ -49,12 +51,14 @@ export const Deposit = () => {
   const handleReset = () => {
     setSelectedToken(undefined);
     setDepositAmount("");
+    setRecipientAddress("");
   };
 
   useEffect(() => {
     if (!chainId) return;
     setSelectedToken(undefined);
     setDepositAmount("");
+    setRecipientAddress("");
   }, [chainId]);
 
   const handleDeposit = useCallback(async () => {
@@ -71,25 +75,19 @@ export const Deposit = () => {
       };
       const tokenAddr = selectedToken.erc20TokenAddress;
       const amountStr = amountInWei.toString();
+      const recipient = recipientAddress.trim();
+
+      const depositFn = recipient
+        ? (w: typeof wallet, s: typeof session, cid: number, tokens: string[], amounts: string[]) =>
+            depositForOther(w, s, cid, tokens, amounts, recipient)
+        : deposit;
 
       if (isSolana) {
         if (!wallet.solanaProvider) throw new Error("Solana provider not set");
-        const serializedTx = await deposit(
-          wallet,
-          session,
-          chainId,
-          [tokenAddr],
-          [amountStr],
-        );
+        const serializedTx = await depositFn(wallet, session, chainId, [tokenAddr], [amountStr]);
         await broadcastSolanaTransaction(wallet.solanaProvider, serializedTx as string);
       } else if (isTron) {
-        const txData = await deposit(
-          wallet,
-          session,
-          chainId,
-          [tokenAddr],
-          [amountStr],
-        );
+        const txData = await depositFn(wallet, session, chainId, [tokenAddr], [amountStr]);
         await approveAndBroadcastTronDepositTx(
           txData,
           amountInWei,
@@ -98,13 +96,7 @@ export const Deposit = () => {
         );
       } else {
         const signer = requireEvmSigner(wallet.signer);
-        const txData = await deposit(
-          wallet,
-          session,
-          chainId,
-          [selectedToken.erc20TokenAddress],
-          [amountInWei.toString()],
-        );
+        const txData = await depositFn(wallet, session, chainId, [tokenAddr], [amountStr]);
         if (selectedToken.erc20TokenAddress !== zeroAddress) {
           await approveErc20(
             signer,
@@ -132,6 +124,7 @@ export const Deposit = () => {
     }
   }, [
     depositAmount,
+    recipientAddress,
     selectedToken,
     refreshBalancesSoon,
     refreshWalletBalances,
@@ -148,6 +141,12 @@ export const Deposit = () => {
   const handleSubmit = (event: SyntheticEvent) => {
     event.preventDefault();
   };
+
+  const isRecipientValid = useMemo(() => {
+    const trimmed = recipientAddress.trim();
+    if (!trimmed) return true; // empty means deposit to self
+    return isValidPrivateAddress(trimmed) || isValidRecipientAddress(trimmed, isSolana, isTron, false);
+  }, [recipientAddress, isSolana, isTron]);
 
   const exceedsBalance = useMemo(() => {
     if (!selectedToken || !depositAmount || isProcessing) return false;
@@ -167,8 +166,9 @@ export const Deposit = () => {
       !selectedToken ||
       !depositAmount ||
       isProcessing ||
-      exceedsBalance,
-    [walletAddress, selectedToken, depositAmount, isProcessing, exceedsBalance],
+      exceedsBalance ||
+      !isRecipientValid,
+    [walletAddress, selectedToken, depositAmount, isProcessing, exceedsBalance, isRecipientValid],
   );
 
   return (
@@ -190,6 +190,28 @@ export const Deposit = () => {
             Insufficient balance
           </p>
         )}
+        <div className="mt-4">
+          <label
+            htmlFor="depositRecipient"
+            className="text-white pl-[5%] text-[14px] font-[300]"
+          >
+            Recipient address <span className="text-hinkal-gray-200">(optional — leave empty to deposit to yourself)</span>
+          </label>
+          <input
+            id="depositRecipient"
+            type="text"
+            placeholder="Public address or private address"
+            className="bg-hinkal-blue-900 h-10 w-[90%] rounded-lg ml-[5%] text-[16px] pl-2 outline-none placeholder:text-[13.5px] mt-1 text-white"
+            disabled={isProcessing}
+            onChange={(e) => setRecipientAddress(e.target.value)}
+            value={recipientAddress}
+          />
+          {recipientAddress.trim() && !isRecipientValid && (
+            <p className="text-hinkal-red-100 text-[13px] pl-[5%] mt-1">
+              Invalid address
+            </p>
+          )}
+        </div>
         <div className="w-[90%] mx-auto mb-6 mt-6 h-[1px] bg-hinkal-blue-900" />
         <div className="border-solid">
           <button

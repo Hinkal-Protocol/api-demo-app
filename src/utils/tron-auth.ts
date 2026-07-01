@@ -51,6 +51,24 @@ export const buildTronDepositAuthFields = (
     })).sort((a, b) => a.token.localeCompare(b.token)),
   }));
 
+export const buildTronDepositForOtherAuthFields = (
+  sessionId: string,
+  chainId: number,
+  tokenAddresses: string[],
+  amounts: string[],
+  recipient: string,
+): Promise<EnclaveTxAuthFields> =>
+  signTypedData(sessionId, "DepositForOther", chainId, (nonce) => ({
+    nonce,
+    sessionId,
+    chainId: BigInt(chainId),
+    tokenAmounts: tokenAddresses.map((token, i) => ({
+      token: ethers.getAddress(token),
+      amount: BigInt(amounts[i]),
+    })).sort((a, b) => a.token.localeCompare(b.token)),
+    recipientInfo: recipient,
+  }));
+
 export const buildTronTransferAuthFields = (
   sessionId: string,
   chainId: number,
