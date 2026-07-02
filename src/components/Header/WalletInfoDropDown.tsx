@@ -5,6 +5,7 @@ import { disconnect } from "wagmi/actions";
 import { usePrivy } from "@privy-io/react-auth";
 import { useDynamicContext } from "@dynamic-labs/sdk-react-core";
 import { AuthState, useTurnkey } from "@turnkey/react-wallet-kit";
+import { useSignOut } from "@openfort/react";
 import Copy from "../../assets/Copy.svg";
 import Disconnect from "../../assets/Disconnect.svg";
 import { Spinner } from "../Spinner";
@@ -19,7 +20,6 @@ import {
   setActiveDfnsWallet,
   setActiveOpenfort,
 } from "../../utils/ethers-wallet";
-import { logoutOpenfort } from "../../utils/openfort";
 import { withdrawStuckUtxos } from "../../utils/withdraw";
 import { WalletInfoBalance } from "./WalletInfoBalance";
 import { useAppContext } from "../../AppContext";
@@ -49,6 +49,7 @@ export const WalletInfoDropDown = () => {
   const { authenticated, logout } = usePrivy();
   const { handleLogOut: dynamicLogout } = useDynamicContext();
   const { authState: turnkeyAuthState, logout: turnkeyLogout } = useTurnkey();
+  const { signOut: openfortSignOut } = useSignOut();
   const visibleStuckUtxoBalances = useMemo(
     () => filterNonZeroTokenBalances(stuckUtxoBalances),
     [stuckUtxoBalances],
@@ -86,7 +87,7 @@ export const WalletInfoDropDown = () => {
       console.error("dynamic logout failed", err);
     }
     try {
-      await logoutOpenfort();
+      await openfortSignOut();
     } catch (err) {
       console.error("openfort logout failed", err);
     }
@@ -94,7 +95,7 @@ export const WalletInfoDropDown = () => {
     setActiveDynamicWallet(null);
     setActivePrivyWallet(null);
     setActiveTurnkeyParams(null);
-    setActiveOpenfort(false);
+    setActiveOpenfort(null);
     setWalletAddress(null);
     clearEnclaveSession();
     setRequestedUseEIP712(false);

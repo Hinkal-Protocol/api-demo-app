@@ -35,8 +35,7 @@ export const ChooseWallet = ({
     handleConnectTurnkey,
     handleConnectDynamic,
     handleConnectDfns,
-    handleRequestOpenfortOtp,
-    handleVerifyOpenfortOtp,
+    handleConnectOpenfort,
     handleConnectSolana,
     handleConnectTronLink,
   } = useChooseWalletConnections({
@@ -80,8 +79,7 @@ export const ChooseWallet = ({
           onConnectTurnkey={handleConnectTurnkey}
           onConnectDynamic={handleConnectDynamic}
           onConnectDfns={handleConnectDfns}
-          onRequestOpenfortOtp={handleRequestOpenfortOtp}
-          onVerifyOpenfortOtp={handleVerifyOpenfortOtp}
+          onConnectOpenfort={handleConnectOpenfort}
         />
       ) : (
         <MainWalletView
