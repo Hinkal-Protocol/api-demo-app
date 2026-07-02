@@ -14,8 +14,16 @@ import { ERC20Token } from "../types";
 import { getAmountInWei } from "../utils/amount.utils";
 import { deposit, depositForOther } from "../utils/deposit";
 import { getFriendlyErrorMessage } from "../utils/errors";
-import { approveErc20, getEthersSigner, requireEvmSigner, sendTx } from "../utils/ethers-wallet";
-import { isValidPrivateAddress, isValidRecipientAddress } from "../utils/recipientAddress";
+import {
+  approveErc20,
+  getEthersSigner,
+  requireEvmSigner,
+  sendTx,
+} from "../utils/ethers-wallet";
+import {
+  isValidPrivateAddress,
+  isValidRecipientAddress,
+} from "../utils/recipientAddress";
 import { approveAndBroadcastTronDepositTx } from "../utils/tron-wallet";
 import { broadcastSolanaTransaction } from "../utils/solana-wallet";
 
@@ -63,7 +71,13 @@ export const Deposit = () => {
 
   const handleDeposit = useCallback(async () => {
     try {
-      if (!chainId || !selectedToken || !walletAddress || !sessionId || !privateKey)
+      if (
+        !chainId ||
+        !selectedToken ||
+        !walletAddress ||
+        !sessionId ||
+        !privateKey
+      )
         return;
       setIsProcessing(true);
 
@@ -78,16 +92,36 @@ export const Deposit = () => {
       const recipient = recipientAddress.trim();
 
       const depositFn = recipient
-        ? (w: typeof wallet, s: typeof session, cid: number, tokens: string[], amounts: string[]) =>
-            depositForOther(w, s, cid, tokens, amounts, recipient)
+        ? (
+            w: typeof wallet,
+            s: typeof session,
+            cid: number,
+            tokens: string[],
+            amounts: string[],
+          ) => depositForOther(w, s, cid, tokens, amounts, recipient)
         : deposit;
 
       if (isSolana) {
         if (!wallet.solanaProvider) throw new Error("Solana provider not set");
-        const serializedTx = await depositFn(wallet, session, chainId, [tokenAddr], [amountStr]);
-        await broadcastSolanaTransaction(wallet.solanaProvider, serializedTx as string);
+        const serializedTx = await depositFn(
+          wallet,
+          session,
+          chainId,
+          [tokenAddr],
+          [amountStr],
+        );
+        await broadcastSolanaTransaction(
+          wallet.solanaProvider,
+          serializedTx as string,
+        );
       } else if (isTron) {
-        const txData = await depositFn(wallet, session, chainId, [tokenAddr], [amountStr]);
+        const txData = await depositFn(
+          wallet,
+          session,
+          chainId,
+          [tokenAddr],
+          [amountStr],
+        );
         await approveAndBroadcastTronDepositTx(
           txData,
           amountInWei,
@@ -96,7 +130,13 @@ export const Deposit = () => {
         );
       } else {
         const signer = requireEvmSigner(wallet.signer);
-        const txData = await depositFn(wallet, session, chainId, [tokenAddr], [amountStr]);
+        const txData = await depositFn(
+          wallet,
+          session,
+          chainId,
+          [tokenAddr],
+          [amountStr],
+        );
         if (selectedToken.erc20TokenAddress !== zeroAddress) {
           await approveErc20(
             signer,
@@ -143,9 +183,16 @@ export const Deposit = () => {
   };
 
   const isRecipientValid = useMemo(() => {
-    const trimmed = recipientAddress.trim();
-    if (!trimmed) return true; // empty means deposit to self
-    return isValidPrivateAddress(trimmed) || isValidRecipientAddress(trimmed, isSolana, isTron, false);
+    try {
+      const trimmed = recipientAddress.trim();
+      if (!trimmed) return true; // empty means deposit to self
+      return (
+        isValidPrivateAddress(trimmed) ||
+        isValidRecipientAddress(trimmed, isSolana, isTron, false)
+      );
+    } catch {
+      return false;
+    }
   }, [recipientAddress, isSolana, isTron]);
 
   const exceedsBalance = useMemo(() => {
@@ -168,7 +215,14 @@ export const Deposit = () => {
       isProcessing ||
       exceedsBalance ||
       !isRecipientValid,
-    [walletAddress, selectedToken, depositAmount, isProcessing, exceedsBalance, isRecipientValid],
+    [
+      walletAddress,
+      selectedToken,
+      depositAmount,
+      isProcessing,
+      exceedsBalance,
+      isRecipientValid,
+    ],
   );
 
   return (
@@ -195,7 +249,10 @@ export const Deposit = () => {
             htmlFor="depositRecipient"
             className="text-white pl-[5%] text-[14px] font-[300]"
           >
-            Recipient address <span className="text-hinkal-gray-200">(optional — leave empty to deposit to yourself)</span>
+            Recipient address{" "}
+            <span className="text-hinkal-gray-200">
+              (optional — leave empty to deposit to yourself)
+            </span>
           </label>
           <input
             id="depositRecipient"
