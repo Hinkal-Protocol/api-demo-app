@@ -31,11 +31,9 @@ document.head.appendChild(style);
 
 const queryClient = new QueryClient();
 
-const app = !isWalletConfigured.openfort() ? (
-  <App />
-) : (
+const app = (
   <OpenfortProvider
-    publishableKey={OPENFORT_PUBLISHABLE_KEY}
+    publishableKey={OPENFORT_PUBLISHABLE_KEY || "pk_test_placeholder"}
     walletConfig={openfortWalletConfig}
     uiConfig={openfortUiConfig}
   >
