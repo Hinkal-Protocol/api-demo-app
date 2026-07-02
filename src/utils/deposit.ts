@@ -1,6 +1,5 @@
 import { buildAuthPost } from "./enclave-auth";
 import { enclaveFetch } from "./enclaveApi";
-import { isValidPrivateAddress } from "./recipientAddress";
 import { resolveDepositAuth, resolveDepositForOtherAuth } from "./resolve-tx-auth";
 import { isSolanaChain } from "./solana-wallet";
 import type { TxSessionAuth, TxWallet } from "./types";
@@ -53,11 +52,10 @@ export const depositForOther = async (
   amounts: string[],
   recipient: string,
 ): Promise<TxData | string> => {
-  const isPrivate = isValidPrivateAddress(recipient);
   const txParams = {
     tokenAddresses,
     amounts,
-    ...(isPrivate ? { recipientInfo: recipient } : { recipientAddress: recipient }),
+    recipientInfo: recipient,
   };
   const { bodyJson, headers, requestNonce } = await buildAuthPost(
     session,

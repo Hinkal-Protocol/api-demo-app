@@ -39,7 +39,7 @@ export const transfer = async (
   const txParams = {
     tokenAddresses,
     amounts,
-    ...(isPrivate ? { recipientInfo: normalizedRecipient } : { recipientAddress: normalizedRecipient }),
+    recipientAddress: normalizedRecipient,
     feeToken,
     feeStructure,
   };
