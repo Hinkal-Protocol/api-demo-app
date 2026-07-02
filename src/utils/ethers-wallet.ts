@@ -10,7 +10,6 @@ import type { DfnsWallet } from "@dfns/lib-ethersjs6";
 import { ERC20_ABI } from "../constants/erc20.constants";
 import { networkRegistry } from "../constants/chain.constants";
 import { wagmiConfig } from "../wagmi.config";
-import { buildSigner as buildOpenfortSigner } from "./openfort";
 import { populateOpenfortGas } from "./openfort-gas";
 
 export const requireEvmSigner = (
@@ -54,10 +53,32 @@ export const setActiveDfnsWallet = (wallet: DfnsWallet | null): void => {
   activeDfnsWallet = wallet;
 };
 
-// Openfort: rebuild the EIP-1193-backed signer per chain via connectOpenfort.
-let activeOpenfort = false;
-export const setActiveOpenfort = (value: boolean): void => {
-  activeOpenfort = value;
+type OpenfortProvider = {
+  request(args: {
+    method: string;
+    params?: unknown[] | object;
+  }): Promise<unknown>;
+};
+let activeOpenfortProvider: OpenfortProvider | null = null;
+export const setActiveOpenfort = (provider: OpenfortProvider | null): void => {
+  activeOpenfortProvider = provider;
+};
+export const isOpenfortActive = (): boolean => activeOpenfortProvider !== null;
+
+const buildOpenfortSigner = async (
+  chainId: number,
+): Promise<{ signer: ethers.Signer; address: string }> => {
+  if (!activeOpenfortProvider) throw new Error("Openfort wallet not connected");
+  await activeOpenfortProvider
+    .request({
+      method: "wallet_switchEthereumChain",
+      params: [{ chainId: `0x${chainId.toString(16)}` }],
+    })
+    .catch(() => {});
+  const signer = await new ethers.BrowserProvider(
+    activeOpenfortProvider as unknown as ethers.Eip1193Provider,
+  ).getSigner();
+  return { signer, address: await signer.getAddress() };
 };
 
 /**
@@ -123,7 +144,7 @@ const clientToSigner = (
 export const getEthersSigner = async (
   chainId?: number,
 ): Promise<ethers.Signer> => {
-  if (activeOpenfort) {
+  if (activeOpenfortProvider) {
     const targetChainId = chainId ?? wagmiConfig.chains[0].id;
     const { signer } = await buildOpenfortSigner(targetChainId);
     return signer;
@@ -195,8 +216,7 @@ export const getEthersSigner = async (
 export const switchActiveWalletChain = async (
   chainId: number,
 ): Promise<void> => {
-  if (activeOpenfort) return; // signer is rebuilt per chain in getEthersSigner
-  if (activeDfnsWallet) return;
+  if (activeOpenfortProvider) return;
   if (activeDynamicWallet) {
     await activeDynamicWallet.switchNetwork(chainId);
     return;
@@ -245,7 +265,7 @@ const sendViaWallet = async (
     ...(tx.value && tx.value > 0n ? { value: tx.value } : {}),
   };
 
-  if (activeOpenfort) await populateOpenfortGas(signer, txRequest);
+  if (activeOpenfortProvider) await populateOpenfortGas(signer, txRequest);
 
   const hash = (signer as any).sendUncheckedTransaction
     ? await (signer as ethers.JsonRpcSigner).sendUncheckedTransaction(txRequest)

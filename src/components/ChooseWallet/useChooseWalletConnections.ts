@@ -7,6 +7,7 @@ import { usePrivy, useWallets, useCreateWallet } from "@privy-io/react-auth";
 import { AuthState, useTurnkey } from "@turnkey/react-wallet-kit";
 import { useDynamicContext } from "@dynamic-labs/sdk-react-core";
 import { isEthereumWallet } from "@dynamic-labs/ethereum";
+import { useEthereumEmbeddedWallet } from "@openfort/react/ethereum";
 import toast from "react-hot-toast";
 import { useAppContext } from "../../AppContext";
 import { createEnclaveSession } from "../../utils/session";
@@ -19,7 +20,6 @@ import {
   setActiveOpenfort,
 } from "../../utils/ethers-wallet";
 import { connectDfns } from "../../utils/dfns";
-import { requestOpenfortOtp, loginOpenfort } from "../../utils/openfort";
 import { connectTronLink } from "../../utils/tron-wallet";
 import { createTronEnclaveSession } from "../../utils/tron-session";
 import {
@@ -63,6 +63,8 @@ export const useChooseWalletConnections = ({
     setShowAuthFlow: setDynamicShowAuthFlow,
     sdkHasLoaded: dynamicReady,
   } = useDynamicContext();
+
+  const openfortWallet = useEthereumEmbeddedWallet();
 
   const {
     setChainId,
@@ -325,30 +327,32 @@ export const useChooseWalletConnections = ({
     [config, completeEvmSession, finishConnecting, setIsConnecting],
   );
 
-  const handleRequestOpenfortOtp = useCallback(async (email: string) => {
-    await requestOpenfortOtp(email);
-  }, []);
+  const handleConnectOpenfort = useCallback(async () => {
+    setIsConnecting?.(true);
+    setConnectingId(WalletConnectId.Openfort);
+    await disconnect(config);
+  }, [config, setIsConnecting]);
 
-  const handleVerifyOpenfortOtp = useCallback(
-    async (email: string, otp: string) => {
+  useEffect(() => {
+    if (connectingId !== WalletConnectId.Openfort) return;
+    if (openfortWallet.status !== "connected" || !openfortWallet.address)
+      return;
+
+    setConnectingId(WalletConnectId.OpenfortSigning);
+    const { address, chainId, activeWallet } = openfortWallet;
+
+    (async () => {
       try {
-        setIsConnecting?.(true);
-        setConnectingId(WalletConnectId.Openfort);
-        await disconnect(config);
-        const chainId = SUPPORTED_CHAINS[0].id;
-        const { address } = await loginOpenfort(email, otp, chainId);
-        setActiveOpenfort(true);
-        await completeEvmSession(address, chainId);
+        setActiveOpenfort(await activeWallet.getProvider());
+        await completeEvmSession(address, chainId ?? SUPPORTED_CHAINS[0].id);
       } catch (err) {
-        setActiveOpenfort(false);
+        setActiveOpenfort(null);
         toast.error(getFriendlyErrorMessage(err, "Openfort connection failed"));
-        throw err;
       } finally {
         finishConnecting();
       }
-    },
-    [config, completeEvmSession, finishConnecting, setIsConnecting],
-  );
+    })();
+  }, [connectingId, openfortWallet, completeEvmSession, finishConnecting]);
 
   const handleConnectSolana = useCallback(
     async (provider: SolanaWalletProvider) => {
@@ -442,8 +446,7 @@ export const useChooseWalletConnections = ({
     handleConnectTurnkey,
     handleConnectDynamic,
     handleConnectDfns,
-    handleRequestOpenfortOtp,
-    handleVerifyOpenfortOtp,
+    handleConnectOpenfort,
     handleConnectSolana,
     handleConnectTronLink,
   };

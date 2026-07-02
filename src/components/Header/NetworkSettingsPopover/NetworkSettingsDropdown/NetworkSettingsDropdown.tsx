@@ -1,9 +1,15 @@
 import { NetworkDropdownItem } from "./NetworkDropdownItem";
 import { useCallback, useMemo } from "react";
-import { switchActiveWalletChain } from "../../../../utils/ethers-wallet";
+import {
+  isOpenfortActive,
+  switchActiveWalletChain,
+} from "../../../../utils/ethers-wallet";
 import { useAppContext } from "../../../../AppContext";
 import { SUPPORTED_CHAIN_IDS } from "../../../../constants/supported-chain-ids.constants";
-import { networkRegistry } from "../../../../constants/chain.constants";
+import {
+  networkRegistry,
+  OPENFORT_UNSUPPORTED_CHAINS,
+} from "../../../../constants/chain.constants";
 
 interface NetworkSettingsDropdownProps {
   close: () => void;
@@ -16,8 +22,13 @@ export const NetworkSettingsDropdown = ({
 
   const networkList = useMemo(
     () =>
-      Object.values(networkRegistry).filter((network) =>
-        SUPPORTED_CHAIN_IDS.includes(network.chainId),
+      Object.values(networkRegistry).filter(
+        (network) =>
+          SUPPORTED_CHAIN_IDS.includes(network.chainId) &&
+          !(
+            isOpenfortActive() &&
+            OPENFORT_UNSUPPORTED_CHAINS.includes(network.chainId)
+          ),
       ),
     [],
   );

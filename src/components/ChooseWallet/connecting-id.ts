@@ -15,6 +15,7 @@ export enum WalletConnectId {
   DynamicSigning = "dynamic-signing",
   Dfns = "dfns",
   Openfort = "openfort",
+  OpenfortSigning = "openfort-signing",
   TronLink = "tronlink",
 }
 

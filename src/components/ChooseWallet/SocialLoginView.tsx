@@ -1,10 +1,10 @@
 import { useState, useMemo } from "react";
 import { ClientState } from "@turnkey/react-wallet-kit";
+import { OpenfortButton } from "@openfort/react";
 import toast from "react-hot-toast";
 import type { ChooseWalletConnections } from "./useChooseWalletConnections";
 import { WalletOptionButton } from "./WalletOptionButton";
 import { DfnsGoogleOverlay } from "./DfnsGoogleOverlay";
-import { OpenfortOverlay } from "./OpenfortOverlay";
 import { isWalletConfigured } from "../../constants";
 
 interface SocialLoginViewProps {
@@ -16,8 +16,7 @@ interface SocialLoginViewProps {
   onConnectTurnkey: ChooseWalletConnections["handleConnectTurnkey"];
   onConnectDynamic: ChooseWalletConnections["handleConnectDynamic"];
   onConnectDfns: ChooseWalletConnections["handleConnectDfns"];
-  onRequestOpenfortOtp: ChooseWalletConnections["handleRequestOpenfortOtp"];
-  onVerifyOpenfortOtp: ChooseWalletConnections["handleVerifyOpenfortOtp"];
+  onConnectOpenfort: ChooseWalletConnections["handleConnectOpenfort"];
 }
 
 export const SocialLoginView = ({
@@ -29,19 +28,16 @@ export const SocialLoginView = ({
   onConnectTurnkey,
   onConnectDynamic,
   onConnectDfns,
-  onRequestOpenfortOtp,
-  onVerifyOpenfortOtp,
+  onConnectOpenfort,
 }: SocialLoginViewProps) => {
   const [dfnsOpen, setDfnsOpen] = useState(false);
-  const [openfortOpen, setOpenfortOpen] = useState(false);
 
   const socialProviders = useMemo(
     () => [
       {
         id: "privy",
         name: "Privy",
-        disabled:
-          !!connectingId || (isWalletConfigured.privy() && !privyReady),
+        disabled: !!connectingId || (isWalletConfigured.privy() && !privyReady),
         configured: isWalletConfigured.privy(),
         onClick: onConnectPrivy,
       },
@@ -70,13 +66,6 @@ export const SocialLoginView = ({
         configured: isWalletConfigured.dfns(),
         onClick: () => setDfnsOpen(true),
       },
-      {
-        id: "openfort",
-        name: "Openfort",
-        disabled: !!connectingId,
-        configured: isWalletConfigured.openfort(),
-        onClick: () => setOpenfortOpen(true),
-      },
     ],
     [
       connectingId,
@@ -86,6 +75,7 @@ export const SocialLoginView = ({
       onConnectPrivy,
       onConnectTurnkey,
       onConnectDynamic,
+      onConnectDfns,
     ] as const,
   );
 
@@ -111,17 +101,36 @@ export const SocialLoginView = ({
           }
         />
       ))}
+      {isWalletConfigured.openfort() ? (
+        <OpenfortButton.Custom>
+          {({ show }) => (
+            <WalletOptionButton
+              variant="social"
+              label="Continue with Openfort"
+              disabled={!!connectingId}
+              loading={connectingId?.startsWith("openfort") ?? false}
+              onClick={() => {
+                onConnectOpenfort();
+                show?.();
+              }}
+            />
+          )}
+        </OpenfortButton.Custom>
+      ) : (
+        <WalletOptionButton
+          variant="social"
+          label="Continue with Openfort"
+          disabled={!!connectingId}
+          onClick={() =>
+            toast.error("Openfort is not configured — missing API keys in .env")
+          }
+        />
+      )}
+
       {dfnsOpen && (
         <DfnsGoogleOverlay
           onClose={() => setDfnsOpen(false)}
           onConnect={onConnectDfns}
-        />
-      )}
-      {openfortOpen && (
-        <OpenfortOverlay
-          onClose={() => setOpenfortOpen(false)}
-          onRequestOtp={onRequestOpenfortOtp}
-          onVerifyOtp={onVerifyOpenfortOtp}
         />
       )}
     </div>
