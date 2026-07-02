@@ -115,6 +115,22 @@ export const buildDepositAuthFields = (
     (nonce) => buildTokenAmountsBase(nonce, sessionId, params),
   );
 
+export const buildDepositForOtherAuthFields = (
+  sessionId: string,
+  signer: ethers.Signer,
+  params: { chainId: number; tokenAddresses: string[]; amounts: string[]; recipient: string },
+) =>
+  signEnclaveTypedData(
+    sessionId,
+    signer,
+    "DepositForOther",
+    params.chainId,
+    (nonce) => ({
+      ...buildTokenAmountsBase(nonce, sessionId, params),
+      recipientInfo: params.recipient,
+    }),
+  );
+
 export const buildTransferAuthFields = (
   sessionId: string,
   signer: ethers.Signer,

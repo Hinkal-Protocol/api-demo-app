@@ -209,7 +209,6 @@ export const AppContextProvider: FC<AppContextProps> = ({
       cancelled = true;
     };
   }, [
-    chainId,
     walletAddress,
     dataLoaded,
     requestedUseEIP712,

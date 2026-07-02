@@ -75,6 +75,22 @@ export const buildSolanaDepositAuthFields = async (
   return sign(sessionId, provider, message, nonce);
 };
 
+export const buildSolanaDepositForOtherAuthFields = async (
+  sessionId: string,
+  provider: SolanaWalletProvider,
+  chainId: number,
+  tokenAddresses: string[],
+  amounts: string[],
+  recipient: string,
+): Promise<EnclaveTxAuthFields> => {
+  const nonce = crypto.randomUUID();
+  const message =
+    `${buildHeader("DepositForOther", nonce, sessionId, chainId)}` +
+    `\nToken Amounts:\n${renderTokenAmounts(tokenAddresses, amounts)}` +
+    `\nRecipient Info: ${recipient}`;
+  return sign(sessionId, provider, message, nonce);
+};
+
 export const buildSolanaTransferAuthFields = async (
   sessionId: string,
   provider: SolanaWalletProvider,

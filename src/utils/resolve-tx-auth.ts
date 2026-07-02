@@ -2,6 +2,7 @@ import { requireEvmSigner } from "./ethers-wallet";
 import {
   buildDepositAndWithdrawAuthFields,
   buildDepositAuthFields,
+  buildDepositForOtherAuthFields,
   buildSwapAuthFields,
   buildTransferAuthFields,
   buildWithdrawAuthFields,
@@ -11,6 +12,7 @@ import type { FeeStructure } from "./fees";
 import type { Recipient } from "./multiSend";
 import {
   buildSolanaDepositAuthFields,
+  buildSolanaDepositForOtherAuthFields,
   buildSolanaPrivateSendAuthFields,
   buildSolanaSwapAuthFields,
   buildSolanaTransferAuthFields,
@@ -19,6 +21,7 @@ import {
 } from "./solana-auth";
 import {
   buildTronDepositAuthFields,
+  buildTronDepositForOtherAuthFields,
   buildTronPrivateSendAuthFields,
   buildTronTransferAuthFields,
   buildTronWithdrawAuthFields,
@@ -73,6 +76,35 @@ export const resolveDepositAuth = (
         "Deposit",
         { chainId, tokenAddresses, amounts },
       ),
+  });
+
+export const resolveDepositForOtherAuth = (
+  wallet: TxWallet,
+  sessionId: string,
+  chainId: number,
+  tokenAddresses: string[],
+  amounts: string[],
+  recipient: string,
+): Promise<EnclaveTxAuthFields> =>
+  resolveByChain(chainId, {
+    solana: () =>
+      buildSolanaDepositForOtherAuthFields(
+        sessionId,
+        requireSolanaProvider(wallet.solanaProvider),
+        chainId,
+        tokenAddresses,
+        amounts,
+        recipient,
+      ),
+    tron: () =>
+      buildTronDepositForOtherAuthFields(sessionId, chainId, tokenAddresses, amounts, recipient),
+    evm: () =>
+      buildDepositForOtherAuthFields(sessionId, requireEvmSigner(wallet.signer), {
+        chainId,
+        tokenAddresses,
+        amounts,
+        recipient,
+      }),
   });
 
 export const resolveTransferAuth = (
