@@ -79,6 +79,7 @@ export const depositAndWithdraw = async (
   const { bodyJson, headers, requestNonce } = await buildAuthPost(
     session,
     chainId,
+    "/private-send",
     txParams,
     () =>
       resolvePrivateSendAuth(

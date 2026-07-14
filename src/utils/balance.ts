@@ -12,7 +12,7 @@ const fetchBalanceEndpoint = async (
   auth: Auth,
   signal?: AbortSignal,
 ): Promise<TokenBalance[]> => {
-  const { queryString, headers, requestNonce } = await buildAuthGet(auth);
+  const { queryString, headers, requestNonce } = await buildAuthGet(auth, `/${endpoint}`);
 
   const { res, data } = await enclaveFetch<BalanceResponse>(
     `/${endpoint}?${queryString}`,

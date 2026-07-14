@@ -23,6 +23,7 @@ export const deposit = async (
   const { bodyJson, headers, requestNonce } = await buildAuthPost(
     session,
     chainId,
+    "/deposit",
     txParams,
     () =>
       resolveDepositAuth(wallet, session.sessionId, chainId, tokenAddresses, amounts),
@@ -57,14 +58,15 @@ export const depositForOther = async (
     amounts,
     recipientInfo: recipient,
   };
+  const endpoint = isSolanaChain(chainId) ? "/deposit-solana-for-other" : "/deposit-for-other";
+
   const { bodyJson, headers, requestNonce } = await buildAuthPost(
     session,
     chainId,
+    endpoint,
     txParams,
     () => resolveDepositForOtherAuth(wallet, session.sessionId, chainId, tokenAddresses, amounts, recipient),
   );
-
-  const endpoint = isSolanaChain(chainId) ? "/deposit-solana-for-other" : "/deposit-for-other";
 
   const { res, data } = await enclaveFetch<
     | { success: true; txData: TxData | string }

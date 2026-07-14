@@ -46,6 +46,7 @@ export const transfer = async (
   const { bodyJson, headers, requestNonce } = await buildAuthPost(
     session,
     chainId,
+    "/transfer",
     txParams,
     () =>
       resolveTransferAuth(

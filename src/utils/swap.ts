@@ -22,7 +22,7 @@ export const getSwapData = async (
   amount: string,
   slippagePercentage?: number,
 ): Promise<SwapData> => {
-  const { queryString, headers, requestNonce } = await buildAuthGet(auth, {
+  const { queryString, headers, requestNonce } = await buildAuthGet(auth, "/get-swap-data", {
     inputTokenAddress,
     outputTokenAddress,
     amount,
@@ -96,6 +96,7 @@ export const executeSwap = async (
   const { bodyJson, headers, requestNonce } = await buildAuthPost(
     session,
     getterAuth.chainId,
+    "/swap",
     txParams,
     () =>
       resolveSwapAuth(
