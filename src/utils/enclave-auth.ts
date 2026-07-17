@@ -46,6 +46,7 @@ const buildTokenAmountsBase = (
 export const buildAuthPost = async (
   session: TxSessionAuth,
   chainId: number,
+  routePath: string,
   txData: Record<string, unknown>,
   buildTypedDataAuth: () => Promise<EnclaveTxAuthFields>,
 ): Promise<{
@@ -62,7 +63,7 @@ export const buildAuthPost = async (
       bodyJson,
       headers: {
         "Content-Type": "application/json",
-        ...(await requestSignaturePostHeader(session, body)),
+        ...(await requestSignaturePostHeader(session, routePath, body)),
       },
       requestNonce: body.nonce,
     };
@@ -312,6 +313,7 @@ const appendQueryParams = (
 
 export const buildAuthGet = async (
   auth: Auth,
+  routePath: string,
   params: Record<string, QueryParamValue> = {},
 ): Promise<{
   queryString: string;
@@ -325,6 +327,6 @@ export const buildAuthGet = async (
   return {
     queryString,
     requestNonce: base.nonce,
-    headers: await requestSignatureGetHeader(auth, queryString),
+    headers: await requestSignatureGetHeader(auth, routePath, queryString),
   };
 };

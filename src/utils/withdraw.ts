@@ -27,6 +27,7 @@ export const withdraw = async (
   const { bodyJson, headers, requestNonce } = await buildAuthPost(
     session,
     chainId,
+    "/withdraw",
     txParams,
     () =>
       resolveWithdrawAuth(
@@ -67,6 +68,7 @@ export const withdrawStuckUtxos = async (
   const { bodyJson, headers, requestNonce } = await buildAuthPost(
     session,
     chainId,
+    "/withdraw-stuck-utxos",
     txParams,
     () =>
       resolveWithdrawStuckUtxosAuth(

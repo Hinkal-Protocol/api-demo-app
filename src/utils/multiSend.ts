@@ -1,7 +1,7 @@
-import { buildAuthPost } from "./enclave-auth";
+import { buildAuthGet, buildAuthPost } from "./enclave-auth";
 import { enclaveFetch } from "./enclaveApi";
 import { resolvePrivateSendAuth } from "./resolve-tx-auth";
-import type { TxSessionAuth, TxWallet } from "./types";
+import type { Auth, TxSessionAuth, TxWallet } from "./types";
 
 export enum OrderStatus {
   Processing = "processing",
@@ -79,6 +79,7 @@ export const depositAndWithdraw = async (
   const { bodyJson, headers, requestNonce } = await buildAuthPost(
     session,
     chainId,
+    "/private-send",
     txParams,
     () =>
       resolvePrivateSendAuth(
@@ -122,11 +123,17 @@ export type OrderStatusResponse = {
 };
 
 export const getOrderStatus = async (
+  auth: Auth,
   orderId: string,
 ): Promise<OrderStatusResponse> => {
+  const { queryString, headers, requestNonce } = await buildAuthGet(
+    auth,
+    "/private-send/:orderId",
+  );
+
   const { res, data } = await enclaveFetch<
     OrderStatusResponse & { error?: string }
-  >(`/private-send/${orderId}`);
+  >(`/private-send/${orderId}?${queryString}`, requestNonce, { headers });
 
   if (!res.ok || data.success === false) {
     throw new Error(data.error ?? "Order status fetch failed");

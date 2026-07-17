@@ -31,7 +31,7 @@ export const getFeeStructure = async (
   amounts?: bigint[],
   mintFrom?: string,
 ): Promise<FeeStructure> => {
-  const { queryString, headers, requestNonce } = await buildAuthGet(auth, {
+  const { queryString, headers, requestNonce } = await buildAuthGet(auth, "/get-fee-structure", {
     feeToken,
     externalActionId,
     tokenAddresses,
