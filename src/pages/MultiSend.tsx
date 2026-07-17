@@ -29,6 +29,7 @@ import {
   TX_COMPLETION_TIME_OPTIONS,
   TxCompletionTimeLabel,
 } from "../utils/multiSend";
+import type { Auth } from "../utils/types";
 import {
   approveErc20,
   broadcastDepositTx,
@@ -63,12 +64,13 @@ const POLL_INTERVAL_MS = 2000;
 const POLL_TIMEOUT_MS = 5 * 60_000;
 
 const waitForScheduledTxsComplete = async (
+  auth: Auth,
   orderId: string,
   onUpdate: (txs: ScheduledTransactionItem[]) => void,
 ): Promise<void> => {
   const deadline = Date.now() + POLL_TIMEOUT_MS;
   while (Date.now() < deadline) {
-    const data = await getOrderStatus(orderId);
+    const data = await getOrderStatus(auth, orderId);
     if (data.status === OrderStatus.Failed) {
       throw new Error("Order failed");
     }
@@ -318,7 +320,12 @@ export const MultiSend = () => {
         await broadcastDepositTx(signer, order.serializedTx);
       }
 
-      await waitForScheduledTxsComplete(order.orderId, setScheduledStatuses);
+      const auth: Auth = { sessionId, privateKey, chainId };
+      await waitForScheduledTxsComplete(
+        auth,
+        order.orderId,
+        setScheduledStatuses,
+      );
 
       toast.success("Multi send completed");
       await refreshBalances();
