@@ -6,6 +6,7 @@ import {
   base,
   sepolia,
   tempoMainnet,
+  bsc,
 } from "wagmi/chains";
 import { defineChain } from "viem";
 import { ALCHEMY_API_KEY } from "./chain.constants";
@@ -30,6 +31,7 @@ export const SUPPORTED_CHAINS = [
   tempoMainnet, // 4217
   arcTestnet, // 5042002
   sepolia, // 11155111
+  bsc, // 56
 ] as const;
 
 export const SUPPORTED_CHAIN_IDS: number[] = SUPPORTED_CHAINS.map(
