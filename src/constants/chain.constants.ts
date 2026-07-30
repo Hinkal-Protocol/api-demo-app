@@ -9,6 +9,7 @@ export const chainIds = {
   tempo: 4217,
   arcTestnet: 5042002,
   sepolia: 11155111,
+  bnbMainnet: 56,
   tronNile: 3448148188,
   tronLocalnet: 103,
   tronMainnet: 728126428,
@@ -74,6 +75,11 @@ export const networkRegistry: Record<number, Network> = {
     chainId: chainIds.solanaMainnet,
     fetchRpcUrl:
       "https://mainnet.helius-rpc.com/?api-key=54ad9ec9-dad6-41de-b961-e3e8ea7a7188",
+  },
+  [chainIds.bnbMainnet]: {
+    name: "BNB",
+    chainId: chainIds.bnbMainnet,
+    fetchRpcUrl: `https://bnb-mainnet.g.alchemy.com/v2/${ALCHEMY_API_KEY}`,
   },
 };
 

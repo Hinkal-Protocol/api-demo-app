@@ -9,6 +9,7 @@ import arbMainnetRegistryJson from './arbMainnetRegistry.json';
 import polygonRegistryJson from './polygonRegistry.json';
 import optimismRegistryJson from './optimismRegistry.json';
 import baseRegistryJson from './baseRegistry.json';
+import bnbMainnetRegistryJson from './bnbMainnetRegistry.json';
 
 export * from './ERC20Registry';
 
@@ -17,6 +18,7 @@ const arbMainnetRegistry = arbMainnetRegistryJson.networkRegistry;
 const polygonRegistry = polygonRegistryJson.networkRegistry;
 const optimismRegistry = optimismRegistryJson.networkRegistry;
 const baseRegistry = baseRegistryJson.networkRegistry;
+const bnbMainnetRegistry = bnbMainnetRegistryJson.networkRegistry;
 
 const arcTestnetRegistry = arcTestnetRegistryJson.networkRegistry;
 const sepoliaRegistry = sepoliaRegistryJson.networkRegistry;
@@ -35,4 +37,5 @@ export {
   tronNileRegistry,
   solanaMainnetRegistry,
   tempoRegistry,
+  bnbMainnetRegistry,
 };
