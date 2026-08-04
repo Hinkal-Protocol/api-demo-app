@@ -1,6 +1,7 @@
 import arcTestnetRegistryJson from './arcTestnetRegistry.json';
 import sepoliaRegistryJson from './sepoliaRegistry.json';
 import tronNileRegistryJson from './tronNileRegistry.json';
+import tronMainnetRegistryJson from './tronMainnetRegistry.json';
 import solanaMainnetRegistryJson from './solanaMainnetRegistry.json';
 import tempoRegistryJson from './tempoRegistry.json';
 
@@ -21,6 +22,7 @@ const baseRegistry = baseRegistryJson.networkRegistry;
 const arcTestnetRegistry = arcTestnetRegistryJson.networkRegistry;
 const sepoliaRegistry = sepoliaRegistryJson.networkRegistry;
 const tronNileRegistry = tronNileRegistryJson.networkRegistry;
+const tronMainnetRegistry = tronMainnetRegistryJson.networkRegistry;
 const solanaMainnetRegistry = solanaMainnetRegistryJson.networkRegistry;
 const tempoRegistry = tempoRegistryJson.networkRegistry;
 
@@ -33,6 +35,7 @@ export {
   arcTestnetRegistry,
   sepoliaRegistry,
   tronNileRegistry,
+  tronMainnetRegistry,
   solanaMainnetRegistry,
   tempoRegistry,
 };

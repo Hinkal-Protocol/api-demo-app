@@ -6,6 +6,7 @@ import polygonRegistry from "./polygonRegistry.json";
 import arcTestnetRegistry from "./arcTestnetRegistry.json";
 import sepoliaRegistry from "./sepoliaRegistry.json";
 import tronNileRegistry from "./tronNileRegistry.json";
+import tronMainnetRegistry from "./tronMainnetRegistry.json";
 import solanaMainnetRegistry from "./solanaMainnetRegistry.json";
 import tempoRegistry from "./tempoRegistry.json";
 import { ERC20Token } from "../../types";
@@ -36,6 +37,9 @@ export const getERC20Registry = (chainId: number): ERC20Token[] => {
 
     case chainIds.tronNile:
       return tronNileRegistry.networkRegistry as ERC20Token[];
+
+    case chainIds.tronMainnet:
+      return tronMainnetRegistry.networkRegistry as ERC20Token[];
 
     case chainIds.solanaMainnet:
       return solanaMainnetRegistry.networkRegistry as ERC20Token[];

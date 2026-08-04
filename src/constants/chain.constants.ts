@@ -69,6 +69,11 @@ export const networkRegistry: Record<number, Network> = {
     chainId: chainIds.tronNile,
     fetchRpcUrl: "https://nile.trongrid.io",
   },
+  [chainIds.tronMainnet]: {
+    name: "Tron Mainnet",
+    chainId: chainIds.tronMainnet,
+    fetchRpcUrl: "https://api.trongrid.io",
+  },
   [chainIds.solanaMainnet]: {
     name: "Solana",
     chainId: chainIds.solanaMainnet,
