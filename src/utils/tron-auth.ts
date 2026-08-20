@@ -97,7 +97,6 @@ export const buildTronTransferAuthFields = (
       value.feeStructure = {
         feeToken: ethers.getAddress(feeStructure.feeToken),
         flatFee: BigInt(feeStructure.flatFee),
-        variableRate: BigInt(feeStructure.variableRate),
       };
     }
 
@@ -133,7 +132,6 @@ export const buildTronWithdrawAuthFields = (
       value.feeStructure = {
         feeToken: ethers.getAddress(feeStructure.feeToken),
         flatFee: BigInt(feeStructure.flatFee),
-        variableRate: BigInt(feeStructure.variableRate),
       };
     }
     if (ref !== undefined) {

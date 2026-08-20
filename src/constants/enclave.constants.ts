@@ -26,7 +26,6 @@ const ENCLAVE_TYPED_DATA_TYPES: Record<string, TypedDataField[]> = {
   FeeStructure: [
     { name: "feeToken", type: "address" },
     { name: "flatFee", type: "uint256" },
-    { name: "variableRate", type: "uint256" },
   ],
   Deposit: [
     { name: "nonce", type: "string" },

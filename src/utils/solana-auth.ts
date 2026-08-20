@@ -42,8 +42,8 @@ const renderRecipients = (recipients: Recipient[]): string => {
 
 const renderFeeFields = (feeStructure?: FeeStructure): string => {
   if (!feeStructure) return "";
-  const { feeToken, flatFee, variableRate } = feeStructure;
-  return `\nFee Structure:\n    Fee Token: ${feeToken}\n    Flat Fee: ${flatFee}\n    Variable Rate: ${variableRate}`;
+  const { feeToken, flatFee } = feeStructure;
+  return `\nFee Structure:\n    Fee Token: ${feeToken}\n    Flat Fee: ${flatFee}`;
 };
 
 const sign = async (

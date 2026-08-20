@@ -16,7 +16,6 @@ export enum ExternalActionId {
 export type FeeStructure = {
   feeToken: string;
   flatFee: string;
-  variableRate: string;
 };
 
 export const getFeeAmount = (feeStructure?: FeeStructure): bigint =>
@@ -27,7 +26,6 @@ export const getFeeStructure = async (
   feeToken: string,
   tokenAddresses: string[],
   externalActionId: ExternalActionId,
-  variableRate?: string,
   amounts?: bigint[],
   mintFrom?: string,
 ): Promise<FeeStructure> => {
@@ -35,7 +33,6 @@ export const getFeeStructure = async (
     feeToken,
     externalActionId,
     tokenAddresses,
-    ...(variableRate !== undefined ? { variableRate } : {}),
     ...(mintFrom !== undefined ? { mintFrom } : {}),
     ...(amounts !== undefined
       ? { amounts: amounts.map((amount) => amount.toString()) }

@@ -7,8 +7,6 @@ import { resolveSwapAuth } from "./resolve-tx-auth";
 import { isSolanaChain } from "./solana-wallet";
 import { Auth, TxSessionAuth, TxWallet } from "./types";
 
-export const HINKAL_SWAP_VARIABLE_RATE = 35n;
-
 export type SwapData = {
   swapData: string;
   externalActionId: ExternalActionId;
@@ -22,14 +20,18 @@ export const getSwapData = async (
   amount: string,
   slippagePercentage?: number,
 ): Promise<SwapData> => {
-  const { queryString, headers, requestNonce } = await buildAuthGet(auth, "/get-swap-data", {
-    inputTokenAddress,
-    outputTokenAddress,
-    amount,
-    ...(slippagePercentage !== undefined
-      ? { slippagePercentage: String(slippagePercentage) }
-      : {}),
-  });
+  const { queryString, headers, requestNonce } = await buildAuthGet(
+    auth,
+    "/get-swap-data",
+    {
+      inputTokenAddress,
+      outputTokenAddress,
+      amount,
+      ...(slippagePercentage !== undefined
+        ? { slippagePercentage: String(slippagePercentage) }
+        : {}),
+    },
+  );
 
   const { res, data } = await enclaveFetch<
     (SwapData & { success: true }) | { error?: string }
@@ -62,14 +64,12 @@ export const executeSwap = async (
     Math.floor(parseFloat(inAmount) * 10 ** inToken.decimals),
   );
   const outAmountWei = BigInt(quotedData.outSwapAmount);
-  const outAdjusted =
-    (outAmountWei * (10000n - HINKAL_SWAP_VARIABLE_RATE)) / 10000n;
 
   const tokenAddresses = [
     inToken.erc20TokenAddress,
     outToken.erc20TokenAddress,
   ];
-  const amounts = [(-inAmountWei).toString(), outAdjusted.toString()];
+  const amounts = [(-inAmountWei).toString(), outAmountWei.toString()];
 
   const feeToken = isSolana
     ? outToken.erc20TokenAddress
@@ -80,7 +80,6 @@ export const executeSwap = async (
     feeToken,
     tokenAddresses,
     quotedData.externalActionId,
-    HINKAL_SWAP_VARIABLE_RATE.toString(),
     isSolana ? [inAmountWei, -BigInt(quotedData.outSwapAmount)] : undefined,
     isSolana ? inToken.erc20TokenAddress : undefined,
   );

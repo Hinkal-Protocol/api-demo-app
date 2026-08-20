@@ -44,7 +44,6 @@ export const useTransactFee = ({
           tokenAddress,
           [tokenAddress],
           ExternalActionId.Transact,
-          undefined,
           [amountWei]
         );
         if (!cancelled) setFeeStructure(fee);

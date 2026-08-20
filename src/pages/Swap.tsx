@@ -18,12 +18,7 @@ import {
   getTokenBalanceWei,
 } from "../utils/amount.utils";
 import { ERC20Token } from "../types";
-import {
-  getSwapData,
-  executeSwap,
-  HINKAL_SWAP_VARIABLE_RATE,
-  type SwapData,
-} from "../utils/swap";
+import { getSwapData, executeSwap, type SwapData } from "../utils/swap";
 import { FeeStructure, getFeeAmount, getFeeStructure } from "../utils/fees";
 import { getFriendlyErrorMessage } from "../utils/errors";
 import { getEthersSigner } from "../utils/ethers-wallet";
@@ -98,7 +93,6 @@ export const Swap = () => {
       feeToken,
       [inSwapToken.erc20TokenAddress, outSwapToken.erc20TokenAddress],
       quotedData.externalActionId,
-      HINKAL_SWAP_VARIABLE_RATE.toString(),
       isSolana ? [inWei, -BigInt(quotedData.outSwapAmount)] : undefined,
       isSolana ? inSwapToken.erc20TokenAddress : undefined,
     )

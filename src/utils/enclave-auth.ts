@@ -141,7 +141,7 @@ export const buildTransferAuthFields = (
     amounts: string[];
     recipient: string;
     feeToken?: string;
-    feeStructure?: { feeToken: string; flatFee: string; variableRate: string };
+    feeStructure?: { feeToken: string; flatFee: string };
   },
 ) =>
   signEnclaveTypedData(sessionId, signer, "Transfer", params.chainId, (nonce) => {
@@ -157,7 +157,6 @@ export const buildTransferAuthFields = (
       value.feeStructure = {
         feeToken: ethers.getAddress(params.feeStructure.feeToken),
         flatFee: BigInt(params.feeStructure.flatFee),
-        variableRate: BigInt(params.feeStructure.variableRate),
       };
     }
 
@@ -173,7 +172,7 @@ export const buildWithdrawAuthFields = (
     amounts: string[];
     recipient: string;
     feeToken?: string;
-    feeStructure?: { feeToken: string; flatFee: string; variableRate: string };
+    feeStructure?: { feeToken: string; flatFee: string };
     ref?: string;
   },
 ) =>
@@ -190,7 +189,6 @@ export const buildWithdrawAuthFields = (
       value.feeStructure = {
         feeToken: ethers.getAddress(params.feeStructure.feeToken),
         flatFee: BigInt(params.feeStructure.flatFee),
-        variableRate: BigInt(params.feeStructure.variableRate),
       };
     }
     if (params.ref !== undefined) {
@@ -233,7 +231,7 @@ export const buildSwapAuthFields = (
     externalActionId: string;
     swapData: string;
     feeToken?: string;
-    feeStructure?: { feeToken: string; flatFee: string; variableRate: string };
+    feeStructure?: { feeToken: string; flatFee: string };
   },
 ) =>
   signEnclaveTypedData(sessionId, signer, "Swap", params.chainId, (nonce) => {
@@ -250,7 +248,6 @@ export const buildSwapAuthFields = (
       value.feeStructure = {
         feeToken: ethers.getAddress(params.feeStructure.feeToken),
         flatFee: BigInt(params.feeStructure.flatFee),
-        variableRate: BigInt(params.feeStructure.variableRate),
       };
     }
 
