@@ -174,6 +174,7 @@ export const buildWithdrawAuthFields = (
     recipient: string;
     feeToken?: string;
     feeStructure?: { feeToken: string; flatFee: string; variableRate: string };
+    ref?: string;
   },
 ) =>
   signEnclaveTypedData(sessionId, signer, "Withdraw", params.chainId, (nonce) => {
@@ -191,6 +192,9 @@ export const buildWithdrawAuthFields = (
         flatFee: BigInt(params.feeStructure.flatFee),
         variableRate: BigInt(params.feeStructure.variableRate),
       };
+    }
+    if (params.ref !== undefined) {
+      value.ref = params.ref;
     }
 
     return value;

@@ -16,6 +16,7 @@ export const withdraw = async (
   recipientAddress: string,
   feeToken?: string,
   feeStructure?: FeeStructure,
+  ref?: string,
 ): Promise<string> => {
   const txParams = {
     tokenAddresses,
@@ -23,6 +24,7 @@ export const withdraw = async (
     recipientAddress,
     feeToken,
     feeStructure,
+    ref,
   };
   const { bodyJson, headers, requestNonce } = await buildAuthPost(
     session,
@@ -39,6 +41,7 @@ export const withdraw = async (
         recipientAddress,
         feeToken,
         feeStructure,
+        ref,
       ),
   );
 

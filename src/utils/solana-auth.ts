@@ -119,13 +119,15 @@ export const buildSolanaWithdrawAuthFields = async (
   recipientAddress: string,
   feeToken?: string,
   feeStructure?: FeeStructure,
+  ref?: string,
 ): Promise<EnclaveTxAuthFields> => {
   const nonce = crypto.randomUUID();
   const message =
     `${buildHeader("Withdraw", nonce, sessionId, chainId)}` +
     `\nToken Amounts:\n${renderTokenAmounts(tokenAddresses, amounts)}` +
     `\nRecipient: ${recipientAddress}` +
-    renderFeeFields(feeStructure);
+    renderFeeFields(feeStructure) +
+    `${ref !== undefined ? `\nRef: ${ref}` : ""}`;
   return sign(sessionId, provider, message, nonce);
 };
 
