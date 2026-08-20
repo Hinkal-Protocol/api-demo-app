@@ -112,6 +112,7 @@ export const buildTronWithdrawAuthFields = (
   recipient: string,
   feeToken?: string,
   feeStructure?: FeeStructure,
+  ref?: string,
 ): Promise<EnclaveTxAuthFields> =>
   signTypedData(sessionId, "Withdraw", chainId, (nonce) => {
     const value: Record<string, unknown> = {
@@ -134,6 +135,9 @@ export const buildTronWithdrawAuthFields = (
         flatFee: BigInt(feeStructure.flatFee),
         variableRate: BigInt(feeStructure.variableRate),
       };
+    }
+    if (ref !== undefined) {
+      value.ref = ref;
     }
 
     return value;

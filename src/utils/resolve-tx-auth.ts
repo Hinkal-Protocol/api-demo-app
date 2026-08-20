@@ -159,6 +159,7 @@ export const resolveWithdrawAuth = (
   recipientAddress: string,
   feeToken?: string,
   feeStructure?: FeeStructure,
+  ref?: string,
 ): Promise<EnclaveTxAuthFields> =>
   resolveByChain(chainId, {
     solana: () =>
@@ -171,6 +172,7 @@ export const resolveWithdrawAuth = (
         recipientAddress,
         feeToken,
         feeStructure,
+        ref,
       ),
     tron: () =>
       buildTronWithdrawAuthFields(
@@ -181,6 +183,7 @@ export const resolveWithdrawAuth = (
         recipientAddress,
         feeToken,
         feeStructure,
+        ref,
       ),
     evm: () =>
       buildWithdrawAuthFields(sessionId, requireEvmSigner(wallet.signer), {
@@ -190,6 +193,7 @@ export const resolveWithdrawAuth = (
         recipient: recipientAddress,
         feeToken,
         feeStructure,
+        ref,
       }),
   });
 
