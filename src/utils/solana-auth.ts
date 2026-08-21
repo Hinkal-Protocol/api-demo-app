@@ -40,7 +40,7 @@ const renderRecipients = (recipients: Recipient[]): string => {
 };
 
 const renderFeeFields = (feeAmount?: string): string =>
-  feeAmount !== undefined ? `\nFee: ${feeAmount}` : "";
+  feeAmount !== undefined ? `\nFee Amount: ${feeAmount}` : "";
 
 const sign = async (
   sessionId: string,
