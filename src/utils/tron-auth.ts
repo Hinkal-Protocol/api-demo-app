@@ -3,7 +3,6 @@ import {
   getEnclaveTypedDataDomain,
   getTypesForPrimary,
 } from "../constants/enclave.constants";
-import type { FeeStructure } from "./fees";
 import { getTronWeb, tronBase58ToHex } from "./tron-wallet";
 import type { EnclaveTxAuthFields } from "./types";
 import type { Recipient } from "./multiSend";
@@ -76,7 +75,7 @@ export const buildTronTransferAuthFields = (
   amounts: string[],
   recipient: string,
   feeToken?: string,
-  feeStructure?: FeeStructure,
+  feeAmount?: string,
 ): Promise<EnclaveTxAuthFields> =>
   signTypedData(sessionId, "Transfer", chainId, (nonce) => {
     const value: Record<string, unknown> = {
@@ -93,12 +92,8 @@ export const buildTronTransferAuthFields = (
     if (feeToken) {
       value.feeToken = ethers.getAddress(feeToken);
     }
-    if (feeStructure) {
-      value.feeStructure = {
-        feeToken: ethers.getAddress(feeStructure.feeToken),
-        flatFee: BigInt(feeStructure.flatFee),
-        variableRate: BigInt(feeStructure.variableRate),
-      };
+    if (feeAmount !== undefined) {
+      value.feeAmount = BigInt(feeAmount);
     }
 
     return value;
@@ -111,7 +106,7 @@ export const buildTronWithdrawAuthFields = (
   amounts: string[],
   recipient: string,
   feeToken?: string,
-  feeStructure?: FeeStructure,
+  feeAmount?: string,
   ref?: string,
 ): Promise<EnclaveTxAuthFields> =>
   signTypedData(sessionId, "Withdraw", chainId, (nonce) => {
@@ -129,12 +124,8 @@ export const buildTronWithdrawAuthFields = (
     if (feeToken) {
       value.feeToken = ethers.getAddress(feeToken);
     }
-    if (feeStructure) {
-      value.feeStructure = {
-        feeToken: ethers.getAddress(feeStructure.feeToken),
-        flatFee: BigInt(feeStructure.flatFee),
-        variableRate: BigInt(feeStructure.variableRate),
-      };
+    if (feeAmount !== undefined) {
+      value.feeAmount = BigInt(feeAmount);
     }
     if (ref !== undefined) {
       value.ref = ref;

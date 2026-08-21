@@ -61,25 +61,25 @@ export const Withdraw = () => {
     }
   }, [selectedToken, withdrawAmount]);
 
-  const { feeStructure, isFeeLoading } = useTransactFee({
+  const { feeAmount, isFeeLoading } = useTransactFee({
     token: selectedToken,
     amountWei,
     enabled: true,
   });
 
-  const feeAmount = getFeeAmount(feeStructure);
+  const feeAmountWei = getFeeAmount(feeAmount);
 
   const feeDisplay =
-    selectedToken && feeStructure
-      ? `${Number(getAmountInToken(selectedToken, feeAmount)).toFixed(6)} ${
+    selectedToken && feeAmount
+      ? `${Number(getAmountInToken(selectedToken, feeAmountWei)).toFixed(6)} ${
           selectedToken.symbol
         }`
       : null;
 
   const hasInsufficientFunds = useMemo(() => {
     if (!selectedToken || amountWei <= 0n) return false;
-    return getTokenBalanceWei(balances, selectedToken) < amountWei + feeAmount;
-  }, [selectedToken, amountWei, balances, feeAmount]);
+    return getTokenBalanceWei(balances, selectedToken) < amountWei + feeAmountWei;
+  }, [selectedToken, amountWei, balances, feeAmountWei]);
 
   const handleReset = () => {
     setSelectedToken(undefined);
@@ -104,7 +104,7 @@ export const Withdraw = () => {
         !privateKey
       )
         return;
-      if (!feeStructure) return;
+      if (!feeAmount) return;
       setIsProcessing(true);
 
       const amountInWei = getAmountInWei(selectedToken, withdrawAmount);
@@ -124,7 +124,7 @@ export const Withdraw = () => {
         [amountStr],
         recipientAddress,
         tokenAddress,
-        feeStructure,
+        feeAmount,
       );
 
       toast.success("Withdraw confirmed");
@@ -143,7 +143,7 @@ export const Withdraw = () => {
     privateKey,
     withdrawAmount,
     recipientAddress,
-    feeStructure,
+    feeAmount,
     refreshBalances,
     refreshBalancesSoon,
     authMode,
@@ -185,7 +185,7 @@ export const Withdraw = () => {
       isProcessing ||
       isFeeLoading ||
       hasInsufficientFunds ||
-      !feeStructure,
+      !feeAmount,
     [
       walletAddress,
       selectedToken,
@@ -195,7 +195,7 @@ export const Withdraw = () => {
       isProcessing,
       isFeeLoading,
       hasInsufficientFunds,
-      feeStructure,
+      feeAmount,
     ],
   );
 

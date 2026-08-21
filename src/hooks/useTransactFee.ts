@@ -1,7 +1,7 @@
 import { useEffect, useState } from "react";
 import { useAppContext } from "../AppContext";
 import { ERC20Token } from "../types";
-import { ExternalActionId, FeeStructure, getFeeStructure } from "../utils/fees";
+import { ExternalActionId, getFee } from "../utils/fees";
 
 interface UseTransactFeeParams {
   token?: ERC20Token;
@@ -15,7 +15,7 @@ export const useTransactFee = ({
   enabled = true,
 }: UseTransactFeeParams) => {
   const { chainId, walletAddress, privateKey, sessionId } = useAppContext();
-  const [feeStructure, setFeeStructure] = useState<FeeStructure | undefined>();
+  const [feeAmount, setFeeAmount] = useState<string | undefined>();
   const [isFeeLoading, setIsFeeLoading] = useState(false);
 
   useEffect(() => {
@@ -28,7 +28,7 @@ export const useTransactFee = ({
       !sessionId ||
       amountWei <= 0n
     ) {
-      setFeeStructure(undefined);
+      setFeeAmount(undefined);
       setIsFeeLoading(false);
       return;
     }
@@ -39,17 +39,16 @@ export const useTransactFee = ({
     const timer = setTimeout(async () => {
       try {
         const auth = { sessionId, privateKey, address: walletAddress, chainId };
-        const fee = await getFeeStructure(
+        const fetchedFeeAmount = await getFee(
           auth,
           tokenAddress,
           [tokenAddress],
           ExternalActionId.Transact,
-          undefined,
           [amountWei]
         );
-        if (!cancelled) setFeeStructure(fee);
+        if (!cancelled) setFeeAmount(fetchedFeeAmount);
       } catch {
-        if (!cancelled) setFeeStructure(undefined);
+        if (!cancelled) setFeeAmount(undefined);
       } finally {
         if (!cancelled) setIsFeeLoading(false);
       }
@@ -61,5 +60,5 @@ export const useTransactFee = ({
     };
   }, [enabled, token, amountWei, chainId, walletAddress, privateKey, sessionId]);
 
-  return { feeStructure, isFeeLoading };
+  return { feeAmount, isFeeLoading };
 };

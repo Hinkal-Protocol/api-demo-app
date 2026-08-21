@@ -1,7 +1,6 @@
 import { signSolanaMessage, SolanaWalletProvider } from "./solana-wallet";
 import type { EnclaveTxAuthFields } from "./types";
 import type { Recipient } from "./multiSend";
-import type { FeeStructure } from "./fees";
 
 const DOMAIN_NAME = "Hinkal Enclave";
 
@@ -40,11 +39,8 @@ const renderRecipients = (recipients: Recipient[]): string => {
     .join("\n");
 };
 
-const renderFeeFields = (feeStructure?: FeeStructure): string => {
-  if (!feeStructure) return "";
-  const { feeToken, flatFee, variableRate } = feeStructure;
-  return `\nFee Structure:\n    Fee Token: ${feeToken}\n    Flat Fee: ${flatFee}\n    Variable Rate: ${variableRate}`;
-};
+const renderFeeFields = (feeAmount?: string): string =>
+  feeAmount !== undefined ? `\nFee Amount: ${feeAmount}` : "";
 
 const sign = async (
   sessionId: string,
@@ -98,15 +94,14 @@ export const buildSolanaTransferAuthFields = async (
   tokenAddresses: string[],
   amounts: string[],
   recipientAddress: string,
-  feeToken?: string,
-  feeStructure?: FeeStructure,
+  feeAmount?: string,
 ): Promise<EnclaveTxAuthFields> => {
   const nonce = crypto.randomUUID();
   const message =
     `${buildHeader("Transfer", nonce, sessionId, chainId)}` +
     `\nToken Amounts:\n${renderTokenAmounts(tokenAddresses, amounts)}` +
     `\nRecipient: ${recipientAddress}` +
-    renderFeeFields(feeStructure);
+    renderFeeFields(feeAmount);
   return sign(sessionId, provider, message, nonce);
 };
 
@@ -117,8 +112,7 @@ export const buildSolanaWithdrawAuthFields = async (
   tokenAddresses: string[],
   amounts: string[],
   recipientAddress: string,
-  feeToken?: string,
-  feeStructure?: FeeStructure,
+  feeAmount?: string,
   ref?: string,
 ): Promise<EnclaveTxAuthFields> => {
   const nonce = crypto.randomUUID();
@@ -126,7 +120,7 @@ export const buildSolanaWithdrawAuthFields = async (
     `${buildHeader("Withdraw", nonce, sessionId, chainId)}` +
     `\nToken Amounts:\n${renderTokenAmounts(tokenAddresses, amounts)}` +
     `\nRecipient: ${recipientAddress}` +
-    renderFeeFields(feeStructure) +
+    renderFeeFields(feeAmount) +
     `${ref !== undefined ? `\nRef: ${ref}` : ""}`;
   return sign(sessionId, provider, message, nonce);
 };
@@ -158,8 +152,7 @@ export const buildSolanaSwapAuthFields = async (
   amounts: string[],
   externalActionId: string,
   swapData: string,
-  feeToken?: string,
-  feeStructure?: FeeStructure,
+  feeAmount?: string,
 ): Promise<EnclaveTxAuthFields> => {
   const nonce = crypto.randomUUID();
   const message =
@@ -167,7 +160,7 @@ export const buildSolanaSwapAuthFields = async (
     `\nToken Amounts:\n${renderTokenAmounts(tokenAddresses, amounts)}` +
     `\nExternal Action ID: ${externalActionId}` +
     `\nSwap Data: ${swapData}` +
-    renderFeeFields(feeStructure);
+    renderFeeFields(feeAmount);
   return sign(sessionId, provider, message, nonce);
 };
 

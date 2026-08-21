@@ -1,6 +1,5 @@
 import { buildAuthPost } from "./enclave-auth";
 import { enclaveFetch } from "./enclaveApi";
-import { FeeStructure } from "./fees";
 import {
   resolveWithdrawAuth,
   resolveWithdrawStuckUtxosAuth,
@@ -15,7 +14,7 @@ export const withdraw = async (
   amounts: string[],
   recipientAddress: string,
   feeToken?: string,
-  feeStructure?: FeeStructure,
+  feeAmount?: string,
   ref?: string,
 ): Promise<string> => {
   const txParams = {
@@ -23,7 +22,7 @@ export const withdraw = async (
     amounts,
     recipientAddress,
     feeToken,
-    feeStructure,
+    feeAmount,
     ref,
   };
   const { bodyJson, headers, requestNonce } = await buildAuthPost(
@@ -40,7 +39,7 @@ export const withdraw = async (
         amounts,
         recipientAddress,
         feeToken,
-        feeStructure,
+        feeAmount,
         ref,
       ),
   );
