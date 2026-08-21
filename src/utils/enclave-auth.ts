@@ -141,7 +141,7 @@ export const buildTransferAuthFields = (
     amounts: string[];
     recipient: string;
     feeToken?: string;
-    feeStructure?: { feeToken: string; flatFee: string };
+    feeAmount?: string;
   },
 ) =>
   signEnclaveTypedData(sessionId, signer, "Transfer", params.chainId, (nonce) => {
@@ -153,11 +153,8 @@ export const buildTransferAuthFields = (
     if (params.feeToken) {
       value.feeToken = ethers.getAddress(params.feeToken);
     }
-    if (params.feeStructure) {
-      value.feeStructure = {
-        feeToken: ethers.getAddress(params.feeStructure.feeToken),
-        flatFee: BigInt(params.feeStructure.flatFee),
-      };
+    if (params.feeAmount !== undefined) {
+      value.feeAmount = BigInt(params.feeAmount);
     }
 
     return value;
@@ -172,7 +169,7 @@ export const buildWithdrawAuthFields = (
     amounts: string[];
     recipient: string;
     feeToken?: string;
-    feeStructure?: { feeToken: string; flatFee: string };
+    feeAmount?: string;
     ref?: string;
   },
 ) =>
@@ -185,11 +182,8 @@ export const buildWithdrawAuthFields = (
     if (params.feeToken) {
       value.feeToken = ethers.getAddress(params.feeToken);
     }
-    if (params.feeStructure) {
-      value.feeStructure = {
-        feeToken: ethers.getAddress(params.feeStructure.feeToken),
-        flatFee: BigInt(params.feeStructure.flatFee),
-      };
+    if (params.feeAmount !== undefined) {
+      value.feeAmount = BigInt(params.feeAmount);
     }
     if (params.ref !== undefined) {
       value.ref = params.ref;
@@ -231,7 +225,7 @@ export const buildSwapAuthFields = (
     externalActionId: string;
     swapData: string;
     feeToken?: string;
-    feeStructure?: { feeToken: string; flatFee: string };
+    feeAmount?: string;
   },
 ) =>
   signEnclaveTypedData(sessionId, signer, "Swap", params.chainId, (nonce) => {
@@ -244,11 +238,8 @@ export const buildSwapAuthFields = (
     if (params.feeToken) {
       value.feeToken = ethers.getAddress(params.feeToken);
     }
-    if (params.feeStructure) {
-      value.feeStructure = {
-        feeToken: ethers.getAddress(params.feeStructure.feeToken),
-        flatFee: BigInt(params.feeStructure.flatFee),
-      };
+    if (params.feeAmount !== undefined) {
+      value.feeAmount = BigInt(params.feeAmount);
     }
 
     return value;

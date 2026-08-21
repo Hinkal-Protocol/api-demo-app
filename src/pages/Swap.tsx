@@ -19,7 +19,7 @@ import {
 } from "../utils/amount.utils";
 import { ERC20Token } from "../types";
 import { getSwapData, executeSwap, type SwapData } from "../utils/swap";
-import { FeeStructure, getFeeAmount, getFeeStructure } from "../utils/fees";
+import { getFeeAmount, getFee } from "../utils/fees";
 import { getFriendlyErrorMessage } from "../utils/errors";
 import { getEthersSigner } from "../utils/ethers-wallet";
 
@@ -57,7 +57,7 @@ export const Swap = () => {
     [balances, inSwapToken],
   );
 
-  const [feeStructure, setFeeStructure] = useState<FeeStructure | undefined>();
+  const [feeAmount, setFeeAmount] = useState<string | undefined>();
   const [isFeeLoading, setIsFeeLoading] = useState(false);
 
   useEffect(() => {
@@ -70,7 +70,7 @@ export const Swap = () => {
       !privateKey ||
       !sessionId
     ) {
-      setFeeStructure(undefined);
+      setFeeAmount(undefined);
       setIsFeeLoading(false);
       return;
     }
@@ -88,7 +88,7 @@ export const Swap = () => {
         return 0n;
       }
     })();
-    getFeeStructure(
+    getFee(
       auth,
       feeToken,
       [inSwapToken.erc20TokenAddress, outSwapToken.erc20TokenAddress],
@@ -96,11 +96,11 @@ export const Swap = () => {
       isSolana ? [inWei, -BigInt(quotedData.outSwapAmount)] : undefined,
       isSolana ? inSwapToken.erc20TokenAddress : undefined,
     )
-      .then((fee) => {
-        if (!cancelled) setFeeStructure(fee);
+      .then((feeAmount) => {
+        if (!cancelled) setFeeAmount(feeAmount);
       })
       .catch(() => {
-        if (!cancelled) setFeeStructure(undefined);
+        if (!cancelled) setFeeAmount(undefined);
       })
       .finally(() => {
         if (!cancelled) setIsFeeLoading(false);
@@ -121,11 +121,11 @@ export const Swap = () => {
     isSolana,
   ]);
 
-  const feeAmount = getFeeAmount(feeStructure);
+  const feeAmountWei = getFeeAmount(feeAmount);
   const feeToken = isSolana ? outSwapToken : inSwapToken;
   const feeDisplay =
-    feeToken && feeStructure
-      ? `${Number(getAmountInToken(feeToken, feeAmount)).toFixed(6)} ${
+    feeToken && feeAmount
+      ? `${Number(getAmountInToken(feeToken, feeAmountWei)).toFixed(6)} ${
           feeToken.symbol
         }`
       : null;
@@ -141,9 +141,9 @@ export const Swap = () => {
 
   const hasInsufficientFunds = useMemo(() => {
     if (!inSwapToken || inAmountWei <= 0n) return false;
-    const required = inAmountWei + (isSolana ? 0n : feeAmount);
+    const required = inAmountWei + (isSolana ? 0n : feeAmountWei);
     return getTokenBalanceWei(balances, inSwapToken) < required;
-  }, [inSwapToken, inAmountWei, isSolana, feeAmount, balances]);
+  }, [inSwapToken, inAmountWei, isSolana, feeAmountWei, balances]);
 
   useEffect(() => {
     setQuotedData(undefined);

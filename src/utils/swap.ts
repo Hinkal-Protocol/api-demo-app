@@ -2,7 +2,7 @@ import { ERC20Token } from "../types";
 import { buildAuthGet } from "./enclave-auth";
 import { buildAuthPost } from "./enclave-auth";
 import { enclaveFetch } from "./enclaveApi";
-import { ExternalActionId, getFeeStructure } from "./fees";
+import { ExternalActionId, getFee } from "./fees";
 import { resolveSwapAuth } from "./resolve-tx-auth";
 import { isSolanaChain } from "./solana-wallet";
 import { Auth, TxSessionAuth, TxWallet } from "./types";
@@ -75,7 +75,7 @@ export const executeSwap = async (
     ? outToken.erc20TokenAddress
     : inToken.erc20TokenAddress;
 
-  const feeStructure = await getFeeStructure(
+  const feeAmount = await getFee(
     getterAuth,
     feeToken,
     tokenAddresses,
@@ -89,7 +89,7 @@ export const executeSwap = async (
     amounts,
     externalActionId: quotedData.externalActionId,
     swapData: quotedData.swapData,
-    ...(isSolana ? { feeStructure } : { feeToken, feeStructure }),
+    ...(isSolana ? { feeAmount } : { feeToken, feeAmount }),
   };
 
   const { bodyJson, headers, requestNonce } = await buildAuthPost(
@@ -106,8 +106,8 @@ export const executeSwap = async (
         amounts,
         quotedData.externalActionId,
         quotedData.swapData,
-        isSolana ? undefined : feeToken,
-        feeStructure,
+        feeToken,
+        feeAmount,
       ),
   );
 

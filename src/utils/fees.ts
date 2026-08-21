@@ -13,23 +13,18 @@ export enum ExternalActionId {
   Wallet = "Wallet",
 }
 
-export type FeeStructure = {
-  feeToken: string;
-  flatFee: string;
-};
+export const getFeeAmount = (feeAmount?: string): bigint =>
+  feeAmount ? BigInt(feeAmount) : 0n;
 
-export const getFeeAmount = (feeStructure?: FeeStructure): bigint =>
-  feeStructure ? BigInt(feeStructure.flatFee) : 0n;
-
-export const getFeeStructure = async (
+export const getFee = async (
   auth: Auth,
   feeToken: string,
   tokenAddresses: string[],
   externalActionId: ExternalActionId,
   amounts?: bigint[],
   mintFrom?: string,
-): Promise<FeeStructure> => {
-  const { queryString, headers, requestNonce } = await buildAuthGet(auth, "/get-fee-structure", {
+): Promise<string> => {
+  const { queryString, headers, requestNonce } = await buildAuthGet(auth, "/get-fee", {
     feeToken,
     externalActionId,
     tokenAddresses,
@@ -40,15 +35,14 @@ export const getFeeStructure = async (
   });
 
   const { res, data } = await enclaveFetch<
-    | { success: true; feeStructure: FeeStructure }
-    | { error?: string }
-  >(`/get-fee-structure?${queryString}`, requestNonce, { headers });
+    { success: true; feeAmount: string } | { error?: string }
+  >(`/get-fee?${queryString}`, requestNonce, { headers });
 
   if (!res.ok || !("success" in data && data.success)) {
     throw new Error(
-      (data as { error?: string }).error ?? "Fee structure fetch failed",
+      (data as { error?: string }).error ?? "Fee fetch failed",
     );
   }
 
-  return data.feeStructure;
+  return data.feeAmount;
 };

@@ -23,10 +23,6 @@ const ENCLAVE_TYPED_DATA_TYPES: Record<string, TypedDataField[]> = {
     { name: "recipient", type: "address" },
     { name: "amount", type: "int256" },
   ],
-  FeeStructure: [
-    { name: "feeToken", type: "address" },
-    { name: "flatFee", type: "uint256" },
-  ],
   Deposit: [
     { name: "nonce", type: "string" },
     { name: "sessionId", type: "string" },
@@ -85,7 +81,7 @@ const ENCLAVE_TYPED_DATA_TYPES: Record<string, TypedDataField[]> = {
 };
 
 const FEE_TOKEN_FIELD: TypedDataField = { name: "feeToken", type: "address" };
-const FEE_STRUCTURE_FIELD: TypedDataField = { name: "feeStructure", type: "FeeStructure" };
+const FEE_AMOUNT_FIELD: TypedDataField = { name: "feeAmount", type: "uint256" };
 const TX_COMPLETION_TIME_FIELD: TypedDataField = { name: "txCompletionTime", type: "uint256" };
 const REF_FIELD: TypedDataField = { name: "ref", type: "string" };
 
@@ -96,7 +92,7 @@ const getPrimaryFields = (
   const fields = [...ENCLAVE_TYPED_DATA_TYPES[primaryType]];
 
   if (value.feeToken) fields.push(FEE_TOKEN_FIELD);
-  if (value.feeStructure) fields.push(FEE_STRUCTURE_FIELD);
+  if (value.feeAmount !== undefined) fields.push(FEE_AMOUNT_FIELD);
   if (value.txCompletionTime !== undefined) fields.push(TX_COMPLETION_TIME_FIELD);
   if (value.ref !== undefined) fields.push(REF_FIELD);
 
@@ -132,10 +128,6 @@ export const getTypesForPrimary = (
   );
   if (usesRecipientAmount) {
     types.RecipientAmount = ENCLAVE_TYPED_DATA_TYPES.RecipientAmount;
-  }
-
-  if (fields.some((f: TypedDataField) => f.type === "FeeStructure")) {
-    types.FeeStructure = ENCLAVE_TYPED_DATA_TYPES.FeeStructure;
   }
 
   return types;
