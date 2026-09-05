@@ -3,6 +3,7 @@ import {
   buildDepositAndWithdrawAuthFields,
   buildDepositAuthFields,
   buildDepositForOtherAuthFields,
+  buildReceiveVaultRecoverAuthFields,
   buildSwapAuthFields,
   buildTransferAuthFields,
   buildWithdrawAuthFields,
@@ -22,6 +23,7 @@ import {
   buildTronDepositAuthFields,
   buildTronDepositForOtherAuthFields,
   buildTronPrivateSendAuthFields,
+  buildTronReceiveVaultRecoverAuthFields,
   buildTronTransferAuthFields,
   buildTronWithdrawAuthFields,
   buildTronWithdrawStuckUtxosAuthFields,
@@ -296,3 +298,31 @@ export const resolveSwapAuth = (
     feeAmount,
   });
 };
+
+export const resolveReceiveVaultRecoverAuth = (
+  wallet: TxWallet,
+  sessionId: string,
+  chainId: number,
+  vaultAddress: string,
+  tokenAddress: string,
+  recipientAddress: string,
+): Promise<EnclaveTxAuthFields> =>
+  resolveByChain(chainId, {
+    solana: () => {
+      throw new Error("Receive addresses are not available on Solana");
+    },
+    tron: () =>
+      buildTronReceiveVaultRecoverAuthFields(
+        sessionId,
+        chainId,
+        vaultAddress,
+        tokenAddress,
+        recipientAddress,
+      ),
+    evm: () =>
+      buildReceiveVaultRecoverAuthFields(
+        sessionId,
+        requireEvmSigner(wallet.signer),
+        { chainId, vaultAddress, tokenAddress, recipientAddress },
+      ),
+  });
