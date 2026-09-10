@@ -74,18 +74,9 @@ export type SVGIconType = React.FunctionComponent<
 
 export type ReceiveVaultRecord = {
   index: number;
-  chainId: number;
-  token: string;
-  maxFlatFee: string;
-  maxVariableRate: number;
-  expiry: string;
+  network: string;
+  version: string;
   vaultAddress: string;
-};
-
-export type ReceiveVaultEntry = {
-  record: ReceiveVaultRecord;
-  token: ERC20Token;
-  expiresAt: string;
 };
 
 export type ReceiveVaultBlockedFund = {
@@ -96,6 +87,6 @@ export type ReceiveVaultBlockedFund = {
 };
 
 export type ReceiveVaultAccount = {
-  entries: ReceiveVaultEntry[];
+  entries: ReceiveVaultRecord[];
   blockedFunds: ReceiveVaultBlockedFund[];
 };

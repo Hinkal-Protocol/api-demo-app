@@ -15,9 +15,9 @@ export type RecoverTxData = TxData | Record<string, unknown>;
 export const createReceiveAddress = async (
   session: Session,
   chainId: number,
-  tokenAddress: string,
+  forceFresh = false,
 ): Promise<ReceiveVaultRecord> => {
-  const body = { ...sessionBodyParams(session, chainId), tokenAddress };
+  const body = { ...sessionBodyParams(session, chainId), forceFresh };
 
   const { res, data } = await enclaveFetch<
     { success: true; record: ReceiveVaultRecord } | { error?: string }

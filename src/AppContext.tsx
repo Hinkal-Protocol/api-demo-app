@@ -23,12 +23,7 @@ import { EnclaveSessionAuthMode } from "./utils/auth";
 import type { SolanaWalletProvider } from "./utils/solana-wallet";
 import { getERC20Registry } from "./constants/token-data";
 import { getEthersSigner } from "./utils/ethers-wallet";
-import {
-  ERC20Token,
-  ReceiveVaultBlockedFund,
-  ReceiveVaultEntry,
-  TokenBalance,
-} from "./types";
+import { ERC20Token, ReceiveVaultBlockedFund, TokenBalance } from "./types";
 export type WalletType = "evm" | "tron" | "solana";
 
 type AppContextArgumnets = {
@@ -57,7 +52,6 @@ type AppContextArgumnets = {
   erc20List: ERC20Token[];
   balances: TokenBalance[];
   stuckUtxoBalances: TokenBalance[];
-  receiveVaultEntries: ReceiveVaultEntry[];
   receiveVaultBlockedFunds: ReceiveVaultBlockedFund[];
   refreshReceiveVaultAccount: () => Promise<void>;
   refreshBalances: () => Promise<void>;
@@ -97,7 +91,6 @@ const AppContext = createContext<AppContextArgumnets>({
   erc20List: [],
   balances: [],
   stuckUtxoBalances: [],
-  receiveVaultEntries: [],
   receiveVaultBlockedFunds: [],
   refreshReceiveVaultAccount: async () => {},
   refreshBalances: async () => {},
@@ -130,9 +123,6 @@ export const AppContextProvider: FC<AppContextProps> = ({
   const [stuckUtxoBalances, setStuckUtxoBalances] = useState<TokenBalance[]>(
     [],
   );
-  const [receiveVaultEntries, setReceiveVaultEntries] = useState<
-    ReceiveVaultEntry[]
-  >([]);
   const [receiveVaultBlockedFunds, setReceiveVaultBlockedFunds] = useState<
     ReceiveVaultBlockedFund[]
   >([]);
@@ -305,16 +295,14 @@ export const AppContextProvider: FC<AppContextProps> = ({
     }
 
     try {
-      const { entries, blockedFunds } = await fetchReceiveVaultAccount({
+      const { blockedFunds } = await fetchReceiveVaultAccount({
         sessionId,
         privateKey,
         chainId,
       });
-      setReceiveVaultEntries(entries);
       setReceiveVaultBlockedFunds(blockedFunds);
     } catch (error) {
       console.error("Error refreshing receive vault account:", error);
-      setReceiveVaultEntries([]);
       setReceiveVaultBlockedFunds([]);
     }
   }, [dataLoaded, chainId, walletAddress, sessionId, privateKey]);
@@ -323,7 +311,6 @@ export const AppContextProvider: FC<AppContextProps> = ({
     if (!dataLoaded || !chainId) return;
     setBalances([]);
     setStuckUtxoBalances([]);
-    setReceiveVaultEntries([]);
     setReceiveVaultBlockedFunds([]);
     refreshBalances();
     refreshReceiveVaultAccount();
@@ -401,7 +388,6 @@ export const AppContextProvider: FC<AppContextProps> = ({
         erc20List,
         balances,
         stuckUtxoBalances,
-        receiveVaultEntries,
         receiveVaultBlockedFunds,
         refreshReceiveVaultAccount,
         refreshBalances,
