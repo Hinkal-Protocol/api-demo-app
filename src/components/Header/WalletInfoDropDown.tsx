@@ -26,6 +26,7 @@ import { withdrawStuckUtxos } from "../../utils/withdraw";
 import { recoverReceiveVault } from "../../utils/receiveVault";
 import type { TxData } from "../../utils/deposit";
 import { broadcastRawTronTx } from "../../utils/tron-wallet";
+import { broadcastSolanaTransaction } from "../../utils/solana-wallet";
 import { getAmountInToken } from "../../utils/amount.utils";
 import { WalletInfoBalance } from "./WalletInfoBalance";
 import { useAppContext } from "../../AppContext";
@@ -207,7 +208,10 @@ export const WalletInfoDropDown = () => {
           walletAddress,
         );
 
-        if (isTron) {
+        if (isSolana) {
+          if (!solanaProvider) throw new Error("Solana provider not set");
+          await broadcastSolanaTransaction(solanaProvider, txData as string);
+        } else if (isTron) {
           await broadcastRawTronTx(txData);
         } else {
           const { to, data } = txData as TxData;

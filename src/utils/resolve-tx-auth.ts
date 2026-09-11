@@ -14,6 +14,7 @@ import {
   buildSolanaDepositAuthFields,
   buildSolanaDepositForOtherAuthFields,
   buildSolanaPrivateSendAuthFields,
+  buildSolanaReceiveVaultRecoverAuthFields,
   buildSolanaSwapAuthFields,
   buildSolanaTransferAuthFields,
   buildSolanaWithdrawAuthFields,
@@ -308,9 +309,15 @@ export const resolveReceiveVaultRecoverAuth = (
   recipientAddress: string,
 ): Promise<EnclaveTxAuthFields> =>
   resolveByChain(chainId, {
-    solana: () => {
-      throw new Error("Receive addresses are not available on Solana");
-    },
+    solana: () =>
+      buildSolanaReceiveVaultRecoverAuthFields(
+        sessionId,
+        requireSolanaProvider(wallet.solanaProvider),
+        chainId,
+        vaultAddress,
+        tokenAddress,
+        recipientAddress,
+      ),
     tron: () =>
       buildTronReceiveVaultRecoverAuthFields(
         sessionId,

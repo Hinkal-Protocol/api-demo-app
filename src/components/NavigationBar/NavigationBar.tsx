@@ -16,7 +16,7 @@ export const NavigationBar = ({
   activeTab,
   setActiveTab,
 }: NavigationBarProps) => {
-  const { chainId, isSolana } = useAppContext();
+  const { chainId } = useAppContext();
   const swapDisabled = useMemo(
     () =>
       !!chainId &&
@@ -73,8 +73,6 @@ export const NavigationBar = ({
             isActive={activeTab === AppTab.Receive}
             title="Receive"
             onClick={() => setActiveTab(AppTab.Receive)}
-            disabled={isSolana}
-            disabledTooltip="Receive addresses are not available on Solana"
           />
         </div>
       </div>

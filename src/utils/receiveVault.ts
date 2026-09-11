@@ -10,7 +10,7 @@ import {
 import { resolveReceiveVaultRecoverAuth } from "./resolve-tx-auth";
 import type { Auth, TxSessionAuth, TxWallet } from "./types";
 
-export type RecoverTxData = TxData | Record<string, unknown>;
+export type RecoverTxData = TxData | Record<string, unknown> | string;
 
 export const createReceiveAddress = async (
   session: Session,
