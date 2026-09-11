@@ -14,6 +14,7 @@ import {
 import toast from "react-hot-toast";
 import { networkRegistry } from "./constants/chain.constants";
 import { fetchBalances, fetchStuckUtxoBalances } from "./utils/balance";
+import { fetchReceiveVaultAccount } from "./utils/receiveVault";
 import { getPublicBalances } from "./utils/public-balances";
 import { createEnclaveSession } from "./utils/session";
 import { getFriendlyErrorMessage } from "./utils/errors";
@@ -22,7 +23,7 @@ import { EnclaveSessionAuthMode } from "./utils/auth";
 import type { SolanaWalletProvider } from "./utils/solana-wallet";
 import { getERC20Registry } from "./constants/token-data";
 import { getEthersSigner } from "./utils/ethers-wallet";
-import { ERC20Token, TokenBalance } from "./types";
+import { ERC20Token, ReceiveVaultBlockedFund, TokenBalance } from "./types";
 export type WalletType = "evm" | "tron" | "solana";
 
 type AppContextArgumnets = {
@@ -51,6 +52,8 @@ type AppContextArgumnets = {
   erc20List: ERC20Token[];
   balances: TokenBalance[];
   stuckUtxoBalances: TokenBalance[];
+  receiveVaultBlockedFunds: ReceiveVaultBlockedFund[];
+  refreshReceiveVaultAccount: () => Promise<void>;
   refreshBalances: () => Promise<void>;
   refreshBalancesSoon: (delaysMs?: number[]) => Promise<void>;
   isBalancesRefreshing: boolean;
@@ -88,6 +91,8 @@ const AppContext = createContext<AppContextArgumnets>({
   erc20List: [],
   balances: [],
   stuckUtxoBalances: [],
+  receiveVaultBlockedFunds: [],
+  refreshReceiveVaultAccount: async () => {},
   refreshBalances: async () => {},
   refreshBalancesSoon: async () => {},
   isBalancesRefreshing: false,
@@ -118,6 +123,9 @@ export const AppContextProvider: FC<AppContextProps> = ({
   const [stuckUtxoBalances, setStuckUtxoBalances] = useState<TokenBalance[]>(
     [],
   );
+  const [receiveVaultBlockedFunds, setReceiveVaultBlockedFunds] = useState<
+    ReceiveVaultBlockedFund[]
+  >([]);
   const [walletBalances, setWalletBalances] = useState<Record<string, bigint>>(
     {},
   );
@@ -279,17 +287,42 @@ export const AppContextProvider: FC<AppContextProps> = ({
     [refreshBalances],
   );
 
+  // Receive addresses only exist on some chains, so a failure here must not take the
+  // balance refresh down with it.
+  const refreshReceiveVaultAccount = useCallback(async () => {
+    if (!dataLoaded || !chainId || !walletAddress || !sessionId || !privateKey) {
+      return;
+    }
+
+    try {
+      const { blockedFunds } = await fetchReceiveVaultAccount({
+        sessionId,
+        privateKey,
+        chainId,
+      });
+      setReceiveVaultBlockedFunds(blockedFunds);
+    } catch (error) {
+      console.error("Error refreshing receive vault account:", error);
+      setReceiveVaultBlockedFunds([]);
+    }
+  }, [dataLoaded, chainId, walletAddress, sessionId, privateKey]);
+
   useEffect(() => {
     if (!dataLoaded || !chainId) return;
     setBalances([]);
     setStuckUtxoBalances([]);
+    setReceiveVaultBlockedFunds([]);
     refreshBalances();
-    const interval = setInterval(refreshBalances, BALANCE_REFRESH_INTERVAL);
+    refreshReceiveVaultAccount();
+    const interval = setInterval(() => {
+      refreshBalances();
+      refreshReceiveVaultAccount();
+    }, BALANCE_REFRESH_INTERVAL);
     return () => {
       clearInterval(interval);
       abortControllerRef.current?.abort();
     };
-  }, [dataLoaded, chainId, refreshBalances]);
+  }, [dataLoaded, chainId, refreshBalances, refreshReceiveVaultAccount]);
 
   const refreshWalletBalances = useCallback(
     async (silent = false) => {
@@ -355,6 +388,8 @@ export const AppContextProvider: FC<AppContextProps> = ({
         erc20List,
         balances,
         stuckUtxoBalances,
+        receiveVaultBlockedFunds,
+        refreshReceiveVaultAccount,
         refreshBalances,
         refreshBalancesSoon,
         isBalancesRefreshing,
