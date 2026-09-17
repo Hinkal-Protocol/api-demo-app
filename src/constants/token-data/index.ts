@@ -1,3 +1,4 @@
+import arcMainnetRegistryJson from './arcMainnetRegistry.json';
 import arcTestnetRegistryJson from './arcTestnetRegistry.json';
 import sepoliaRegistryJson from './sepoliaRegistry.json';
 import tronNileRegistryJson from './tronNileRegistry.json';
@@ -19,6 +20,7 @@ const polygonRegistry = polygonRegistryJson.networkRegistry;
 const optimismRegistry = optimismRegistryJson.networkRegistry;
 const baseRegistry = baseRegistryJson.networkRegistry;
 
+const arcMainnetRegistry = arcMainnetRegistryJson.networkRegistry;
 const arcTestnetRegistry = arcTestnetRegistryJson.networkRegistry;
 const sepoliaRegistry = sepoliaRegistryJson.networkRegistry;
 const tronNileRegistry = tronNileRegistryJson.networkRegistry;
@@ -32,6 +34,7 @@ export {
   polygonRegistry,
   optimismRegistry,
   baseRegistry,
+  arcMainnetRegistry,
   arcTestnetRegistry,
   sepoliaRegistry,
   tronNileRegistry,

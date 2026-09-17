@@ -7,6 +7,7 @@ export const chainIds = {
   optimism: 10,
   base: 8453,
   tempo: 4217,
+  arcMainnet: 5042,
   arcTestnet: 5042002,
   sepolia: 11155111,
   tronNile: 3448148188,
@@ -53,6 +54,11 @@ export const networkRegistry: Record<number, Network> = {
     name: "Tempo",
     chainId: chainIds.tempo,
     fetchRpcUrl: "https://rpc.tempo.xyz",
+  },
+  [chainIds.arcMainnet]: {
+    name: "Arc",
+    chainId: chainIds.arcMainnet,
+    fetchRpcUrl: "https://rpc.mainnet.arc.io",
   },
   [chainIds.arcTestnet]: {
     name: "Arc Testnet",

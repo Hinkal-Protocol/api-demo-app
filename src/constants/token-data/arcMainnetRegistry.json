@@ -1,0 +1,90 @@
+{
+  "networkRegistry": [
+    {
+      "chainId": 5042,
+      "erc20TokenAddress": "0x3600000000000000000000000000000000000000",
+      "name": "USDC",
+      "symbol": "USDC",
+      "decimals": 6,
+      "logoURI": "https://storage.googleapis.com/hinkal-s3-assets/token-logos/USDc.avif",
+      "allowanceStorageOffset": 10,
+      "isVyper": false,
+      "balanceStorageOffset": 9
+    },
+    {
+      "chainId": 5042,
+      "erc20TokenAddress": "0x0000000000000000000000000000000000000000",
+      "name": "USDC (Native)",
+      "symbol": "USDC (Native)",
+      "decimals": 18,
+      "logoURI": "https://storage.googleapis.com/hinkal-s3-assets/token-logos/USDc.avif"
+    },
+    {
+      "chainId": 5042,
+      "erc20TokenAddress": "0xbEf5f6d51CB62b58e6A8f77868681825C6fe21c1",
+      "name": "EURC",
+      "symbol": "EURC",
+      "decimals": 6,
+      "logoURI": "https://assets.coingecko.com/coins/images/26045/standard/euro.png?1696525125",
+      "allowanceStorageOffset": 10,
+      "isVyper": false,
+      "balanceStorageOffset": 9
+    },
+    {
+      "chainId": 5042,
+      "erc20TokenAddress": "0x8a5D989Bbb96929F689B0200f435f53dA42bF490",
+      "name": "Hashnote US Yield Coin",
+      "symbol": "USYC",
+      "decimals": 6,
+      "logoURI": "https://assets.coingecko.com/coins/images/37418/standard/USYC.jpg"
+    },
+    {
+      "chainId": 5042,
+      "erc20TokenAddress": "0x0dc4f92879b7670e5f4e4e6e3c801d229129d90d",
+      "name": "Ripio wARS (Argentine Peso)",
+      "symbol": "WARS",
+      "decimals": 18,
+      "logoURI": "https://assets.coingecko.com/coins/images/70846/standard/world_logos_wars_logo_3.png?1764176749"
+    },
+    {
+      "chainId": 5042,
+      "erc20TokenAddress": "0xd76f5faf6888e24d9f04bf92a0c8b921fe4390e0",
+      "name": "Ripio wBRL (Brazilian Real)",
+      "symbol": "WBRL",
+      "decimals": 18,
+      "logoURI": "https://assets.coingecko.com/coins/images/70862/standard/wbrl.png?1764272108"
+    },
+    {
+      "chainId": 5042,
+      "erc20TokenAddress": "0x337e7456b420bd3481e7fa61fa9850343d610d34",
+      "name": "Ripio wMXN (Mexican Peso)",
+      "symbol": "WMXN",
+      "decimals": 18,
+      "logoURI": "https://assets.coingecko.com/coins/images/70880/standard/wmxn_logo_1.png?1764392404"
+    },
+    {
+      "chainId": 5042,
+      "erc20TokenAddress": "0x8a1d45e102e886510e891d2ec656a708991e2d76",
+      "name": "Ripio wCOP (Colombian Peso)",
+      "symbol": "WCOP",
+      "decimals": 18,
+      "logoURI": "https://assets.coingecko.com/coins/images/70887/standard/wcop_logo_1.png?1764394538"
+    },
+    {
+      "chainId": 5042,
+      "erc20TokenAddress": "0x4F34c8b3b5FB6D98Da888F0feA543d4d9C9F2eBE",
+      "name": "Ripio wPEN (Peruvian Sol)",
+      "symbol": "WPEN",
+      "decimals": 18,
+      "logoURI": "https://assets.coingecko.com/coins/images/70975/standard/wpen_logo_1.png?1764954695"
+    },
+    {
+      "chainId": 5042,
+      "erc20TokenAddress": "0x61D450a098b6a7f69fC4b98CE68198fe59768651",
+      "name": "Ripio wCLP (Chilean Peso)",
+      "symbol": "WCLP",
+      "decimals": 18,
+      "logoURI": "https://assets.coingecko.com/coins/images/70976/standard/wclp_logo_1.png?1764954870"
+    }
+  ]
+}

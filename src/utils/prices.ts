@@ -1,4 +1,4 @@
-import { RELAYER_BASE_URL } from "../constants/server.constants";
+import { DATA_SERVER_BASE_URL } from "../constants/server.constants";
 
 export const getTokenPrices = async (
   chainId: number,
@@ -6,7 +6,7 @@ export const getTokenPrices = async (
 ): Promise<number[]> => {
   if (erc20Addresses.length === 0) return [];
 
-  const res = await fetch(`${RELAYER_BASE_URL}/get-token-prices`, {
+  const res = await fetch(`${DATA_SERVER_BASE_URL}/get-token-prices`, {
     method: "POST",
     headers: { "Content-Type": "application/json" },
     body: JSON.stringify({ chainId, erc20Addresses }),
