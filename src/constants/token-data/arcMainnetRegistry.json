@@ -13,14 +13,6 @@
     },
     {
       "chainId": 5042,
-      "erc20TokenAddress": "0x0000000000000000000000000000000000000000",
-      "name": "USDC (Native)",
-      "symbol": "USDC (Native)",
-      "decimals": 18,
-      "logoURI": "https://storage.googleapis.com/hinkal-s3-assets/token-logos/USDc.avif"
-    },
-    {
-      "chainId": 5042,
       "erc20TokenAddress": "0xbEf5f6d51CB62b58e6A8f77868681825C6fe21c1",
       "name": "EURC",
       "symbol": "EURC",
