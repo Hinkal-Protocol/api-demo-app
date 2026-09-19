@@ -111,7 +111,7 @@ export const approveTronToken = async (
 
 /** Sign and broadcast a raw Tron transaction, returning the txid */
 // eslint-disable-next-line @typescript-eslint/no-explicit-any
-const broadcastRawTronTx = async (transaction: any): Promise<string> => {
+export const broadcastRawTronTx = async (transaction: any): Promise<string> => {
   const tw = getTronWeb();
   const signed = await tw.trx.sign(transaction);
   const result = await tw.trx.sendRawTransaction(signed);

@@ -12,7 +12,8 @@ export type EnclaveTypedDataPrimaryType =
   | "Withdraw"
   | "Swap"
   | "PrivateSend"
-  | "WithdrawStuckUtxos";
+  | "WithdrawStuckUtxos"
+  | "ReceiveVaultRecover";
 
 const ENCLAVE_TYPED_DATA_TYPES: Record<string, TypedDataField[]> = {
   TokenAmount: [
@@ -77,6 +78,14 @@ const ENCLAVE_TYPED_DATA_TYPES: Record<string, TypedDataField[]> = {
     { name: "chainId", type: "uint256" },
     { name: "tokenAddress", type: "address" },
     { name: "recipient", type: "address" },
+  ],
+  ReceiveVaultRecover: [
+    { name: "nonce", type: "string" },
+    { name: "sessionId", type: "string" },
+    { name: "chainId", type: "uint256" },
+    { name: "vaultAddress", type: "string" },
+    { name: "tokenAddress", type: "string" },
+    { name: "recipient", type: "string" },
   ],
 };
 
