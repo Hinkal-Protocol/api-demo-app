@@ -141,6 +141,7 @@ export const buildTronPrivateSendAuthFields = (
   recipients: Recipient[],
   feeToken?: string,
   txCompletionTime?: number,
+  ref?: string,
 ): Promise<EnclaveTxAuthFields> =>
   signTypedData(sessionId, "PrivateSend", chainId, (nonce) => {
     const value: Record<string, unknown> = {
@@ -161,6 +162,9 @@ export const buildTronPrivateSendAuthFields = (
     }
     if (txCompletionTime !== undefined) {
       value.txCompletionTime = BigInt(txCompletionTime);
+    }
+    if (ref !== undefined) {
+      value.ref = ref;
     }
 
     return value;

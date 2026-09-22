@@ -254,6 +254,7 @@ export const buildDepositAndWithdrawAuthFields = (
     recipients: Recipient[];
     feeToken?: string;
     txCompletionTime?: number;
+    ref?: string;
   },
 ) =>
   signEnclaveTypedData(
@@ -282,6 +283,9 @@ export const buildDepositAndWithdrawAuthFields = (
       }
       if (params.txCompletionTime !== undefined) {
         value.txCompletionTime = BigInt(params.txCompletionTime);
+      }
+      if (params.ref !== undefined) {
+        value.ref = params.ref;
       }
 
       return value;

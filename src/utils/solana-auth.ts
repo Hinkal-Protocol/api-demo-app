@@ -133,6 +133,7 @@ export const buildSolanaPrivateSendAuthFields = async (
   recipients: Recipient[],
   feeToken?: string,
   txCompletionTime?: number,
+  ref?: string,
 ): Promise<EnclaveTxAuthFields> => {
   const nonce = crypto.randomUUID();
   const message =
@@ -140,7 +141,8 @@ export const buildSolanaPrivateSendAuthFields = async (
     `\nToken Address: ${tokenAddress}` +
     `\nRecipients:\n${renderRecipients(recipients)}` +
     `\nFee Token: ${feeToken ?? ""}` +
-    `\nTx Completion Time: ${txCompletionTime ?? 0}`;
+    `\nTx Completion Time: ${txCompletionTime ?? 0}` +
+    `${ref !== undefined ? `\nRef: ${ref}` : ""}`;
   return sign(sessionId, provider, message, nonce);
 };
 

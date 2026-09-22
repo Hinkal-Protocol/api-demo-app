@@ -69,12 +69,14 @@ export const depositAndWithdraw = async (
   recipients: Recipient[],
   txCompletionTime?: number,
   feeToken?: string,
+  ref?: string,
 ): Promise<DepositAndWithdrawOrder> => {
   const txParams = {
     tokenAddress,
     recipients,
     ...(txCompletionTime !== undefined && { txCompletionTime }),
     ...(feeToken !== undefined && { feeToken }),
+    ...(ref !== undefined && { ref }),
   };
   const { bodyJson, headers, requestNonce } = await buildAuthPost(
     session,
@@ -90,6 +92,7 @@ export const depositAndWithdraw = async (
         recipients,
         feeToken,
         txCompletionTime,
+        ref,
       ),
   );
 

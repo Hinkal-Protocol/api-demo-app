@@ -233,6 +233,7 @@ export const resolvePrivateSendAuth = (
   recipients: Recipient[],
   feeToken?: string,
   txCompletionTime?: number,
+  ref?: string,
 ): Promise<EnclaveTxAuthFields> =>
   resolveByChain(chainId, {
     solana: () =>
@@ -244,6 +245,7 @@ export const resolvePrivateSendAuth = (
         recipients,
         feeToken,
         txCompletionTime,
+        ref,
       ),
     tron: () =>
       buildTronPrivateSendAuthFields(
@@ -253,12 +255,13 @@ export const resolvePrivateSendAuth = (
         recipients,
         feeToken,
         txCompletionTime,
+        ref,
       ),
     evm: () =>
       buildDepositAndWithdrawAuthFields(
         sessionId,
         requireEvmSigner(wallet.signer),
-        { chainId, tokenAddress, recipients, feeToken, txCompletionTime },
+        { chainId, tokenAddress, recipients, feeToken, txCompletionTime, ref },
       ),
   });
 
