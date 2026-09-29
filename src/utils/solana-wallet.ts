@@ -3,7 +3,10 @@ import { getWallets } from "@wallet-standard/app";
 
 export const SOLANA_MAINNET_CHAIN_ID = 501;
 export const SOLANA_NATIVE_ADDRESS = "11111111111111111111111111111111";
-const HELIUS_RPC = "https://mainnet.helius-rpc.com/?api-key=54ad9ec9-dad6-41de-b961-e3e8ea7a7188";
+const SOLANA_RPC = "https://solana-rpc.publicnode.com";
+const ASSOCIATED_TOKEN_PROGRAM_ID = new PublicKey(
+  "ATokenGPvbdGVxr1b2hvZbsiqW5xWH25efTNsLJA8knL",
+);
 const SOLANA_MAINNET_CHAIN = "solana:mainnet";
 
 declare global {
@@ -20,14 +23,20 @@ export type SolanaWalletProvider = "phantom" | "solflare" | "metamask";
 // eslint-disable-next-line @typescript-eslint/no-explicit-any
 const getPhantom = (): any => {
   const p = window.phantom?.solana;
-  if (!p) throw new Error("Phantom wallet not found. Please install the Phantom extension.");
+  if (!p)
+    throw new Error(
+      "Phantom wallet not found. Please install the Phantom extension.",
+    );
   return p;
 };
 
 // eslint-disable-next-line @typescript-eslint/no-explicit-any
 const getSolflare = (): any => {
   const s = window.solflare;
-  if (!s) throw new Error("Solflare wallet not found. Please install the Solflare extension.");
+  if (!s)
+    throw new Error(
+      "Solflare wallet not found. Please install the Solflare extension.",
+    );
   return s;
 };
 
@@ -37,7 +46,9 @@ const getMetaMaskSolanaWallet = (): any => {
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
   const wallet = (get() as any[]).find((w) => w.name === "MetaMask");
   if (!wallet) {
-    throw new Error("MetaMask not found. Please install MetaMask and ensure Solana is enabled.");
+    throw new Error(
+      "MetaMask not found. Please install MetaMask and ensure Solana is enabled.",
+    );
   }
   return wallet;
 };
@@ -51,7 +62,8 @@ export const connectSolanaWallet = async (
   if (provider === "metamask") {
     const wallet = getMetaMaskSolanaWallet();
     const connectFeature = wallet.features["standard:connect"];
-    if (!connectFeature) throw new Error("MetaMask does not support standard:connect for Solana.");
+    if (!connectFeature)
+      throw new Error("MetaMask does not support standard:connect for Solana.");
     const { accounts } = await connectFeature.connect();
     const solanaAccount = accounts.find(
       // eslint-disable-next-line @typescript-eslint/no-explicit-any
@@ -79,7 +91,8 @@ export const signSolanaMessage = async (
   if (provider === "metamask") {
     const wallet = getMetaMaskSolanaWallet();
     const signFeature = wallet.features["solana:signMessage"];
-    if (!signFeature) throw new Error("MetaMask does not support solana:signMessage.");
+    if (!signFeature)
+      throw new Error("MetaMask does not support solana:signMessage.");
     // Get connected account
     const connectFeature = wallet.features["standard:connect"];
     const { accounts } = await connectFeature.connect({ silent: true });
@@ -88,7 +101,10 @@ export const signSolanaMessage = async (
       a.chains?.some((c: string) => c.startsWith("solana:")),
     );
     if (!account) throw new Error("No Solana account in MetaMask.");
-    const [result] = await signFeature.signMessage({ account, message: encoded });
+    const [result] = await signFeature.signMessage({
+      account,
+      message: encoded,
+    });
     return Buffer.from(result.signature).toString("hex");
   }
 
@@ -104,12 +120,13 @@ export const broadcastSolanaTransaction = async (
   serializedTxBase64: string,
 ): Promise<string> => {
   const txBytes = Buffer.from(serializedTxBase64, "base64");
-  const connection = new Connection(HELIUS_RPC, "confirmed");
+  const connection = new Connection(SOLANA_RPC, "confirmed");
 
   if (provider === "metamask") {
     const wallet = getMetaMaskSolanaWallet();
     const signTxFeature = wallet.features["solana:signTransaction"];
-    if (!signTxFeature) throw new Error("MetaMask does not support solana:signTransaction.");
+    if (!signTxFeature)
+      throw new Error("MetaMask does not support solana:signTransaction.");
     const connectFeature = wallet.features["standard:connect"];
     const { accounts } = await connectFeature.connect({ silent: true });
     // eslint-disable-next-line @typescript-eslint/no-explicit-any
@@ -122,7 +139,9 @@ export const broadcastSolanaTransaction = async (
       transaction: txBytes,
       chain: SOLANA_MAINNET_CHAIN,
     });
-    const signature = await connection.sendRawTransaction(result.signedTransaction);
+    const signature = await connection.sendRawTransaction(
+      result.signedTransaction,
+    );
     return signature;
   }
 
@@ -133,8 +152,10 @@ export const broadcastSolanaTransaction = async (
   return signature;
 };
 
-export const getSolanaNativeBalance = async (address: string): Promise<bigint> => {
-  const connection = new Connection(HELIUS_RPC, "confirmed");
+export const getSolanaNativeBalance = async (
+  address: string,
+): Promise<bigint> => {
+  const connection = new Connection(SOLANA_RPC, "confirmed");
   const lamports = await connection.getBalance(new PublicKey(address));
   return BigInt(lamports);
 };
@@ -143,12 +164,17 @@ export const getSolanaTokenBalance = async (
   tokenMintAddress: string,
   ownerAddress: string,
 ): Promise<bigint> => {
-  const connection = new Connection(HELIUS_RPC, "confirmed");
+  const connection = new Connection(SOLANA_RPC, "confirmed");
   const mint = new PublicKey(tokenMintAddress);
   const owner = new PublicKey(ownerAddress);
-  const accounts = await connection.getParsedTokenAccountsByOwner(owner, { mint });
-  if (accounts.value.length === 0) return 0n;
-  const amount: string =
-    accounts.value[0].account.data.parsed.info.tokenAmount.amount;
-  return BigInt(amount);
+  const mintInfo = await connection.getAccountInfo(mint);
+  if (!mintInfo) return 0n;
+  const [ata] = PublicKey.findProgramAddressSync(
+    [owner.toBuffer(), mintInfo.owner.toBuffer(), mint.toBuffer()],
+    ASSOCIATED_TOKEN_PROGRAM_ID,
+  );
+  const { value } = await connection.getParsedAccountInfo(ata);
+  const data = value?.data;
+  if (!data || !("parsed" in data)) return 0n;
+  return BigInt(data.parsed.info.tokenAmount.amount);
 };

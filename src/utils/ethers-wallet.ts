@@ -237,10 +237,29 @@ export const getJsonRpcProvider = (chainId: number): ethers.JsonRpcProvider => {
   return new ethers.JsonRpcProvider(rpcUrl);
 };
 
+// Balance reads fire for every token in the list at once, so share one
+// provider per chain: static network skips the eth_chainId probe per call.
+const readProviders = new Map<number, ethers.JsonRpcProvider>();
+const getReadProvider = (chainId: number): ethers.JsonRpcProvider => {
+  let provider = readProviders.get(chainId);
+  if (!provider) {
+    const rpcUrl = networkRegistry[chainId]?.fetchRpcUrl;
+    if (!rpcUrl) {
+      throw new Error(`No RPC URL configured for chain ${chainId}`);
+    }
+    provider = new ethers.JsonRpcProvider(rpcUrl, chainId, {
+      staticNetwork: true,
+      batchMaxCount: 1,
+    });
+    readProviders.set(chainId, provider);
+  }
+  return provider;
+};
+
 export const getNativeBalance = async (
   chainId: number,
   address: string,
-): Promise<bigint> => getJsonRpcProvider(chainId).getBalance(address);
+): Promise<bigint> => getReadProvider(chainId).getBalance(address);
 
 export const getErc20Balance = async (
   chainId: number,
@@ -250,7 +269,7 @@ export const getErc20Balance = async (
   const contract = new ethers.Contract(
     tokenAddress,
     ERC20_ABI,
-    getJsonRpcProvider(chainId),
+    getReadProvider(chainId),
   );
   return contract.balanceOf(walletAddress);
 };

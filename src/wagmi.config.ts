@@ -5,7 +5,7 @@ import { networkRegistry } from "./constants/chain.constants";
 
 const createWagmiConfig = () => {
   const transports = SUPPORTED_CHAINS.reduce((acc, chain) => {
-    // Use our configured (Alchemy) RPC instead of viem's public default
+    // Use our configured RPC instead of viem's public default
     // (e.g. mainnet's https://eth.merkle.io, which rate-limits / CORS-fails).
     const rpcUrl = networkRegistry[chain.id]?.fetchRpcUrl;
     acc[chain.id] = rpcUrl ? http(rpcUrl) : http();

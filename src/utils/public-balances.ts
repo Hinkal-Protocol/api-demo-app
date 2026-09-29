@@ -39,20 +39,37 @@ const getTokenWalletBalance = (
     : getErc20Balance(chainId, address, walletAddress);
 };
 
-export const getPublicBalances = (
+// Public RPCs rate-limit bursts; token lists run to hundreds of entries.
+const MAX_CONCURRENT_BALANCE_REQUESTS = 10;
+
+export const getPublicBalances = async (
   tokens: ERC20Token[],
   walletAddress: string,
   chainId: number,
   walletType: WalletType
-): Promise<PublicBalance[]> =>
-  Promise.all(
-    tokens.map(async (token) => ({
-      token,
-      balance: await getTokenWalletBalance(
+): Promise<PublicBalance[]> => {
+  const results: PublicBalance[] = new Array(tokens.length);
+  let next = 0;
+  const worker = async () => {
+    while (next < tokens.length) {
+      const index = next++;
+      const token = tokens[index];
+      results[index] = {
         token,
-        walletAddress,
-        chainId,
-        walletType
-      ).catch(() => 0n),
-    }))
+        balance: await getTokenWalletBalance(
+          token,
+          walletAddress,
+          chainId,
+          walletType
+        ).catch(() => 0n),
+      };
+    }
+  };
+  await Promise.all(
+    Array.from(
+      { length: Math.min(MAX_CONCURRENT_BALANCE_REQUESTS, tokens.length) },
+      worker
+    )
   );
+  return results;
+};

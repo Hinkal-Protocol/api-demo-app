@@ -8,7 +8,6 @@ import {
   tempoMainnet,
 } from "wagmi/chains";
 import { defineChain } from "viem";
-import { ALCHEMY_API_KEY } from "./chain.constants";
 
 export const arcMainnet = defineChain({
   id: 5042,
@@ -30,7 +29,7 @@ export const arcTestnet = defineChain({
   nativeCurrency: { name: "USD Coin", symbol: "USDC", decimals: 18 },
   rpcUrls: {
     default: {
-      http: [`https://arc-testnet.g.alchemy.com/v2/${ALCHEMY_API_KEY}`],
+      http: ["https://rpc.testnet.arc.network"],
     },
   },
 });
