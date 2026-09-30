@@ -57,6 +57,7 @@ export type Network = {
   chainId: number;
   name: string;
   fetchRpcUrl: string;
+  balanceRpcUrl?: string;
 };
 
 export enum ScheduleDelayOption {

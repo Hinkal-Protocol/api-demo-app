@@ -243,7 +243,9 @@ const readProviders = new Map<number, ethers.JsonRpcProvider>();
 const getReadProvider = (chainId: number): ethers.JsonRpcProvider => {
   let provider = readProviders.get(chainId);
   if (!provider) {
-    const rpcUrl = networkRegistry[chainId]?.fetchRpcUrl;
+    const rpcUrl =
+      networkRegistry[chainId]?.balanceRpcUrl ??
+      networkRegistry[chainId]?.fetchRpcUrl;
     if (!rpcUrl) {
       throw new Error(`No RPC URL configured for chain ${chainId}`);
     }
