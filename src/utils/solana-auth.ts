@@ -146,6 +146,27 @@ export const buildSolanaPrivateSendAuthFields = async (
   return sign(sessionId, provider, message, nonce);
 };
 
+export const buildSolanaPrivateSendBridgeAuthFields = async (
+  sessionId: string,
+  provider: SolanaWalletProvider,
+  chainId: number,
+  tokenAddress: string,
+  destinationChainId: number,
+  destinationTokenAddress: string,
+  recipients: Recipient[],
+  quote: string,
+): Promise<EnclaveTxAuthFields> => {
+  const nonce = crypto.randomUUID();
+  const message =
+    `${buildHeader("PrivateSendBridge", nonce, sessionId, chainId)}` +
+    `\nToken Address: ${tokenAddress}` +
+    `\nDestination Chain ID: ${destinationChainId}` +
+    `\nDestination Token Address: ${destinationTokenAddress}` +
+    `\nRecipients:\n${renderRecipients(recipients)}` +
+    `\nQuote: ${quote}`;
+  return sign(sessionId, provider, message, nonce);
+};
+
 export const buildSolanaSwapAuthFields = async (
   sessionId: string,
   provider: SolanaWalletProvider,

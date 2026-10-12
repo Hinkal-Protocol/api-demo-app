@@ -12,6 +12,7 @@ export type EnclaveTypedDataPrimaryType =
   | "Withdraw"
   | "Swap"
   | "PrivateSend"
+  | "PrivateSendBridge"
   | "WithdrawStuckUtxos";
 
 const ENCLAVE_TYPED_DATA_TYPES: Record<string, TypedDataField[]> = {
@@ -21,6 +22,10 @@ const ENCLAVE_TYPED_DATA_TYPES: Record<string, TypedDataField[]> = {
   ],
   RecipientAmount: [
     { name: "recipient", type: "address" },
+    { name: "amount", type: "int256" },
+  ],
+  BridgeRecipientAmount: [
+    { name: "recipient", type: "string" },
     { name: "amount", type: "int256" },
   ],
   Deposit: [
@@ -70,6 +75,16 @@ const ENCLAVE_TYPED_DATA_TYPES: Record<string, TypedDataField[]> = {
     { name: "chainId", type: "uint256" },
     { name: "tokenAddress", type: "address" },
     { name: "recipients", type: "RecipientAmount[]" },
+  ],
+  PrivateSendBridge: [
+    { name: "nonce", type: "string" },
+    { name: "sessionId", type: "string" },
+    { name: "chainId", type: "uint256" },
+    { name: "tokenAddress", type: "address" },
+    { name: "destinationChainId", type: "uint256" },
+    { name: "destinationTokenAddress", type: "string" },
+    { name: "recipients", type: "BridgeRecipientAmount[]" },
+    { name: "quote", type: "string" },
   ],
   WithdrawStuckUtxos: [
     { name: "nonce", type: "string" },
@@ -128,6 +143,10 @@ export const getTypesForPrimary = (
   );
   if (usesRecipientAmount) {
     types.RecipientAmount = ENCLAVE_TYPED_DATA_TYPES.RecipientAmount;
+  }
+
+  if (fields.some((field) => field.type === "BridgeRecipientAmount[]")) {
+    types.BridgeRecipientAmount = ENCLAVE_TYPED_DATA_TYPES.BridgeRecipientAmount;
   }
 
   return types;
