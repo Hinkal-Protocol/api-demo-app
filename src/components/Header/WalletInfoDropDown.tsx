@@ -14,6 +14,8 @@ import { getFriendlyErrorMessage } from "../../utils/errors";
 import { fetchRecipientInfo } from "../../utils/recipientInfo";
 import {
   getEthersSigner,
+  requireEvmSigner,
+  sendTx,
   setActiveDynamicWallet,
   setActivePrivyWallet,
   setActiveTurnkeyParams,
@@ -21,16 +23,26 @@ import {
   setActiveOpenfort,
 } from "../../utils/ethers-wallet";
 import { withdrawStuckUtxos } from "../../utils/withdraw";
+import { recoverReceiveVault } from "../../utils/receiveVault";
+import type { TxData } from "../../utils/deposit";
+import { broadcastRawTronTx } from "../../utils/tron-wallet";
+import { broadcastSolanaTransaction } from "../../utils/solana-wallet";
+import { getAmountInToken } from "../../utils/amount.utils";
 import { WalletInfoBalance } from "./WalletInfoBalance";
 import { useAppContext } from "../../AppContext";
-import { TokenBalance } from "../../types";
+import { ReceiveVaultBlockedFund, TokenBalance } from "../../types";
 
 const filterNonZeroTokenBalances = (tokenBalances: TokenBalance[]) =>
   tokenBalances.filter((b) => b.balance !== "0");
 
+const blockedFundKey = ({ record, token }: ReceiveVaultBlockedFund) =>
+  `${record.vaultAddress}:${token.erc20TokenAddress}`.toLowerCase();
+
 export const WalletInfoDropDown = () => {
   const {
     stuckUtxoBalances,
+    receiveVaultBlockedFunds,
+    refreshReceiveVaultAccount,
     walletAddress,
     chainId,
     sessionId,
@@ -56,6 +68,9 @@ export const WalletInfoDropDown = () => {
   );
   const [withdrawingStuckTokenAddress, setWithdrawingStuckTokenAddress] =
     useState<string | null>(null);
+  const [recoveringBlockedFundKey, setRecoveringBlockedFundKey] = useState<
+    string | null
+  >(null);
   const [isCopyingPrivate, setIsCopyingPrivate] = useState(false);
 
   const { isTron } = useAppContext();
@@ -173,9 +188,63 @@ export const WalletInfoDropDown = () => {
     [walletAddress, chainId, sessionId, privateKey, authMode, refreshBalances, isSolana, isTron, solanaProvider],
   );
 
+  const handleRecoverBlockedFund = useCallback(
+    async (fund: ReceiveVaultBlockedFund) => {
+      try {
+        if (!walletAddress || !chainId || !sessionId || !privateKey) return;
+
+        setRecoveringBlockedFundKey(blockedFundKey(fund));
+        const session = { sessionId, authMode, privateKey };
+        const wallet = {
+          signer: isTron || isSolana ? null : await getEthersSigner(),
+          solanaProvider: isSolana ? solanaProvider : undefined,
+        };
+        const txData = await recoverReceiveVault(
+          wallet,
+          session,
+          fund.token.chainId,
+          fund.record.vaultAddress,
+          fund.token.erc20TokenAddress,
+          walletAddress,
+        );
+
+        if (isSolana) {
+          if (!solanaProvider) throw new Error("Solana provider not set");
+          await broadcastSolanaTransaction(solanaProvider, txData as string);
+        } else if (isTron) {
+          await broadcastRawTronTx(txData);
+        } else {
+          const { to, data } = txData as TxData;
+          await sendTx(requireEvmSigner(wallet.signer), { to, data });
+        }
+
+        toast.success("Funds sent");
+        await refreshReceiveVaultAccount();
+      } catch (err) {
+        toast.error(
+          getFriendlyErrorMessage(err, "Receive address recovery failed"),
+        );
+      } finally {
+        setRecoveringBlockedFundKey(null);
+      }
+    },
+    [
+      walletAddress,
+      chainId,
+      sessionId,
+      privateKey,
+      authMode,
+      isSolana,
+      isTron,
+      solanaProvider,
+      refreshReceiveVaultAccount,
+    ],
+  );
+
   return (
     <div className="absolute top-20 md:top-2 right-0 left-auto w-60 max-w-[90vw] bg-hinkal-blue-900 rounded-xl shadow-metamask font-generalSans p-4 items-center">
-      {visibleStuckUtxoBalances.length > 0 && (
+      {(visibleStuckUtxoBalances.length > 0 ||
+        receiveVaultBlockedFunds.length > 0) && (
         <div className="border-t-2 border-hinkal-blue-900 pt-3 mb-[10%]">
           <p className="text-hinkal-white-300 text-[12px] text-left mb-3">
             Stuck Balances
@@ -205,6 +274,50 @@ export const WalletInfoDropDown = () => {
                       </span>
                     ) : (
                       "Withdraw"
+                    )}
+                  </button>
+                </div>
+              );
+            })}
+            {receiveVaultBlockedFunds.map((fund) => {
+              const key = blockedFundKey(fund);
+              const isRecovering = recoveringBlockedFundKey === key;
+
+              return (
+                <div
+                  className="flex items-center justify-between gap-3"
+                  key={`receive-vault-${key}`}
+                >
+                  <div className="flex items-center space-x-4">
+                    <img
+                      src={fund.token.logoURI}
+                      alt="tokenIcon"
+                      className="w-[26px]"
+                    />
+                    <div>
+                      <p className="text-white text-[18px] font-semibold">
+                        {Number(
+                          getAmountInToken(fund.token, fund.amount),
+                        ).toFixed(4)}{" "}
+                        {fund.token.symbol}
+                      </p>
+                      <p className="text-hinkal-white-300 text-[12px]">
+                        Receive address ({fund.reason})
+                      </p>
+                    </div>
+                  </div>
+                  <button
+                    type="button"
+                    disabled={recoveringBlockedFundKey !== null}
+                    onClick={() => handleRecoverBlockedFund(fund)}
+                    className="rounded-md bg-primary px-3 py-1 text-[12px] font-semibold text-white hover:bg-hinkal-purple-200 transition-all duration-300 disabled:cursor-not-allowed disabled:opacity-50"
+                  >
+                    {isRecovering ? (
+                      <span className="flex items-center gap-x-1">
+                        Recover <Spinner />
+                      </span>
+                    ) : (
+                      "Recover"
                     )}
                   </button>
                 </div>

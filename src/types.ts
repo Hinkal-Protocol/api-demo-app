@@ -4,6 +4,7 @@ export enum AppTab {
   Withdraw,
   Swap,
   MultiSend,
+  Receive,
 }
 
 export interface ERC20Token {
@@ -71,3 +72,22 @@ export enum ScheduleDelayOption {
 export type SVGIconType = React.FunctionComponent<
   React.SVGAttributes<SVGElement>
 >;
+
+export type ReceiveVaultRecord = {
+  index: number;
+  network: string;
+  version: string;
+  vaultAddress: string;
+};
+
+export type ReceiveVaultBlockedFund = {
+  record: ReceiveVaultRecord;
+  token: ERC20Token;
+  amount: string;
+  reason: string;
+};
+
+export type ReceiveVaultAccount = {
+  entries: ReceiveVaultRecord[];
+  blockedFunds: ReceiveVaultBlockedFund[];
+};
