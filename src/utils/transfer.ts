@@ -31,10 +31,12 @@ export const transfer = async (
   amounts: string[],
   recipientAddress: string,
   feeToken?: string,
-  feeAmount?: string,
+  feeAmount?: string
 ): Promise<string> => {
   const isPrivate = isValidPrivateAddress(recipientAddress);
-  const normalizedRecipient = isPrivate ? normalizeRecipientForSigning(recipientAddress) : recipientAddress;
+  const normalizedRecipient = isPrivate
+    ? normalizeRecipientForSigning(recipientAddress)
+    : recipientAddress;
   const txParams = {
     tokenAddresses,
     amounts,
@@ -56,13 +58,12 @@ export const transfer = async (
         amounts,
         normalizedRecipient,
         feeToken,
-        feeAmount,
-      ),
+        feeAmount
+      )
   );
 
   const { res, data } = await enclaveFetch<
-    | { success: true; txHash: string }
-    | { error?: string }
+    { success: true; txHash: string } | { error?: string }
   >("/transfer", requestNonce, {
     method: "POST",
     headers,

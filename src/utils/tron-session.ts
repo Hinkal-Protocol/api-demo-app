@@ -1,7 +1,4 @@
-import {
-  buildEnclaveSignMessage,
-  resolveSessionAuthMode,
-} from "./auth";
+import { buildEnclaveSignMessage, resolveSessionAuthMode } from "./auth";
 import { generateClientKeyPair } from "./request-signature";
 import { registerEnclaveSession } from "./session";
 import { signTronPersonalMessage } from "./tron-wallet";
@@ -9,7 +6,7 @@ import type { EnclaveSession } from "./types";
 
 export const createTronEnclaveSession = async (
   address: string,
-  useEIP712 = false,
+  useEIP712 = false
 ): Promise<EnclaveSession> => {
   const { privateKey, clientPublicKey } = generateClientKeyPair();
   const authMode = resolveSessionAuthMode(useEIP712);

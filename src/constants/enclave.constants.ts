@@ -12,7 +12,9 @@ export type EnclaveTypedDataPrimaryType =
   | "Withdraw"
   | "Swap"
   | "PrivateSend"
-  | "WithdrawStuckUtxos";
+  | "PrivateSendBridge"
+  | "WithdrawStuckUtxos"
+  | "RecoverStuckBridgeBalance";
 
 const ENCLAVE_TYPED_DATA_TYPES: Record<string, TypedDataField[]> = {
   TokenAmount: [
@@ -21,6 +23,10 @@ const ENCLAVE_TYPED_DATA_TYPES: Record<string, TypedDataField[]> = {
   ],
   RecipientAmount: [
     { name: "recipient", type: "address" },
+    { name: "amount", type: "int256" },
+  ],
+  BridgeRecipientAmount: [
+    { name: "recipient", type: "string" },
     { name: "amount", type: "int256" },
   ],
   Deposit: [
@@ -71,7 +77,24 @@ const ENCLAVE_TYPED_DATA_TYPES: Record<string, TypedDataField[]> = {
     { name: "tokenAddress", type: "address" },
     { name: "recipients", type: "RecipientAmount[]" },
   ],
+  PrivateSendBridge: [
+    { name: "nonce", type: "string" },
+    { name: "sessionId", type: "string" },
+    { name: "chainId", type: "uint256" },
+    { name: "tokenAddress", type: "address" },
+    { name: "destinationChainId", type: "uint256" },
+    { name: "destinationTokenAddress", type: "string" },
+    { name: "recipients", type: "BridgeRecipientAmount[]" },
+    { name: "quote", type: "string" },
+  ],
   WithdrawStuckUtxos: [
+    { name: "nonce", type: "string" },
+    { name: "sessionId", type: "string" },
+    { name: "chainId", type: "uint256" },
+    { name: "tokenAddress", type: "address" },
+    { name: "recipient", type: "address" },
+  ],
+  RecoverStuckBridgeBalance: [
     { name: "nonce", type: "string" },
     { name: "sessionId", type: "string" },
     { name: "chainId", type: "uint256" },
@@ -82,25 +105,29 @@ const ENCLAVE_TYPED_DATA_TYPES: Record<string, TypedDataField[]> = {
 
 const FEE_TOKEN_FIELD: TypedDataField = { name: "feeToken", type: "address" };
 const FEE_AMOUNT_FIELD: TypedDataField = { name: "feeAmount", type: "uint256" };
-const TX_COMPLETION_TIME_FIELD: TypedDataField = { name: "txCompletionTime", type: "uint256" };
+const TX_COMPLETION_TIME_FIELD: TypedDataField = {
+  name: "txCompletionTime",
+  type: "uint256",
+};
 const REF_FIELD: TypedDataField = { name: "ref", type: "string" };
 
 const getPrimaryFields = (
   primaryType: EnclaveTypedDataPrimaryType,
-  value: Record<string, unknown>,
+  value: Record<string, unknown>
 ): TypedDataField[] => {
   const fields = [...ENCLAVE_TYPED_DATA_TYPES[primaryType]];
 
   if (value.feeToken) fields.push(FEE_TOKEN_FIELD);
   if (value.feeAmount !== undefined) fields.push(FEE_AMOUNT_FIELD);
-  if (value.txCompletionTime !== undefined) fields.push(TX_COMPLETION_TIME_FIELD);
+  if (value.txCompletionTime !== undefined)
+    fields.push(TX_COMPLETION_TIME_FIELD);
   if (value.ref !== undefined) fields.push(REF_FIELD);
 
   return fields;
 };
 
 export const getEnclaveTypedDataDomain = (
-  chainId: number,
+  chainId: number
 ): TypedDataDomain => ({
   name: ENCLAVE_TYPED_DATA_DOMAIN_NAME,
   chainId,
@@ -108,7 +135,7 @@ export const getEnclaveTypedDataDomain = (
 
 export const getTypesForPrimary = (
   primaryType: EnclaveTypedDataPrimaryType,
-  value: Record<string, unknown>,
+  value: Record<string, unknown>
 ): Record<string, TypedDataField[]> => {
   const fields = getPrimaryFields(primaryType, value);
   const types: Record<string, TypedDataField[]> = {
@@ -116,7 +143,7 @@ export const getTypesForPrimary = (
   };
 
   const usesTokenAmount = fields.some(
-    (field) => field.type === "TokenAmount" || field.type === "TokenAmount[]",
+    (field) => field.type === "TokenAmount" || field.type === "TokenAmount[]"
   );
   if (usesTokenAmount) {
     types.TokenAmount = ENCLAVE_TYPED_DATA_TYPES.TokenAmount;
@@ -124,10 +151,15 @@ export const getTypesForPrimary = (
 
   const usesRecipientAmount = fields.some(
     (field) =>
-      field.type === "RecipientAmount" || field.type === "RecipientAmount[]",
+      field.type === "RecipientAmount" || field.type === "RecipientAmount[]"
   );
   if (usesRecipientAmount) {
     types.RecipientAmount = ENCLAVE_TYPED_DATA_TYPES.RecipientAmount;
+  }
+
+  if (fields.some((field) => field.type === "BridgeRecipientAmount[]")) {
+    types.BridgeRecipientAmount =
+      ENCLAVE_TYPED_DATA_TYPES.BridgeRecipientAmount;
   }
 
   return types;

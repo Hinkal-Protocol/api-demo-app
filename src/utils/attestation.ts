@@ -26,7 +26,7 @@ const GOOGLE_CONFIDENTIAL_SPACE_JWKS_URI =
 
 const parseJwtPayload = (jwt: string) =>
   JSON.parse(
-    window.atob(jwt.split(".")[1].replace(/-/g, "+").replace(/_/g, "/")),
+    window.atob(jwt.split(".")[1].replace(/-/g, "+").replace(/_/g, "/"))
   ) as {
     aud: string;
     eat_nonce: string;
@@ -36,11 +36,11 @@ const parseJwtPayload = (jwt: string) =>
 const verifyJwtSignature = async (jwt: string): Promise<void> => {
   const [header64, payload64, sig64] = jwt.split(".");
   const { kid: key_id } = JSON.parse(
-    window.atob(header64.replace(/-/g, "+").replace(/_/g, "/")),
+    window.atob(header64.replace(/-/g, "+").replace(/_/g, "/"))
   ) as { kid: string };
 
   const { keys } = (await fetch(GOOGLE_CONFIDENTIAL_SPACE_JWKS_URI).then((r) =>
-    r.json(),
+    r.json()
   )) as {
     keys: ({ kid: string } & JsonWebKey)[];
   };
@@ -52,7 +52,7 @@ const verifyJwtSignature = async (jwt: string): Promise<void> => {
     jwk,
     { name: "RSASSA-PKCS1-v1_5", hash: "SHA-256" },
     false,
-    ["verify"],
+    ["verify"]
   );
 
   const sigBytes = toBytes(sig64.replace(/-/g, "+").replace(/_/g, "/"));
@@ -61,7 +61,7 @@ const verifyJwtSignature = async (jwt: string): Promise<void> => {
     "RSASSA-PKCS1-v1_5",
     key,
     sigBytes,
-    dataBytes,
+    dataBytes
   );
   if (!valid) throw new Error("JWT signature verification failed");
 };
@@ -124,7 +124,7 @@ const ensureVerificationPublicKey = async (): Promise<string> => {
 
 export const verifyResponseNonce = (
   rawBody: string,
-  requestNonce: string,
+  requestNonce: string
 ): void => {
   const parsed = JSON.parse(rawBody) as { nonce?: unknown };
   if (parsed.nonce !== requestNonce) {
@@ -134,7 +134,7 @@ export const verifyResponseNonce = (
 
 export const verifyResponseAttestation = async (
   res: Response,
-  rawBody: string,
+  rawBody: string
 ): Promise<void> => {
   const key = await ensureVerificationPublicKey();
 
@@ -152,22 +152,22 @@ export const verifyResponseAttestation = async (
 export const verifyEnclaveResponse = async (
   rawBody: string,
   signatureB64: string,
-  verificationPublicKey: string,
+  verificationPublicKey: string
 ): Promise<boolean> => {
   const der = toBytes(
-    verificationPublicKey.replace(/-----[^-]+-----/g, "").replace(/\s/g, ""),
+    verificationPublicKey.replace(/-----[^-]+-----/g, "").replace(/\s/g, "")
   );
   const key = await crypto.subtle.importKey(
     "spki",
     der,
     { name: "ECDSA", namedCurve: "P-256" },
     false,
-    ["verify"],
+    ["verify"]
   );
   return crypto.subtle.verify(
     { name: "ECDSA", hash: "SHA-256" },
     key,
     toBytes(signatureB64),
-    encode(rawBody),
+    encode(rawBody)
   );
 };

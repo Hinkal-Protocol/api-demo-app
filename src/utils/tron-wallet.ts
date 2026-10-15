@@ -17,9 +17,7 @@ declare global {
   }
 }
 
-
-export const isTempo = (chainId: number): boolean =>
-  chainId === chainIds.tempo;
+export const isTempo = (chainId: number): boolean => chainId === chainIds.tempo;
 
 export const isTronChain = (chainId: number): boolean =>
   chainId === TRON_NILE_CHAIN_ID || chainId === TRON_MAINNET_CHAIN_ID;
@@ -27,7 +25,10 @@ export const isTronChain = (chainId: number): boolean =>
 // eslint-disable-next-line @typescript-eslint/no-explicit-any
 export const getTronWeb = (): any => {
   const tw = window.tronLink?.tronWeb ?? window.tronWeb;
-  if (!tw) throw new Error("TronLink not found. Please install the TronLink extension.");
+  if (!tw)
+    throw new Error(
+      "TronLink not found. Please install the TronLink extension."
+    );
   return tw;
 };
 
@@ -51,7 +52,9 @@ export const connectTronLink = async (): Promise<{
   chainId: number;
 }> => {
   if (!window.tronLink && !window.tronWeb) {
-    throw new Error("TronLink not installed. Please install the TronLink extension.");
+    throw new Error(
+      "TronLink not installed. Please install the TronLink extension."
+    );
   }
 
   if (window.tronLink) {
@@ -60,7 +63,8 @@ export const connectTronLink = async (): Promise<{
 
   const tw = getTronWeb();
   const address: string = tw.defaultAddress?.base58;
-  if (!address) throw new Error("No Tron account connected. Please unlock TronLink.");
+  if (!address)
+    throw new Error("No Tron account connected. Please unlock TronLink.");
 
   // Detect network from the full node host URL
   const host: string = tw.fullNode?.host ?? "";
@@ -81,7 +85,7 @@ export const approveTronToken = async (
   tokenHexAddress: string,
   spenderHexAddress: string,
   amount: bigint,
-  fromBase58: string,
+  fromBase58: string
 ): Promise<void> => {
   const tw = getTronWeb();
   const tokenBase58 = tronHexToBase58(tokenHexAddress);
@@ -96,7 +100,7 @@ export const approveTronToken = async (
         { type: "address", value: spenderBase58 },
         { type: "uint256", value: amount.toString() },
       ],
-      fromBase58,
+      fromBase58
     );
 
   const signed = await tw.trx.sign(approveTx);
@@ -136,7 +140,7 @@ export const approveAndBroadcastTronDepositTx = async (
   txData: any,
   amount: bigint,
   tokenHexAddress: string,
-  fromBase58: string,
+  fromBase58: string
 ): Promise<string> => {
   // The deposit txData.to field is the spender (depositOnChainUtxos contract) in EVM hex
   const spenderHex: string | undefined = txData?.to;
@@ -157,10 +161,15 @@ export const approveAndBroadcastTronSerializedTx = async (
   approvalAddress: string | null,
   amount: bigint,
   tokenHexAddress: string,
-  fromBase58: string,
+  fromBase58: string
 ): Promise<string> => {
   if (approvalAddress) {
-    await approveTronToken(tokenHexAddress, approvalAddress, amount, fromBase58);
+    await approveTronToken(
+      tokenHexAddress,
+      approvalAddress,
+      amount,
+      fromBase58
+    );
   }
 
   const raw = Buffer.from(serializedTxBase64, "base64").toString("utf8");
@@ -179,7 +188,9 @@ const ERC20_BALANCE_OF_ABI = [
 ];
 
 /** Fetch TRX (native) balance for a Tron address, returns raw units (sun) */
-export const getTronNativeBalance = async (address: string): Promise<bigint> => {
+export const getTronNativeBalance = async (
+  address: string
+): Promise<bigint> => {
   const tw = getTronWeb();
   const balance = await tw.trx.getBalance(address);
   return BigInt(balance);
@@ -188,19 +199,21 @@ export const getTronNativeBalance = async (address: string): Promise<bigint> => 
 /** Fetch TRC20 token balance for a Tron address */
 export const getTronErc20Balance = async (
   tokenHexAddress: string,
-  ownerAddress: string,
+  ownerAddress: string
 ): Promise<bigint> => {
   const tw = getTronWeb();
   const tokenBase58 = tronHexToBase58(tokenHexAddress);
   const contract = await tw.contract(ERC20_BALANCE_OF_ABI, tokenBase58);
-  const balance = await contract.balanceOf(ownerAddress).call({ from: ownerAddress });
+  const balance = await contract
+    .balanceOf(ownerAddress)
+    .call({ from: ownerAddress });
   return BigInt(String(balance));
 };
 
 /** Wait for a Tron transaction to be confirmed (polls getTransactionInfo) */
 export const waitForTronConfirmation = async (
   txid: string,
-  timeoutMs = 120_000,
+  timeoutMs = 120_000
 ): Promise<void> => {
   const tw = getTronWeb();
   const deadline = Date.now() + timeoutMs;

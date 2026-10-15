@@ -3,13 +3,15 @@ export enum EnclaveSessionAuthMode {
   EIP712 = "eip712",
 }
 
-export const resolveSessionAuthMode = (useEIP712: boolean): EnclaveSessionAuthMode =>
+export const resolveSessionAuthMode = (
+  useEIP712: boolean
+): EnclaveSessionAuthMode =>
   useEIP712 ? EnclaveSessionAuthMode.EIP712 : EnclaveSessionAuthMode.Normal;
 
 export const buildEnclaveSignMessage = (
   sessionId: string,
   clientPublicKey: string,
-  authMode: EnclaveSessionAuthMode = EnclaveSessionAuthMode.EIP712,
+  authMode: EnclaveSessionAuthMode = EnclaveSessionAuthMode.EIP712
 ): string => {
   const lines = [
     "Authorize Hinkal session",
