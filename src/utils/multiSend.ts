@@ -69,7 +69,7 @@ export const depositAndWithdraw = async (
   recipients: Recipient[],
   txCompletionTime?: number,
   feeToken?: string,
-  ref?: string,
+  ref?: string
 ): Promise<DepositAndWithdrawOrder> => {
   const txParams = {
     tokenAddress,
@@ -92,13 +92,12 @@ export const depositAndWithdraw = async (
         recipients,
         feeToken,
         txCompletionTime,
-        ref,
-      ),
+        ref
+      )
   );
 
   const { res, data } = await enclaveFetch<
-    | ({ success: true } & DepositAndWithdrawOrder)
-    | { error?: string }
+    ({ success: true } & DepositAndWithdrawOrder) | { error?: string }
   >("/private-send", requestNonce, {
     method: "POST",
     headers,
@@ -127,11 +126,11 @@ export type OrderStatusResponse = {
 
 export const getOrderStatus = async (
   auth: Auth,
-  orderId: string,
+  orderId: string
 ): Promise<OrderStatusResponse> => {
   const { queryString, headers, requestNonce } = await buildAuthGet(
     auth,
-    "/private-send/:orderId",
+    "/private-send/:orderId"
   );
 
   const { res, data } = await enclaveFetch<

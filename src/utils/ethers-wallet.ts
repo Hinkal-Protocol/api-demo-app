@@ -13,7 +13,7 @@ import { wagmiConfig } from "../wagmi.config";
 import { populateOpenfortGas } from "./openfort-gas";
 
 export const requireEvmSigner = (
-  signer: ethers.Signer | null | undefined,
+  signer: ethers.Signer | null | undefined
 ): ethers.Signer => {
   if (!signer) throw new Error("EVM signer required");
   return signer;
@@ -38,7 +38,7 @@ interface TurnkeySignerParams {
 }
 let activeTurnkeyParams: TurnkeySignerParams | null = null;
 export const setActiveTurnkeyParams = (
-  params: TurnkeySignerParams | null,
+  params: TurnkeySignerParams | null
 ): void => {
   activeTurnkeyParams = params;
 };
@@ -66,7 +66,7 @@ export const setActiveOpenfort = (provider: OpenfortProvider | null): void => {
 export const isOpenfortActive = (): boolean => activeOpenfortProvider !== null;
 
 const buildOpenfortSigner = async (
-  chainId: number,
+  chainId: number
 ): Promise<{ signer: ethers.Signer; address: string }> => {
   if (!activeOpenfortProvider) throw new Error("Openfort wallet not connected");
   await activeOpenfortProvider
@@ -76,7 +76,7 @@ const buildOpenfortSigner = async (
     })
     .catch(() => {});
   const signer = await new ethers.BrowserProvider(
-    activeOpenfortProvider as unknown as ethers.Eip1193Provider,
+    activeOpenfortProvider as unknown as ethers.Eip1193Provider
   ).getSigner();
   return { signer, address: await signer.getAddress() };
 };
@@ -91,7 +91,7 @@ const wrapDynamicSigner = (wallet: Wallet, signer: ethers.Signer) => {
     const nested = new Set(
       Object.values(types)
         .flat()
-        .map((f) => f.type.replace(/\[\]$/, "")),
+        .map((f) => f.type.replace(/\[\]$/, ""))
     );
     const primaryType = Object.keys(types).find((t) => !nested.has(t));
     if (!primaryType) throw new Error("Could not derive EIP-712 primaryType");
@@ -121,15 +121,15 @@ const wrapDfnsSigner = (signer: ethers.Signer): ethers.Signer => {
       types,
       JSON.parse(
         JSON.stringify(value, (_, x) =>
-          typeof x === "bigint" ? x.toString() : x,
-        ),
-      ),
+          typeof x === "bigint" ? x.toString() : x
+        )
+      )
     );
   return signer;
 };
 
 const clientToSigner = (
-  client: Client<Transport, Chain, Account>,
+  client: Client<Transport, Chain, Account>
 ): ethers.JsonRpcSigner => {
   const { account, chain, transport } = client;
   const network = {
@@ -142,7 +142,7 @@ const clientToSigner = (
 };
 
 export const getEthersSigner = async (
-  chainId?: number,
+  chainId?: number
 ): Promise<ethers.Signer> => {
   if (activeOpenfortProvider) {
     const targetChainId = chainId ?? wagmiConfig.chains[0].id;
@@ -154,8 +154,8 @@ export const getEthersSigner = async (
     const provider = getJsonRpcProvider(chainId ?? wagmiConfig.chains[0].id);
     return wrapDfnsSigner(
       activeDfnsWallet.connect(
-        provider as unknown as Parameters<DfnsWallet["connect"]>[0],
-      ) as unknown as ethers.Signer,
+        provider as unknown as Parameters<DfnsWallet["connect"]>[0]
+      ) as unknown as ethers.Signer
     );
   }
 
@@ -168,7 +168,7 @@ export const getEthersSigner = async (
     }
     return wrapDynamicSigner(
       activeDynamicWallet,
-      await getSigner(activeDynamicWallet),
+      await getSigner(activeDynamicWallet)
     );
   }
 
@@ -193,7 +193,7 @@ export const getEthersSigner = async (
       signerAddress.toLowerCase() !== activePrivyWallet.address.toLowerCase()
     ) {
       throw new Error(
-        `Wallet mismatch: expected ${activePrivyWallet.address}, got ${signerAddress}. Disable other wallet extensions and reconnect.`,
+        `Wallet mismatch: expected ${activePrivyWallet.address}, got ${signerAddress}. Disable other wallet extensions and reconnect.`
       );
     }
     return signer;
@@ -208,13 +208,13 @@ export const getEthersSigner = async (
   }
   const client = await getConnectorClient(
     wagmiConfig,
-    chainId ? { chainId: chainId as any, assertChainId: false } : undefined,
+    chainId ? { chainId: chainId as any, assertChainId: false } : undefined
   );
   return clientToSigner(client);
 };
 
 export const switchActiveWalletChain = async (
-  chainId: number,
+  chainId: number
 ): Promise<void> => {
   if (activeOpenfortProvider) return;
   if (activeDynamicWallet) {
@@ -260,25 +260,25 @@ const getReadProvider = (chainId: number): ethers.JsonRpcProvider => {
 
 export const getNativeBalance = async (
   chainId: number,
-  address: string,
+  address: string
 ): Promise<bigint> => getReadProvider(chainId).getBalance(address);
 
 export const getErc20Balance = async (
   chainId: number,
   tokenAddress: string,
-  walletAddress: string,
+  walletAddress: string
 ): Promise<bigint> => {
   const contract = new ethers.Contract(
     tokenAddress,
     ERC20_ABI,
-    getReadProvider(chainId),
+    getReadProvider(chainId)
   );
   return contract.balanceOf(walletAddress);
 };
 
 const sendViaWallet = async (
   signer: ethers.Signer,
-  tx: { to: string; data?: string; value?: bigint },
+  tx: { to: string; data?: string; value?: bigint }
 ): Promise<ethers.TransactionReceipt> => {
   const txRequest: ethers.TransactionRequest = {
     to: tx.to,
@@ -295,7 +295,7 @@ const sendViaWallet = async (
   const receipt = await getJsonRpcProvider(Number(chainId)).waitForTransaction(
     hash,
     1,
-    180_000,
+    180_000
   );
   if (!receipt) throw new Error("Transaction failed");
   if (receipt.status === 0) throw new Error(`Transaction reverted: ${hash}`);
@@ -306,7 +306,7 @@ export const approveErc20 = async (
   signer: ethers.Signer,
   tokenAddress: string,
   spender: string,
-  amount: bigint,
+  amount: bigint
 ): Promise<ethers.TransactionReceipt> =>
   sendViaWallet(signer, {
     to: tokenAddress,
@@ -318,12 +318,12 @@ export const approveErc20 = async (
 
 export const sendTx = async (
   signer: ethers.Signer,
-  tx: { to: string; data?: string; value?: bigint },
+  tx: { to: string; data?: string; value?: bigint }
 ): Promise<ethers.TransactionReceipt> => sendViaWallet(signer, tx);
 
 export const broadcastDepositTx = async (
   signer: ethers.Signer,
-  serializedTxBase64: string,
+  serializedTxBase64: string
 ): Promise<ethers.TransactionReceipt> => {
   const rlpHex = ethers.hexlify(ethers.decodeBase64(serializedTxBase64));
   const parsedTx = ethers.Transaction.from(rlpHex);

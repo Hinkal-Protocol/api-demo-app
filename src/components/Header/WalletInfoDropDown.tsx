@@ -20,7 +20,10 @@ import {
   setActiveDfnsWallet,
   setActiveOpenfort,
 } from "../../utils/ethers-wallet";
-import { withdrawStuckUtxos } from "../../utils/withdraw";
+import {
+  recoverStuckBridgeBalance,
+  withdrawStuckUtxos,
+} from "../../utils/withdraw";
 import { WalletInfoBalance } from "./WalletInfoBalance";
 import { useAppContext } from "../../AppContext";
 import { TokenBalance } from "../../types";
@@ -31,6 +34,9 @@ const filterNonZeroTokenBalances = (tokenBalances: TokenBalance[]) =>
 export const WalletInfoDropDown = () => {
   const {
     stuckUtxoBalances,
+    stuckBridgeBalances,
+    isStuckBridgeBalancesLoading,
+    refreshStuckBridgeBalances,
     walletAddress,
     chainId,
     sessionId,
@@ -52,10 +58,13 @@ export const WalletInfoDropDown = () => {
   const { signOut: openfortSignOut } = useSignOut();
   const visibleStuckUtxoBalances = useMemo(
     () => filterNonZeroTokenBalances(stuckUtxoBalances),
-    [stuckUtxoBalances],
+    [stuckUtxoBalances]
   );
   const [withdrawingStuckTokenAddress, setWithdrawingStuckTokenAddress] =
     useState<string | null>(null);
+  const [recoveringTokenAddress, setRecoveringTokenAddress] = useState<
+    string | null
+  >(null);
   const [isCopyingPrivate, setIsCopyingPrivate] = useState(false);
 
   const { isTron } = useAppContext();
@@ -113,7 +122,7 @@ export const WalletInfoDropDown = () => {
       toast.success("Wallet address copied to clipboard");
     } catch (err: any) {
       toast.error(
-        getFriendlyErrorMessage(err, "Failed to copy wallet address"),
+        getFriendlyErrorMessage(err, "Failed to copy wallet address")
       );
     }
   };
@@ -134,7 +143,7 @@ export const WalletInfoDropDown = () => {
       toast.success("Private address copied to clipboard");
     } catch (err: any) {
       toast.error(
-        getFriendlyErrorMessage(err, "Failed to copy private address"),
+        getFriendlyErrorMessage(err, "Failed to copy private address")
       );
     } finally {
       setIsCopyingPrivate(false);
@@ -157,20 +166,70 @@ export const WalletInfoDropDown = () => {
           session,
           chainId,
           tokenAddress,
-          walletAddress,
+          walletAddress
         );
 
         toast.success(`Withdraw sent (${txHashes.length} txs)`);
         await refreshBalances();
       } catch (err) {
         toast.error(
-          getFriendlyErrorMessage(err, "Withdraw stuck UTXOs failed"),
+          getFriendlyErrorMessage(err, "Withdraw stuck UTXOs failed")
         );
       } finally {
         setWithdrawingStuckTokenAddress(null);
       }
     },
-    [walletAddress, chainId, sessionId, privateKey, authMode, refreshBalances, isSolana, isTron, solanaProvider],
+    [
+      walletAddress,
+      chainId,
+      sessionId,
+      privateKey,
+      authMode,
+      refreshBalances,
+      isSolana,
+      isTron,
+      solanaProvider,
+    ]
+  );
+
+  const handleRecoverStuckBridgeBalance = useCallback(
+    async (tokenAddress: string) => {
+      try {
+        if (!walletAddress || !chainId || !sessionId || !privateKey) return;
+
+        setRecoveringTokenAddress(tokenAddress);
+        const session = { sessionId, authMode, privateKey };
+        const wallet = {
+          signer: isTron || isSolana ? null : await getEthersSigner(),
+          solanaProvider: isSolana ? solanaProvider : undefined,
+        };
+        const recoveredCount = await recoverStuckBridgeBalance(
+          wallet,
+          session,
+          chainId,
+          tokenAddress,
+          walletAddress
+        );
+
+        toast.success(`Recovered (${recoveredCount})`);
+        await refreshBalances();
+      } catch (err) {
+        toast.error(getFriendlyErrorMessage(err, "Recover failed"));
+      } finally {
+        setRecoveringTokenAddress(null);
+      }
+    },
+    [
+      walletAddress,
+      chainId,
+      sessionId,
+      privateKey,
+      authMode,
+      refreshBalances,
+      isSolana,
+      isTron,
+      solanaProvider,
+    ]
   );
 
   return (
@@ -213,6 +272,53 @@ export const WalletInfoDropDown = () => {
           </div>
         </div>
       )}
+
+      <div className="border-t-2 border-hinkal-blue-900 pt-3 mb-[10%]">
+        <div className="flex items-center justify-between mb-3">
+          <p className="text-hinkal-white-300 text-[12px] text-left">
+            Recoverable Balances
+          </p>
+          <button
+            type="button"
+            disabled={isStuckBridgeBalancesLoading}
+            onClick={refreshStuckBridgeBalances}
+            className="text-[12px] text-primary hover:text-hinkal-purple-200 transition-all duration-300 disabled:cursor-not-allowed disabled:opacity-50"
+          >
+            {isStuckBridgeBalancesLoading ? <Spinner /> : "Refresh"}
+          </button>
+        </div>
+        {stuckBridgeBalances.length === 0 && (
+          <p className="text-hinkal-gray-200 text-[12px] text-left">
+            Nothing to recover
+          </p>
+        )}
+        <div className="flex flex-col justify-center gap-4">
+          {stuckBridgeBalances.map((tokenBalance) => (
+            <div
+              className="flex items-center justify-between gap-3"
+              key={`recoverable-${tokenBalance.tokenAddress}`}
+            >
+              <WalletInfoBalance tokenBalance={tokenBalance} />
+              <button
+                type="button"
+                disabled={recoveringTokenAddress !== null}
+                onClick={() =>
+                  handleRecoverStuckBridgeBalance(tokenBalance.tokenAddress)
+                }
+                className="rounded-md bg-primary px-3 py-1 text-[12px] font-semibold text-white hover:bg-hinkal-purple-200 transition-all duration-300 disabled:cursor-not-allowed disabled:opacity-50"
+              >
+                {recoveringTokenAddress === tokenBalance.tokenAddress ? (
+                  <span className="flex items-center gap-x-1">
+                    Recover <Spinner />
+                  </span>
+                ) : (
+                  "Recover"
+                )}
+              </button>
+            </div>
+          ))}
+        </div>
+      </div>
 
       <div className="border-t-2 md:text-[15px] border-hinkal-blue-900">
         <button

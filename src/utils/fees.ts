@@ -22,26 +22,28 @@ export const getFee = async (
   tokenAddresses: string[],
   externalActionId: ExternalActionId,
   amounts?: bigint[],
-  mintFrom?: string,
+  mintFrom?: string
 ): Promise<string> => {
-  const { queryString, headers, requestNonce } = await buildAuthGet(auth, "/get-fee", {
-    feeToken,
-    externalActionId,
-    tokenAddresses,
-    ...(mintFrom !== undefined ? { mintFrom } : {}),
-    ...(amounts !== undefined
-      ? { amounts: amounts.map((amount) => amount.toString()) }
-      : {}),
-  });
+  const { queryString, headers, requestNonce } = await buildAuthGet(
+    auth,
+    "/get-fee",
+    {
+      feeToken,
+      externalActionId,
+      tokenAddresses,
+      ...(mintFrom !== undefined ? { mintFrom } : {}),
+      ...(amounts !== undefined
+        ? { amounts: amounts.map((amount) => amount.toString()) }
+        : {}),
+    }
+  );
 
   const { res, data } = await enclaveFetch<
     { success: true; feeAmount: string } | { error?: string }
   >(`/get-fee?${queryString}`, requestNonce, { headers });
 
   if (!res.ok || !("success" in data && data.success)) {
-    throw new Error(
-      (data as { error?: string }).error ?? "Fee fetch failed",
-    );
+    throw new Error((data as { error?: string }).error ?? "Fee fetch failed");
   }
 
   return data.feeAmount;

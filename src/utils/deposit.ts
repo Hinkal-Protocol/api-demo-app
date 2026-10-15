@@ -1,6 +1,9 @@
 import { buildAuthPost } from "./enclave-auth";
 import { enclaveFetch } from "./enclaveApi";
-import { resolveDepositAuth, resolveDepositForOtherAuth } from "./resolve-tx-auth";
+import {
+  resolveDepositAuth,
+  resolveDepositForOtherAuth,
+} from "./resolve-tx-auth";
 import { isSolanaChain } from "./solana-wallet";
 import type { TxSessionAuth, TxWallet } from "./types";
 
@@ -17,7 +20,7 @@ export const deposit = async (
   session: TxSessionAuth,
   chainId: number,
   tokenAddresses: string[],
-  amounts: string[],
+  amounts: string[]
 ): Promise<TxData | string> => {
   const txParams = { tokenAddresses, amounts };
   const { bodyJson, headers, requestNonce } = await buildAuthPost(
@@ -26,12 +29,17 @@ export const deposit = async (
     "/deposit",
     txParams,
     () =>
-      resolveDepositAuth(wallet, session.sessionId, chainId, tokenAddresses, amounts),
+      resolveDepositAuth(
+        wallet,
+        session.sessionId,
+        chainId,
+        tokenAddresses,
+        amounts
+      )
   );
 
   const { res, data } = await enclaveFetch<
-    | { success: true; txData: TxData | string }
-    | { error?: string }
+    { success: true; txData: TxData | string } | { error?: string }
   >("/deposit", requestNonce, {
     method: "POST",
     headers,
@@ -51,26 +59,35 @@ export const depositForOther = async (
   chainId: number,
   tokenAddresses: string[],
   amounts: string[],
-  recipient: string,
+  recipient: string
 ): Promise<TxData | string> => {
   const txParams = {
     tokenAddresses,
     amounts,
     recipientInfo: recipient,
   };
-  const endpoint = isSolanaChain(chainId) ? "/deposit-solana-for-other" : "/deposit-for-other";
+  const endpoint = isSolanaChain(chainId)
+    ? "/deposit-solana-for-other"
+    : "/deposit-for-other";
 
   const { bodyJson, headers, requestNonce } = await buildAuthPost(
     session,
     chainId,
     endpoint,
     txParams,
-    () => resolveDepositForOtherAuth(wallet, session.sessionId, chainId, tokenAddresses, amounts, recipient),
+    () =>
+      resolveDepositForOtherAuth(
+        wallet,
+        session.sessionId,
+        chainId,
+        tokenAddresses,
+        amounts,
+        recipient
+      )
   );
 
   const { res, data } = await enclaveFetch<
-    | { success: true; txData: TxData | string }
-    | { error?: string }
+    { success: true; txData: TxData | string } | { error?: string }
   >(endpoint, requestNonce, {
     method: "POST",
     headers,
@@ -78,7 +95,9 @@ export const depositForOther = async (
   });
 
   if (!res.ok || !("success" in data && data.success)) {
-    throw new Error((data as { error?: string }).error ?? "Deposit for other failed");
+    throw new Error(
+      (data as { error?: string }).error ?? "Deposit for other failed"
+    );
   }
 
   return data.txData;

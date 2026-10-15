@@ -14,9 +14,11 @@ const register = async (body: {
   socialLoginProviderKind: "Oidc";
   idToken: string;
 }): Promise<string> => {
-  const challenge = await dfnsApi().auth.createSocialRegistrationChallenge({ body });
+  const challenge = await dfnsApi().auth.createSocialRegistrationChallenge({
+    body,
+  });
   const { authentication } = await dfnsApi(
-    challenge.temporaryAuthenticationToken,
+    challenge.temporaryAuthenticationToken
   ).auth.registerEndUser({
     body: {
       firstFactorCredential: await getSigner().create(challenge),
@@ -49,7 +51,7 @@ export const connectDfns = async (idToken: string) => {
   const client = dfnsApi(await socialLoginOrRegister(idToken));
   const { items } = await client.wallets.listWallets();
   const wallet = items.find(
-    (w) => w.address?.match(/^0x[0-9a-fA-F]{40}$/) && w.status === "Active",
+    (w) => w.address?.match(/^0x[0-9a-fA-F]{40}$/) && w.status === "Active"
   );
   if (!wallet) throw new Error("No active DFNS Ethereum wallet found");
 

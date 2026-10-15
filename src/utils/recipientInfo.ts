@@ -8,14 +8,17 @@ type RecipientInfoResponse =
 
 export const fetchRecipientInfo = async (
   auth: Auth,
-  signal?: AbortSignal,
+  signal?: AbortSignal
 ): Promise<string> => {
-  const { queryString, headers, requestNonce } = await buildAuthGet(auth, "/recipient-info");
+  const { queryString, headers, requestNonce } = await buildAuthGet(
+    auth,
+    "/recipient-info"
+  );
 
   const { res, data } = await enclaveFetch<RecipientInfoResponse>(
     `/recipient-info?${queryString}`,
     requestNonce,
-    { signal, headers },
+    { signal, headers }
   );
 
   if (!res.ok || !("success" in data && data.success)) {

@@ -9,7 +9,7 @@ const IS_LOCAL = API_BASE_URL === ENCLAVE_API_URL_LOCAL;
 export const enclaveFetch = async <T>(
   path: string,
   requestNonce?: string,
-  init?: RequestInit,
+  init?: RequestInit
 ): Promise<{ res: Response; data: T }> => {
   const url = path.startsWith("http")
     ? path

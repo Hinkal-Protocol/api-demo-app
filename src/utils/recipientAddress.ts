@@ -28,7 +28,12 @@ export const isValidPrivateAddress = (address: string): boolean => {
     stealthAddress?.length < 64;
   const incorrectSymbols = address.includes('"');
 
-  return !(missingVariable || incorrectAddressFormat || incorrectLength || incorrectSymbols);
+  return !(
+    missingVariable ||
+    incorrectAddressFormat ||
+    incorrectLength ||
+    incorrectSymbols
+  );
 };
 
 export const isValidSolanaPublicKey = (address: string): boolean => {
@@ -52,7 +57,7 @@ export const isValidRecipientAddress = (
   address: string,
   isSolana: boolean,
   isTron: boolean,
-  isPrivate: boolean = false,
+  isPrivate: boolean = false
 ): boolean => {
   const trimmed = address.trim();
   if (!trimmed) return false;
@@ -65,7 +70,7 @@ export const isValidRecipientAddress = (
 export const getRecipientAddressError = (
   isTron: boolean,
   isSolana: boolean,
-  isPrivate: boolean,
+  isPrivate: boolean
 ): string => {
   if (isSolana) {
     return isPrivate

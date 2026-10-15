@@ -7,7 +7,10 @@ export type Session = {
 
 const sha256 = async (payload: string): Promise<Uint8Array> => {
   const bytes = new TextEncoder().encode(payload);
-  const hash = await crypto.subtle.digest("SHA-256", bytes.buffer as ArrayBuffer);
+  const hash = await crypto.subtle.digest(
+    "SHA-256",
+    bytes.buffer as ArrayBuffer
+  );
   return new Uint8Array(hash);
 };
 
@@ -20,7 +23,7 @@ const sha256 = async (payload: string): Promise<Uint8Array> => {
  */
 export const signPayload = async (
   privateKey: Uint8Array,
-  payload: string,
+  payload: string
 ): Promise<string> => {
   const hash = await sha256(payload);
   const signingKey = new ethers.SigningKey(privateKey);
@@ -44,8 +47,10 @@ const buildActionBinding = (method: string, routePath: string): string =>
   `${method.toUpperCase()} ${normalizeRoutePath(routePath)}`;
 
 /** secp256k1 request-signature payload: binds the action to the raw body/query. */
-const buildRequestSignaturePayload = (binding: string, payload: string): string =>
-  `${binding}\n${payload}`;
+const buildRequestSignaturePayload = (
+  binding: string,
+  payload: string
+): string => `${binding}\n${payload}`;
 
 export const generateClientKeyPair = (): {
   privateKey: Uint8Array;
@@ -54,12 +59,15 @@ export const generateClientKeyPair = (): {
   const privateKey = crypto.getRandomValues(new Uint8Array(32));
   const signingKey = new ethers.SigningKey(privateKey);
   // compressedPublicKey is "0x02..." or "0x03...", strip 0x
-  return { privateKey, clientPublicKey: signingKey.compressedPublicKey.slice(2) };
+  return {
+    privateKey,
+    clientPublicKey: signingKey.compressedPublicKey.slice(2),
+  };
 };
 
 export const sessionQueryParams = (
   session: Session,
-  chainId: number,
+  chainId: number
 ): Record<string, string> => ({
   sessionId: session.sessionId,
   nonce: crypto.randomUUID(),
@@ -69,7 +77,7 @@ export const sessionQueryParams = (
 
 export const sessionBodyParams = (
   session: Session,
-  chainId: number,
+  chainId: number
 ): {
   sessionId: string;
   nonce: string;
@@ -85,21 +93,27 @@ export const sessionBodyParams = (
 export const requestSignatureGetHeader = async (
   session: Session,
   routePath: string,
-  queryString: string,
+  queryString: string
 ): Promise<Record<string, string>> => ({
   "x-hinkal-request-signature": await signPayload(
     session.privateKey,
-    buildRequestSignaturePayload(buildActionBinding("GET", routePath), queryString),
+    buildRequestSignaturePayload(
+      buildActionBinding("GET", routePath),
+      queryString
+    )
   ),
 });
 
 export const requestSignaturePostHeader = async (
   session: Session,
   routePath: string,
-  body: Record<string, unknown>,
+  body: Record<string, unknown>
 ): Promise<Record<string, string>> => ({
   "x-hinkal-request-signature": await signPayload(
     session.privateKey,
-    buildRequestSignaturePayload(buildActionBinding("POST", routePath), JSON.stringify(body)),
+    buildRequestSignaturePayload(
+      buildActionBinding("POST", routePath),
+      JSON.stringify(body)
+    )
   ),
 });

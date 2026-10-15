@@ -16,7 +16,7 @@ const getJsonRpcProvider = (chainId: number): ethers.JsonRpcProvider => {
  */
 export const populateOpenfortGas = async (
   signer: ethers.Signer,
-  txRequest: ethers.TransactionRequest,
+  txRequest: ethers.TransactionRequest
 ): Promise<void> => {
   const from = await signer.getAddress();
   const { chainId } = await signer.provider!.getNetwork();

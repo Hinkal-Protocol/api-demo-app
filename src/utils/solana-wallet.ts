@@ -5,7 +5,7 @@ export const SOLANA_MAINNET_CHAIN_ID = 501;
 export const SOLANA_NATIVE_ADDRESS = "11111111111111111111111111111111";
 const SOLANA_RPC = "https://solana-rpc.publicnode.com";
 const ASSOCIATED_TOKEN_PROGRAM_ID = new PublicKey(
-  "ATokenGPvbdGVxr1b2hvZbsiqW5xWH25efTNsLJA8knL",
+  "ATokenGPvbdGVxr1b2hvZbsiqW5xWH25efTNsLJA8knL"
 );
 const SOLANA_MAINNET_CHAIN = "solana:mainnet";
 
@@ -25,7 +25,7 @@ const getPhantom = (): any => {
   const p = window.phantom?.solana;
   if (!p)
     throw new Error(
-      "Phantom wallet not found. Please install the Phantom extension.",
+      "Phantom wallet not found. Please install the Phantom extension."
     );
   return p;
 };
@@ -35,7 +35,7 @@ const getSolflare = (): any => {
   const s = window.solflare;
   if (!s)
     throw new Error(
-      "Solflare wallet not found. Please install the Solflare extension.",
+      "Solflare wallet not found. Please install the Solflare extension."
     );
   return s;
 };
@@ -47,7 +47,7 @@ const getMetaMaskSolanaWallet = (): any => {
   const wallet = (get() as any[]).find((w) => w.name === "MetaMask");
   if (!wallet) {
     throw new Error(
-      "MetaMask not found. Please install MetaMask and ensure Solana is enabled.",
+      "MetaMask not found. Please install MetaMask and ensure Solana is enabled."
     );
   }
   return wallet;
@@ -57,7 +57,7 @@ export const isSolanaChain = (chainId: number): boolean =>
   chainId === SOLANA_MAINNET_CHAIN_ID;
 
 export const connectSolanaWallet = async (
-  provider: SolanaWalletProvider,
+  provider: SolanaWalletProvider
 ): Promise<{ address: string; chainId: number }> => {
   if (provider === "metamask") {
     const wallet = getMetaMaskSolanaWallet();
@@ -67,7 +67,7 @@ export const connectSolanaWallet = async (
     const { accounts } = await connectFeature.connect();
     const solanaAccount = accounts.find(
       // eslint-disable-next-line @typescript-eslint/no-explicit-any
-      (a: any) => a.chains?.some((c: string) => c.startsWith("solana:")),
+      (a: any) => a.chains?.some((c: string) => c.startsWith("solana:"))
     );
     if (!solanaAccount) throw new Error("No Solana account found in MetaMask.");
     return { address: solanaAccount.address, chainId: SOLANA_MAINNET_CHAIN_ID };
@@ -84,7 +84,7 @@ export const connectSolanaWallet = async (
 
 export const signSolanaMessage = async (
   provider: SolanaWalletProvider,
-  message: string,
+  message: string
 ): Promise<string> => {
   const encoded = new TextEncoder().encode(message);
 
@@ -98,7 +98,7 @@ export const signSolanaMessage = async (
     const { accounts } = await connectFeature.connect({ silent: true });
     // eslint-disable-next-line @typescript-eslint/no-explicit-any
     const account = accounts.find((a: any) =>
-      a.chains?.some((c: string) => c.startsWith("solana:")),
+      a.chains?.some((c: string) => c.startsWith("solana:"))
     );
     if (!account) throw new Error("No Solana account in MetaMask.");
     const [result] = await signFeature.signMessage({
@@ -117,7 +117,7 @@ export const signSolanaMessage = async (
 
 export const broadcastSolanaTransaction = async (
   provider: SolanaWalletProvider,
-  serializedTxBase64: string,
+  serializedTxBase64: string
 ): Promise<string> => {
   const txBytes = Buffer.from(serializedTxBase64, "base64");
   const connection = new Connection(SOLANA_RPC, "confirmed");
@@ -131,7 +131,7 @@ export const broadcastSolanaTransaction = async (
     const { accounts } = await connectFeature.connect({ silent: true });
     // eslint-disable-next-line @typescript-eslint/no-explicit-any
     const account = accounts.find((a: any) =>
-      a.chains?.some((c: string) => c.startsWith("solana:")),
+      a.chains?.some((c: string) => c.startsWith("solana:"))
     );
     if (!account) throw new Error("No Solana account in MetaMask.");
     const [result] = await signTxFeature.signTransaction({
@@ -140,7 +140,7 @@ export const broadcastSolanaTransaction = async (
       chain: SOLANA_MAINNET_CHAIN,
     });
     const signature = await connection.sendRawTransaction(
-      result.signedTransaction,
+      result.signedTransaction
     );
     return signature;
   }
@@ -153,7 +153,7 @@ export const broadcastSolanaTransaction = async (
 };
 
 export const getSolanaNativeBalance = async (
-  address: string,
+  address: string
 ): Promise<bigint> => {
   const connection = new Connection(SOLANA_RPC, "confirmed");
   const lamports = await connection.getBalance(new PublicKey(address));
@@ -162,7 +162,7 @@ export const getSolanaNativeBalance = async (
 
 export const getSolanaTokenBalance = async (
   tokenMintAddress: string,
-  ownerAddress: string,
+  ownerAddress: string
 ): Promise<bigint> => {
   const connection = new Connection(SOLANA_RPC, "confirmed");
   const mint = new PublicKey(tokenMintAddress);
@@ -171,7 +171,7 @@ export const getSolanaTokenBalance = async (
   if (!mintInfo) return 0n;
   const [ata] = PublicKey.findProgramAddressSync(
     [owner.toBuffer(), mintInfo.owner.toBuffer(), mint.toBuffer()],
-    ASSOCIATED_TOKEN_PROGRAM_ID,
+    ASSOCIATED_TOKEN_PROGRAM_ID
   );
   const { value } = await connection.getParsedAccountInfo(ata);
   const data = value?.data;

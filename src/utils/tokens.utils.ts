@@ -4,7 +4,7 @@ import { ERC20Token } from "../types";
 export const getERC20Token = (
   address: string,
   chainId: number,
-  fromList?: ERC20Token[],
+  fromList?: ERC20Token[]
 ) => {
   return (fromList ?? getERC20Registry(chainId))?.find((el) => {
     if (address === undefined) {

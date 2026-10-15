@@ -18,7 +18,7 @@ export const getSwapData = async (
   inputTokenAddress: string,
   outputTokenAddress: string,
   amount: string,
-  slippagePercentage?: number,
+  slippagePercentage?: number
 ): Promise<SwapData> => {
   const { queryString, headers, requestNonce } = await buildAuthGet(
     auth,
@@ -30,7 +30,7 @@ export const getSwapData = async (
       ...(slippagePercentage !== undefined
         ? { slippagePercentage: String(slippagePercentage) }
         : {}),
-    },
+    }
   );
 
   const { res, data } = await enclaveFetch<
@@ -39,7 +39,7 @@ export const getSwapData = async (
 
   if (!res.ok || !("success" in data && data.success)) {
     throw new Error(
-      (data as { error?: string }).error ?? "Swap data fetch failed",
+      (data as { error?: string }).error ?? "Swap data fetch failed"
     );
   }
 
@@ -57,11 +57,11 @@ export const executeSwap = async (
   inToken: ERC20Token,
   outToken: ERC20Token,
   inAmount: string,
-  quotedData: SwapData,
+  quotedData: SwapData
 ): Promise<string> => {
   const isSolana = isSolanaChain(getterAuth.chainId);
   const inAmountWei = BigInt(
-    Math.floor(parseFloat(inAmount) * 10 ** inToken.decimals),
+    Math.floor(parseFloat(inAmount) * 10 ** inToken.decimals)
   );
   const outAmountWei = BigInt(quotedData.outSwapAmount);
 
@@ -81,7 +81,7 @@ export const executeSwap = async (
     tokenAddresses,
     quotedData.externalActionId,
     isSolana ? [inAmountWei, -BigInt(quotedData.outSwapAmount)] : undefined,
-    isSolana ? inToken.erc20TokenAddress : undefined,
+    isSolana ? inToken.erc20TokenAddress : undefined
   );
 
   const txParams: Record<string, unknown> = {
@@ -107,8 +107,8 @@ export const executeSwap = async (
         quotedData.externalActionId,
         quotedData.swapData,
         feeToken,
-        feeAmount,
-      ),
+        feeAmount
+      )
   );
 
   const { res, data } = await enclaveFetch<

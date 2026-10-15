@@ -1,7 +1,4 @@
-import {
-  buildEnclaveSignMessage,
-  resolveSessionAuthMode,
-} from "./auth";
+import { buildEnclaveSignMessage, resolveSessionAuthMode } from "./auth";
 import { generateClientKeyPair } from "./request-signature";
 import { signSolanaMessage, SolanaWalletProvider } from "./solana-wallet";
 import { registerEnclaveSession } from "./session";
@@ -10,7 +7,7 @@ import type { EnclaveSession } from "./types";
 export const createSolanaEnclaveSession = async (
   address: string,
   provider: SolanaWalletProvider,
-  useEIP712 = false,
+  useEIP712 = false
 ): Promise<EnclaveSession> => {
   const { privateKey, clientPublicKey } = generateClientKeyPair();
   const authMode = resolveSessionAuthMode(useEIP712);
