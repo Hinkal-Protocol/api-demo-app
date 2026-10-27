@@ -1,12 +1,18 @@
 import { buildAuthGet, buildAuthPost } from "./enclave-auth";
 import { enclaveFetch } from "./enclaveApi";
 import { resolvePrivateSendBridgeAuth } from "./resolve-tx-auth";
-import type {
-  DepositAndWithdrawOrder,
-  OrderStatusResponse,
-  Recipient,
+import {
+  isScheduledTxTerminal,
+  OrderStatus,
+  type DepositAndWithdrawOrder,
+  type OrderStatusResponse,
+  type Recipient,
+  type ScheduledTransactionItem,
 } from "./multiSend";
 import type { Auth, TxSessionAuth, TxWallet } from "./types";
+
+const POLL_INTERVAL_MS = 2000;
+const POLL_TIMEOUT_MS = 10 * 60_000;
 
 export type PrivateSendBridgeQuote = {
   quote: string;
@@ -126,4 +132,29 @@ export const getBridgeOrderStatus = async (
   }
 
   return data;
+};
+
+export const waitForScheduledTxsComplete = async (
+  auth: Auth,
+  orderId: string,
+  onUpdate: (txs: ScheduledTransactionItem[]) => void,
+): Promise<void> => {
+  const deadline = Date.now() + POLL_TIMEOUT_MS;
+  while (Date.now() < deadline) {
+    const data = await getBridgeOrderStatus(auth, orderId);
+    if (data.status === OrderStatus.Failed) {
+      throw new Error("Order failed");
+    }
+    const txs = data.scheduledTransactions ?? [];
+    onUpdate(txs);
+    if (
+      data.status === OrderStatus.Scheduled &&
+      txs.length > 0 &&
+      txs.every((tx) => isScheduledTxTerminal(tx.status))
+    ) {
+      return;
+    }
+    await new Promise((r) => setTimeout(r, POLL_INTERVAL_MS));
+  }
+  throw new Error("Order status poll timed out");
 };

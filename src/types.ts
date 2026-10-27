@@ -5,6 +5,8 @@ export enum AppTab {
   Swap,
   MultiSend,
   Bridge,
+  PrivateBridge,
+  DepositAddress,
 }
 
 export interface ERC20Token {
@@ -72,3 +74,10 @@ export enum ScheduleDelayOption {
 export type SVGIconType = React.FunctionComponent<
   React.SVGAttributes<SVGElement>
 >;
+
+export type ReceiveVaultRecord = {
+  index: number;
+  network: string;
+  version: string;
+  vaultAddress: string;
+};

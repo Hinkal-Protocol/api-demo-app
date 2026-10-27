@@ -13,8 +13,6 @@ import { chainIds, networkRegistry } from "../constants/chain.constants";
 import { RecipientInputRow } from "../utils/recipientInfoRow";
 import {
   formatScheduledTxStatus,
-  isScheduledTxTerminal,
-  OrderStatus,
   Recipient,
   resolveTxCompletionTime,
   ScheduledTransactionItem,
@@ -22,10 +20,10 @@ import {
   TxCompletionTimeLabel,
 } from "../utils/multiSend";
 import {
-  getBridgeOrderStatus,
   getPrivateSendBridgeQuote,
   privateSendBridge,
   PrivateSendBridgeQuote,
+  waitForScheduledTxsComplete,
 } from "../utils/privateSendBridge";
 import type { Auth } from "../utils/types";
 import {
@@ -48,9 +46,6 @@ import {
   isValidRecipientAddress,
 } from "../utils/recipientAddress";
 
-const POLL_INTERVAL_MS = 2000;
-const POLL_TIMEOUT_MS = 10 * 60_000;
-
 const DESTINATION_CHAIN_IDS = [
   chainIds.ethMainnet,
   chainIds.arbMainnet,
@@ -68,31 +63,6 @@ const getChainName = (chainId: number): string =>
     : chainId === chainIds.tronMainnet
     ? "Tron"
     : String(chainId));
-
-const waitForScheduledTxsComplete = async (
-  auth: Auth,
-  orderId: string,
-  onUpdate: (txs: ScheduledTransactionItem[]) => void,
-): Promise<void> => {
-  const deadline = Date.now() + POLL_TIMEOUT_MS;
-  while (Date.now() < deadline) {
-    const data = await getBridgeOrderStatus(auth, orderId);
-    if (data.status === OrderStatus.Failed) {
-      throw new Error("Order failed");
-    }
-    const txs = data.scheduledTransactions ?? [];
-    onUpdate(txs);
-    if (
-      data.status === OrderStatus.Scheduled &&
-      txs.length > 0 &&
-      txs.every((tx) => isScheduledTxTerminal(tx.status))
-    ) {
-      return;
-    }
-    await new Promise((r) => setTimeout(r, POLL_INTERVAL_MS));
-  }
-  throw new Error("Order status poll timed out");
-};
 
 const emptyRecipient = (): Recipient => ({ address: "", amount: "" });
 
