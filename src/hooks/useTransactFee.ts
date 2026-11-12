@@ -7,12 +7,14 @@ interface UseTransactFeeParams {
   token?: ERC20Token;
   amountWei: bigint;
   enabled?: boolean;
+  ref?: string;
 }
 
 export const useTransactFee = ({
   token,
   amountWei,
   enabled = true,
+  ref,
 }: UseTransactFeeParams) => {
   const { chainId, walletAddress, privateKey, sessionId } = useAppContext();
   const [feeAmount, setFeeAmount] = useState<string | undefined>();
@@ -44,7 +46,9 @@ export const useTransactFee = ({
           tokenAddress,
           [tokenAddress],
           ExternalActionId.Transact,
-          [amountWei]
+          [amountWei],
+          undefined,
+          ref,
         );
         if (!cancelled) setFeeAmount(fetchedFeeAmount);
       } catch {
@@ -58,7 +62,7 @@ export const useTransactFee = ({
       cancelled = true;
       clearTimeout(timer);
     };
-  }, [enabled, token, amountWei, chainId, walletAddress, privateKey, sessionId]);
+  }, [enabled, token, amountWei, chainId, walletAddress, privateKey, sessionId, ref]);
 
   return { feeAmount, isFeeLoading };
 };
