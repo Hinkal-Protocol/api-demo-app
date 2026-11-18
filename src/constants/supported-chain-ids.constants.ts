@@ -2,7 +2,7 @@ import {
   arbitrum,
   mainnet,
   optimism,
-  polygon,
+  // polygon,
   base,
   sepolia,
   tempoMainnet,
@@ -36,7 +36,7 @@ export const arcTestnet = defineChain({
 
 export const SUPPORTED_CHAINS = [
   mainnet, // 1
-  polygon, // 137
+  // polygon, // 137 — disabled locally: polygon.drpc.org 429 spam
   arbitrum, // 42161
   optimism, // 10
   base, // 8453

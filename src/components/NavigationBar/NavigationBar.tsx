@@ -16,7 +16,7 @@ export const NavigationBar = ({
   activeTab,
   setActiveTab,
 }: NavigationBarProps) => {
-  const { chainId } = useAppContext();
+  const { chainId, isTron, isSolana } = useAppContext();
   const swapDisabled = useMemo(
     () =>
       !!chainId &&
@@ -66,6 +66,15 @@ export const NavigationBar = ({
             isActive={activeTab === AppTab.MultiSend}
             title="Multi Send"
             onClick={() => setActiveTab(AppTab.MultiSend)}
+          />
+        </div>
+        <div className={buttonClassName}>
+          <TabButton
+            isActive={activeTab === AppTab.BoundReceive}
+            title="Bound Receive"
+            onClick={() => setActiveTab(AppTab.BoundReceive)}
+            disabled={isTron || isSolana}
+            disabledTooltip="Bound receive is EVM only"
           />
         </div>
       </div>

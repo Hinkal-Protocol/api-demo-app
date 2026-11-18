@@ -4,6 +4,7 @@ export enum AppTab {
   Withdraw,
   Swap,
   MultiSend,
+  BoundReceive,
 }
 
 export interface ERC20Token {

@@ -12,7 +12,8 @@ export type EnclaveTypedDataPrimaryType =
   | "Withdraw"
   | "Swap"
   | "PrivateSend"
-  | "WithdrawStuckUtxos";
+  | "WithdrawStuckUtxos"
+  | "ReceiveAddressBound";
 
 const ENCLAVE_TYPED_DATA_TYPES: Record<string, TypedDataField[]> = {
   TokenAmount: [
@@ -76,6 +77,12 @@ const ENCLAVE_TYPED_DATA_TYPES: Record<string, TypedDataField[]> = {
     { name: "sessionId", type: "string" },
     { name: "chainId", type: "uint256" },
     { name: "tokenAddress", type: "address" },
+    { name: "recipient", type: "address" },
+  ],
+  ReceiveAddressBound: [
+    { name: "nonce", type: "string" },
+    { name: "sessionId", type: "string" },
+    { name: "chainId", type: "uint256" },
     { name: "recipient", type: "address" },
   ],
 };

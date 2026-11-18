@@ -215,6 +215,24 @@ export const buildWithdrawStuckUtxosAuthFields = (
     }),
   );
 
+export const buildReceiveAddressBoundAuthFields = (
+  sessionId: string,
+  signer: ethers.Signer,
+  params: { chainId: number; recipientAddress: string },
+) =>
+  signEnclaveTypedData(
+    sessionId,
+    signer,
+    "ReceiveAddressBound",
+    params.chainId,
+    (nonce) => ({
+      nonce,
+      sessionId,
+      chainId: BigInt(params.chainId),
+      recipient: ethers.getAddress(params.recipientAddress),
+    }),
+  );
+
 export const buildSwapAuthFields = (
   sessionId: string,
   signer: ethers.Signer,
