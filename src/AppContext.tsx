@@ -217,13 +217,7 @@ export const AppContextProvider: FC<AppContextProps> = ({
   ]);
 
   const refreshBalances = useCallback(async () => {
-    if (
-      !dataLoaded ||
-      !chainId ||
-      !walletAddress ||
-      !sessionId ||
-      !privateKey
-    )
+    if (!dataLoaded || !chainId || !walletAddress || !sessionId || !privateKey)
       return;
 
     abortControllerRef.current?.abort();

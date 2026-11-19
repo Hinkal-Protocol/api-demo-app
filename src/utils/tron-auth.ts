@@ -183,3 +183,31 @@ export const buildTronWithdrawStuckUtxosAuthFields = (
     tokenAddress: ethers.getAddress(tokenAddress),
     recipient: ethers.getAddress(recipientAddress),
   }));
+
+export const buildTronReceiveAddressBoundAuthFields = (
+  sessionId: string,
+  chainId: number,
+  recipientAddress: string,
+): Promise<EnclaveTxAuthFields> =>
+  signTypedData(sessionId, "ReceiveAddressBound", chainId, (nonce) => ({
+    nonce,
+    sessionId,
+    chainId: BigInt(chainId),
+    recipient: ethers.getAddress(tronBase58ToHex(recipientAddress)),
+  }));
+
+export const buildTronReceiveVaultRecoverAuthFields = (
+  sessionId: string,
+  chainId: number,
+  vaultAddress: string,
+  tokenAddress: string,
+  recipientAddress: string,
+): Promise<EnclaveTxAuthFields> =>
+  signTypedData(sessionId, "ReceiveVaultRecover", chainId, (nonce) => ({
+    nonce,
+    sessionId,
+    chainId: BigInt(chainId),
+    vaultAddress,
+    tokenAddress,
+    recipient: recipientAddress,
+  }));

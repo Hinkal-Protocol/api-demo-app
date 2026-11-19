@@ -3,6 +3,8 @@ import {
   buildDepositAndWithdrawAuthFields,
   buildDepositAuthFields,
   buildDepositForOtherAuthFields,
+  buildReceiveAddressBoundAuthFields,
+  buildReceiveVaultRecoverAuthFields,
   buildSwapAuthFields,
   buildTransferAuthFields,
   buildWithdrawAuthFields,
@@ -13,6 +15,8 @@ import {
   buildSolanaDepositAuthFields,
   buildSolanaDepositForOtherAuthFields,
   buildSolanaPrivateSendAuthFields,
+  buildSolanaReceiveAddressBoundAuthFields,
+  buildSolanaReceiveVaultRecoverAuthFields,
   buildSolanaSwapAuthFields,
   buildSolanaTransferAuthFields,
   buildSolanaWithdrawAuthFields,
@@ -22,6 +26,8 @@ import {
   buildTronDepositAuthFields,
   buildTronDepositForOtherAuthFields,
   buildTronPrivateSendAuthFields,
+  buildTronReceiveAddressBoundAuthFields,
+  buildTronReceiveVaultRecoverAuthFields,
   buildTronTransferAuthFields,
   buildTronWithdrawAuthFields,
   buildTronWithdrawStuckUtxosAuthFields,
@@ -299,3 +305,60 @@ export const resolveSwapAuth = (
     feeAmount,
   });
 };
+
+export const resolveReceiveAddressBoundAuth = (
+  wallet: TxWallet,
+  sessionId: string,
+  chainId: number,
+  recipientAddress: string,
+): Promise<EnclaveTxAuthFields> =>
+  resolveByChain(chainId, {
+    solana: () =>
+      buildSolanaReceiveAddressBoundAuthFields(
+        sessionId,
+        requireSolanaProvider(wallet.solanaProvider),
+        chainId,
+        recipientAddress,
+      ),
+    tron: () =>
+      buildTronReceiveAddressBoundAuthFields(
+        sessionId,
+        chainId,
+        recipientAddress,
+      ),
+    evm: () =>
+      buildReceiveAddressBoundAuthFields(
+        sessionId,
+        requireEvmSigner(wallet.signer),
+        { chainId, recipientAddress },
+      ),
+  });
+
+export const resolveReceiveVaultRecoverAuth = (
+  wallet: TxWallet,
+  sessionId: string,
+  chainId: number,
+  vaultAddress: string,
+  tokenAddress: string,
+  recipientAddress: string,
+): Promise<EnclaveTxAuthFields> =>
+  resolveByChain(chainId, {
+    solana: () =>
+      buildSolanaReceiveVaultRecoverAuthFields(
+        sessionId,
+        requireSolanaProvider(wallet.solanaProvider),
+        chainId,
+        vaultAddress,
+        tokenAddress,
+        recipientAddress,
+      ),
+    tron: () =>
+      buildTronReceiveVaultRecoverAuthFields(sessionId, chainId, vaultAddress, tokenAddress, recipientAddress),
+    evm: () =>
+      buildReceiveVaultRecoverAuthFields(sessionId, requireEvmSigner(wallet.signer), {
+        chainId,
+        vaultAddress,
+        tokenAddress,
+        recipientAddress,
+      }),
+  });

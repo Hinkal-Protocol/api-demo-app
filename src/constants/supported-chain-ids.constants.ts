@@ -6,6 +6,7 @@ import {
   base,
   sepolia,
   tempoMainnet,
+  hardhat,
 } from "wagmi/chains";
 import { defineChain } from "viem";
 
@@ -44,6 +45,7 @@ export const SUPPORTED_CHAINS = [
   arcMainnet, // 5042
   arcTestnet, // 5042002
   sepolia, // 11155111
+  hardhat, // 31337 LOCAL TEST ONLY
 ] as const;
 
 export const SUPPORTED_CHAIN_IDS: number[] = SUPPORTED_CHAINS.map(

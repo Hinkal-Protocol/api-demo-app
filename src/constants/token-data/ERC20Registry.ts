@@ -22,6 +22,7 @@ export const getERC20Registry = (chainId: number): ERC20Token[] => {
       return arbMainnetRegistry.networkRegistry as ERC20Token[];
 
     case chainIds.ethMainnet:
+    case 31337: // LOCAL TEST ONLY: hardhat fork of mainnet, same token addresses
       return ethMainnetRegistry.networkRegistry as ERC20Token[];
 
     case chainIds.optimism:
@@ -46,6 +47,7 @@ export const getERC20Registry = (chainId: number): ERC20Token[] => {
       return tronMainnetRegistry.networkRegistry as ERC20Token[];
 
     case chainIds.solanaMainnet:
+    case chainIds.solanaLocalnet: // LOCAL TEST ONLY: native SOL has the same address
       return solanaMainnetRegistry.networkRegistry as ERC20Token[];
 
     case chainIds.tempo:

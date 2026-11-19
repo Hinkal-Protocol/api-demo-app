@@ -14,6 +14,7 @@ export const chainIds = {
   tronLocalnet: 103,
   tronMainnet: 728126428,
   solanaMainnet: 501,
+  solanaLocalnet: 102, // LOCAL TEST ONLY
 };
 
 export const SWAP_EXCLUDED_CHAINS: number[] = [chainIds.arcTestnet];
@@ -35,6 +36,12 @@ export const networkRegistry: Record<number, Network> = {
     name: "Optimism",
     chainId: chainIds.optimism,
     fetchRpcUrl: "https://mainnet.optimism.io",
+  },
+  // LOCAL TEST ONLY: hardhat node.
+  31337: {
+    name: "Localhost",
+    chainId: 31337,
+    fetchRpcUrl: "http://127.0.0.1:8545",
   },
   [chainIds.polygon]: {
     name: "Polygon",
@@ -81,6 +88,12 @@ export const networkRegistry: Record<number, Network> = {
     name: "Solana",
     chainId: chainIds.solanaMainnet,
     fetchRpcUrl: "https://solana-rpc.publicnode.com",
+  },
+  // LOCAL TEST ONLY
+  [chainIds.solanaLocalnet]: {
+    name: "Solana Localnet",
+    chainId: chainIds.solanaLocalnet,
+    fetchRpcUrl: "http://127.0.0.1:8899",
   },
 };
 

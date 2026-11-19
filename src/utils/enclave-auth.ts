@@ -233,6 +233,23 @@ export const buildReceiveAddressBoundAuthFields = (
     }),
   );
 
+export const buildReceiveVaultRecoverAuthFields = (
+  sessionId: string,
+  signer: ethers.Signer,
+  params: { chainId: number; vaultAddress: string; tokenAddress: string; recipientAddress: string },
+) =>
+  signEnclaveTypedData(sessionId, signer, "ReceiveVaultRecover", params.chainId, (nonce) => ({
+    nonce,
+    sessionId,
+    chainId: BigInt(params.chainId),
+    vaultAddress: params.vaultAddress,
+    tokenAddress: params.tokenAddress,
+    // The enclave checksums a hex recipient before rebuilding the typed data.
+    recipient: ethers.isAddress(params.recipientAddress)
+      ? ethers.getAddress(params.recipientAddress)
+      : params.recipientAddress,
+  }));
+
 export const buildSwapAuthFields = (
   sessionId: string,
   signer: ethers.Signer,
