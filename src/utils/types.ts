@@ -40,3 +40,6 @@ export type BoundBridgeParams = {
   destinationTokenAddress: string;
   slippagePercentage?: string;
 };
+
+/** Both stuck-fund recoveries sign the same fields; only the primary type differs. */
+export type StuckRecoveryPrimaryType = "WithdrawStuckUtxos" | "RecoverStuckBridgeBalance";

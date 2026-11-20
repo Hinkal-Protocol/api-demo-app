@@ -13,6 +13,7 @@ export type EnclaveTypedDataPrimaryType =
   | "Swap"
   | "PrivateSend"
   | "WithdrawStuckUtxos"
+  | "RecoverStuckBridgeBalance"
   | "ReceiveAddressBound"
   | "ReceiveAddressBoundBridge"
   | "ReceiveVaultRecover";
@@ -75,6 +76,13 @@ const ENCLAVE_TYPED_DATA_TYPES: Record<string, TypedDataField[]> = {
     { name: "recipients", type: "RecipientAmount[]" },
   ],
   WithdrawStuckUtxos: [
+    { name: "nonce", type: "string" },
+    { name: "sessionId", type: "string" },
+    { name: "chainId", type: "uint256" },
+    { name: "tokenAddress", type: "address" },
+    { name: "recipient", type: "address" },
+  ],
+  RecoverStuckBridgeBalance: [
     { name: "nonce", type: "string" },
     { name: "sessionId", type: "string" },
     { name: "chainId", type: "uint256" },

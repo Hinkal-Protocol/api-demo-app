@@ -6,7 +6,7 @@ import {
 } from "../constants/enclave.constants";
 import { EnclaveSessionAuthMode } from "./auth";
 import { requestSignatureGetHeader, requestSignaturePostHeader, sessionBodyParams, sessionQueryParams } from "./request-signature";
-import type { Auth, BoundBridgeParams, EnclaveTxAuthFields, TxSessionAuth } from "./types";
+import type { Auth, BoundBridgeParams, EnclaveTxAuthFields, StuckRecoveryPrimaryType, TxSessionAuth } from "./types";
 import { Recipient } from "./multiSend";
 
 type TokenAmountPair = { token: string; amount: string };
@@ -200,11 +200,12 @@ export const buildWithdrawStuckUtxosAuthFields = (
     tokenAddress: string;
     recipientAddress: string;
   },
+  primaryType: StuckRecoveryPrimaryType = "WithdrawStuckUtxos",
 ) =>
   signEnclaveTypedData(
     sessionId,
     signer,
-    "WithdrawStuckUtxos",
+    primaryType,
     params.chainId,
     (nonce) => ({
       nonce,

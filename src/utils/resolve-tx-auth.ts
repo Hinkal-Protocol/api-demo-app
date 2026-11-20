@@ -33,7 +33,7 @@ import {
   buildTronWithdrawStuckUtxosAuthFields,
 } from "./tron-auth";
 import { isTronChain } from "./tron-wallet";
-import type { BoundBridgeParams, EnclaveTxAuthFields, TxWallet } from "./types";
+import type { BoundBridgeParams, EnclaveTxAuthFields, StuckRecoveryPrimaryType, TxWallet } from "./types";
 import { isSolanaChain, SolanaWalletProvider } from "./solana-wallet";
 
 const requireSolanaProvider = (
@@ -206,6 +206,7 @@ export const resolveWithdrawStuckUtxosAuth = (
   chainId: number,
   tokenAddress: string,
   recipientAddress: string,
+  primaryType: StuckRecoveryPrimaryType = "WithdrawStuckUtxos",
 ): Promise<EnclaveTxAuthFields> =>
   resolveByChain(chainId, {
     solana: () =>
@@ -215,6 +216,7 @@ export const resolveWithdrawStuckUtxosAuth = (
         chainId,
         tokenAddress,
         recipientAddress,
+        primaryType,
       ),
     tron: () =>
       buildTronWithdrawStuckUtxosAuthFields(
@@ -222,12 +224,14 @@ export const resolveWithdrawStuckUtxosAuth = (
         chainId,
         tokenAddress,
         recipientAddress,
+        primaryType,
       ),
     evm: () =>
       buildWithdrawStuckUtxosAuthFields(
         sessionId,
         requireEvmSigner(wallet.signer),
         { chainId, tokenAddress, recipientAddress },
+        primaryType,
       ),
   });
 

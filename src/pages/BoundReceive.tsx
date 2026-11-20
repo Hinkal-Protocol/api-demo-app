@@ -26,6 +26,68 @@ import { formatUnits } from "ethers";
 import { zeroAddress } from "../constants";
 import { getSolanaBalance, isSolanaChain, SOLANA_NATIVE_ADDRESS } from "../utils/solana-wallet";
 import { isTronChain } from "../utils/tron-wallet";
+import { fetchStuckBridgeBalances } from "../utils/balance";
+import { recoverStuckBridgeBalance } from "../utils/withdraw";
+import type { TokenBalance } from "../types";
+
+// Bridge destinations with their native token and USDC/USDT, as the token registry spells them.
+const SLIPPAGE_OPTIONS = ["0.5", "1", "2", "3", "5"];
+
+const BRIDGE_DESTINATIONS: { chainId: number; name: string; tokens: { symbol: string; address: string }[] }[] = [
+  {
+    chainId: 1,
+    name: "Ethereum",
+    tokens: [
+      { symbol: "ETH", address: zeroAddress },
+      { symbol: "USDC", address: "0xA0b86991c6218b36c1d19D4a2e9Eb0cE3606eB48" },
+    ],
+  },
+  {
+    chainId: 8453,
+    name: "Base",
+    tokens: [
+      { symbol: "ETH", address: zeroAddress },
+      { symbol: "USDC", address: "0x833589fCD6eDb6E08f4c7C32D4f71b54bdA02913" },
+    ],
+  },
+  {
+    chainId: 42161,
+    name: "Arbitrum",
+    tokens: [
+      { symbol: "ETH", address: zeroAddress },
+      { symbol: "USDC", address: "0xaf88d065e77c8cc2239327c5edb3a432268e5831" },
+    ],
+  },
+  {
+    chainId: 137,
+    name: "Polygon",
+    tokens: [
+      { symbol: "POL", address: zeroAddress },
+      { symbol: "USDC", address: "0x3c499c542cEF5E3811e1192ce70d8cC03d5c3359" },
+    ],
+  },
+  {
+    chainId: 56,
+    name: "BNB Chain",
+    tokens: [
+      { symbol: "BNB", address: zeroAddress },
+      { symbol: "USDC", address: "0x8AC76a51cc950d9822D68b83fE1Ad97B32Cd580d" },
+    ],
+  },
+  {
+    chainId: 501,
+    name: "Solana",
+    tokens: [
+      { symbol: "SOL", address: "11111111111111111111111111111111" },
+      { symbol: "USDC", address: "EPjFWdd5AufqSSqeM2qN1xzybapC8G4wEGGkZwyTDt1v" },
+    ],
+  },
+  {
+    chainId: 728126428,
+    name: "Tron",
+    tokens: [{ symbol: "USDT", address: "TR7NHqjeKQxGTCi8q8ZY4pL8otSzgjLj6t" }],
+  },
+];
 
 export const BoundReceive = () => {
   const {
@@ -51,9 +113,15 @@ export const BoundReceive = () => {
   const [addresses, setAddresses] = useState<BoundReceiveRecord[]>([]);
   // Native balance per vault (EVM and Solana); Tron is not read.
   const [vaultBalances, setVaultBalances] = useState<Record<string, bigint>>({});
+  const [bridgeRefunds, setBridgeRefunds] = useState<TokenBalance[]>([]);
+  const [refundRecipient, setRefundRecipient] = useState("");
+  const [recoveringRefund, setRecoveringRefund] = useState<string | undefined>();
 
   useEffect(() => {
     setRecipientAddress("");
+    setDestinationChainId("");
+    setDestinationTokenAddress("");
+    setSlippagePercentage("");
     setRecord(undefined);
     setRecoverToken(isSolana ? SOLANA_NATIVE_ADDRESS : zeroAddress);
     setRecoverRecipient("");
@@ -91,6 +159,38 @@ export const BoundReceive = () => {
     setVaultBalances({});
     void loadAddresses();
   }, [loadAddresses]);
+
+  const loadBridgeRefunds = useCallback(async () => {
+    try {
+      if (!chainId || !sessionId || !privateKey) return;
+      setBridgeRefunds(await fetchStuckBridgeBalances({ sessionId, privateKey, chainId }));
+    } catch (err) {
+      toast.error(getFriendlyErrorMessage(err, "Fetch bridge refunds failed"));
+    }
+  }, [chainId, sessionId, privateKey]);
+
+  const handleRecoverRefund = useCallback(
+    async (tokenAddress: string) => {
+      try {
+        if (!chainId || !sessionId || !privateKey) return;
+        setRecoveringRefund(tokenAddress);
+        const recovered = await recoverStuckBridgeBalance(
+          await getWallet(),
+          { sessionId, authMode, privateKey },
+          chainId,
+          tokenAddress,
+          refundRecipient.trim(),
+        );
+        toast.success(`Recovered ${recovered}`);
+        void loadBridgeRefunds();
+      } catch (err) {
+        toast.error(getFriendlyErrorMessage(err, "Recover bridge refund failed"));
+      } finally {
+        setRecoveringRefund(undefined);
+      }
+    },
+    [chainId, sessionId, privateKey, authMode, refundRecipient, getWallet, loadBridgeRefunds],
+  );
 
   const bridge = useMemo(
     () =>
@@ -217,33 +317,52 @@ export const BoundReceive = () => {
             </p>
           )}
           <p className="text-white pl-[5%] text-[14px] font-[300]">Bridge each payment (optional)</p>
-          <input
-            type="number"
-            placeholder="Destination chain ID (empty = withdraw on this chain)"
-            className="bg-hinkal-blue-900 h-10 w-[90%] ml-[5%] rounded-lg mb-3 pl-2 outline-none placeholder:text-[13.5px] mt-1"
+          <select
+            className="bg-hinkal-blue-900 h-10 w-[90%] ml-[5%] rounded-lg mb-3 pl-2 outline-none text-[13.5px] mt-1"
             disabled={isProcessing}
-            onChange={(event) => setDestinationChainId(event.target.value)}
+            onChange={(event) => {
+              setDestinationChainId(event.target.value);
+              const destination = BRIDGE_DESTINATIONS.find(({ chainId: id }) => String(id) === event.target.value);
+              setDestinationTokenAddress(destination?.tokens.at(-1)?.address ?? "");
+            }}
             value={destinationChainId}
-          />
+          >
+            <option value="">No bridge — withdraw on this chain</option>
+            {BRIDGE_DESTINATIONS.filter(({ chainId: id }) => id !== chainId).map(({ chainId: id, name }) => (
+              <option key={id} value={id}>
+                {name} ({id})
+              </option>
+            ))}
+          </select>
           {destinationChainId && (
             <>
-              <input
-                type="text"
-                placeholder="Destination token address"
-                className="bg-hinkal-blue-900 h-10 w-[90%] ml-[5%] rounded-lg mb-3 pl-2 outline-none placeholder:text-[13.5px]"
+              <select
+                className="bg-hinkal-blue-900 h-10 w-[90%] ml-[5%] rounded-lg mb-3 pl-2 outline-none text-[13.5px]"
                 disabled={isProcessing}
                 onChange={(event) => setDestinationTokenAddress(event.target.value)}
                 value={destinationTokenAddress}
-              />
-              <input
-                type="text"
-                inputMode="decimal"
-                placeholder="Slippage % (empty = route default)"
-                className="bg-hinkal-blue-900 h-10 w-[90%] ml-[5%] rounded-lg mb-4 pl-2 outline-none placeholder:text-[13.5px]"
+              >
+                {BRIDGE_DESTINATIONS.find(({ chainId: id }) => String(id) === destinationChainId)?.tokens.map(
+                  ({ symbol, address }) => (
+                    <option key={address} value={address}>
+                      {symbol}
+                    </option>
+                  ),
+                )}
+              </select>
+              <select
+                className="bg-hinkal-blue-900 h-10 w-[90%] ml-[5%] rounded-lg mb-4 pl-2 outline-none text-[13.5px]"
                 disabled={isProcessing}
-                onChange={(event) => setSlippagePercentage(event.target.value.trim())}
+                onChange={(event) => setSlippagePercentage(event.target.value)}
                 value={slippagePercentage}
-              />
+              >
+                <option value="">Slippage: route default</option>
+                {SLIPPAGE_OPTIONS.map((option) => (
+                  <option key={option} value={option}>
+                    Slippage: {option}%
+                  </option>
+                ))}
+              </select>
             </>
           )}
         </div>
@@ -349,6 +468,34 @@ export const BoundReceive = () => {
             ))}
           </div>
         )}
+        <div className="px-[5%] mt-2 mb-4 text-[13px] text-hinkal-gray-100">
+          <div className="flex justify-between mb-1">
+            <p className="text-white text-[14px] font-[300]">Bridge refunds (temporary wallet / NEAR)</p>
+            <button type="button" className="text-white" onClick={() => void loadBridgeRefunds()}>
+              Refresh
+            </button>
+          </div>
+          <input
+            type="text"
+            placeholder="Recover to (address on this chain)"
+            className="bg-hinkal-blue-900 h-10 w-full rounded-lg mb-2 pl-2 outline-none placeholder:text-[13.5px] text-white"
+            onChange={(event) => setRefundRecipient(event.target.value)}
+            value={refundRecipient}
+          />
+          {bridgeRefunds.length === 0 && <p>None found — press Refresh.</p>}
+          {bridgeRefunds.map((refund) => (
+            <button
+              type="button"
+              key={refund.tokenAddress}
+              disabled={!refundRecipient.trim() || !!recoveringRefund}
+              onClick={() => void handleRecoverRefund(refund.tokenAddress)}
+              className="w-full text-left break-all rounded-lg p-2 mb-1 bg-hinkal-blue-900 text-white disabled:text-hinkal-gray-200"
+            >
+              {recoveringRefund === refund.tokenAddress ? "Recovering… " : "Recover "}
+              {refund.balance} · {refund.tokenAddress}
+            </button>
+          ))}
+        </div>
       </form>
     </div>
   );

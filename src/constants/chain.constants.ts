@@ -46,7 +46,7 @@ export const networkRegistry: Record<number, Network> = {
   [chainIds.polygon]: {
     name: "Polygon",
     chainId: chainIds.polygon,
-    fetchRpcUrl: "https://polygon.drpc.org",
+    fetchRpcUrl: "https://polygon-bor-rpc.publicnode.com",
   },
   [chainIds.base]: {
     name: "Base",

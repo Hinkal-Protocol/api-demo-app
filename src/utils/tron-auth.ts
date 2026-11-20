@@ -4,7 +4,7 @@ import {
   getTypesForPrimary,
 } from "../constants/enclave.constants";
 import { getTronWeb, tronBase58ToHex } from "./tron-wallet";
-import type { BoundBridgeParams, EnclaveTxAuthFields } from "./types";
+import type { BoundBridgeParams, EnclaveTxAuthFields, StuckRecoveryPrimaryType } from "./types";
 import { receiveAddressBoundPrimaryType, receiveAddressBoundTypedValue } from "./enclave-auth";
 import type { Recipient } from "./multiSend";
 
@@ -176,8 +176,9 @@ export const buildTronWithdrawStuckUtxosAuthFields = (
   chainId: number,
   tokenAddress: string,
   recipientAddress: string,
+  primaryType: StuckRecoveryPrimaryType = "WithdrawStuckUtxos",
 ): Promise<EnclaveTxAuthFields> =>
-  signTypedData(sessionId, "WithdrawStuckUtxos", chainId, (nonce) => ({
+  signTypedData(sessionId, primaryType, chainId, (nonce) => ({
     nonce,
     sessionId,
     chainId: BigInt(chainId),
