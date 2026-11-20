@@ -1,5 +1,5 @@
 import { signSolanaMessage, SolanaWalletProvider } from "./solana-wallet";
-import type { EnclaveTxAuthFields } from "./types";
+import type { BoundBridgeParams, EnclaveTxAuthFields } from "./types";
 import type { Recipient } from "./multiSend";
 
 const DOMAIN_NAME = "Hinkal Enclave";
@@ -186,11 +186,17 @@ export const buildSolanaReceiveAddressBoundAuthFields = async (
   provider: SolanaWalletProvider,
   chainId: number,
   recipientAddress: string,
+  bridge?: BoundBridgeParams,
 ): Promise<EnclaveTxAuthFields> => {
   const nonce = crypto.randomUUID();
   const message =
     `${buildHeader("ReceiveAddressBound", nonce, sessionId, chainId)}` +
-    `\nRecipient: ${recipientAddress}`;
+    `\nRecipient: ${recipientAddress}` +
+    (bridge
+      ? `\nDestination Chain ID: ${bridge.destinationChainId}` +
+        `\nDestination Token Address: ${bridge.destinationTokenAddress}` +
+        (bridge.slippagePercentage !== undefined ? `\nSlippage Percentage: ${bridge.slippagePercentage}` : "")
+      : "");
   return sign(sessionId, provider, message, nonce);
 };
 

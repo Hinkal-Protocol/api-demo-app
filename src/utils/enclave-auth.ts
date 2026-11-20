@@ -6,7 +6,7 @@ import {
 } from "../constants/enclave.constants";
 import { EnclaveSessionAuthMode } from "./auth";
 import { requestSignatureGetHeader, requestSignaturePostHeader, sessionBodyParams, sessionQueryParams } from "./request-signature";
-import type { Auth, EnclaveTxAuthFields, TxSessionAuth } from "./types";
+import type { Auth, BoundBridgeParams, EnclaveTxAuthFields, TxSessionAuth } from "./types";
 import { Recipient } from "./multiSend";
 
 type TokenAmountPair = { token: string; amount: string };
@@ -215,22 +215,41 @@ export const buildWithdrawStuckUtxosAuthFields = (
     }),
   );
 
+export const receiveAddressBoundPrimaryType = (bridge?: BoundBridgeParams) =>
+  bridge ? "ReceiveAddressBoundBridge" : "ReceiveAddressBound";
+
+// A bridged recipient lives on the destination chain, so it is signed as a plain string.
+export const receiveAddressBoundTypedValue = (
+  nonce: string,
+  sessionId: string,
+  chainId: number,
+  recipient: string,
+  bridge?: BoundBridgeParams,
+): Record<string, unknown> => ({
+  nonce,
+  sessionId,
+  chainId: BigInt(chainId),
+  recipient,
+  ...(bridge && {
+    destinationChainId: BigInt(bridge.destinationChainId),
+    destinationTokenAddress: bridge.destinationTokenAddress,
+    ...(bridge.slippagePercentage !== undefined && { slippagePercentage: bridge.slippagePercentage }),
+  }),
+});
+
 export const buildReceiveAddressBoundAuthFields = (
   sessionId: string,
   signer: ethers.Signer,
-  params: { chainId: number; recipientAddress: string },
+  params: { chainId: number; recipientAddress: string; bridge?: BoundBridgeParams },
 ) =>
-  signEnclaveTypedData(
-    sessionId,
-    signer,
-    "ReceiveAddressBound",
-    params.chainId,
-    (nonce) => ({
+  signEnclaveTypedData(sessionId, signer, receiveAddressBoundPrimaryType(params.bridge), params.chainId, (nonce) =>
+    receiveAddressBoundTypedValue(
       nonce,
       sessionId,
-      chainId: BigInt(params.chainId),
-      recipient: ethers.getAddress(params.recipientAddress),
-    }),
+      params.chainId,
+      params.bridge ? params.recipientAddress : ethers.getAddress(params.recipientAddress),
+      params.bridge,
+    ),
   );
 
 export const buildReceiveVaultRecoverAuthFields = (

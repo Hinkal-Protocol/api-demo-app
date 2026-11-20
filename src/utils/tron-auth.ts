@@ -4,7 +4,8 @@ import {
   getTypesForPrimary,
 } from "../constants/enclave.constants";
 import { getTronWeb, tronBase58ToHex } from "./tron-wallet";
-import type { EnclaveTxAuthFields } from "./types";
+import type { BoundBridgeParams, EnclaveTxAuthFields } from "./types";
+import { receiveAddressBoundPrimaryType, receiveAddressBoundTypedValue } from "./enclave-auth";
 import type { Recipient } from "./multiSend";
 
 // eslint-disable-next-line @typescript-eslint/no-explicit-any
@@ -188,13 +189,17 @@ export const buildTronReceiveAddressBoundAuthFields = (
   sessionId: string,
   chainId: number,
   recipientAddress: string,
+  bridge?: BoundBridgeParams,
 ): Promise<EnclaveTxAuthFields> =>
-  signTypedData(sessionId, "ReceiveAddressBound", chainId, (nonce) => ({
-    nonce,
-    sessionId,
-    chainId: BigInt(chainId),
-    recipient: ethers.getAddress(tronBase58ToHex(recipientAddress)),
-  }));
+  signTypedData(sessionId, receiveAddressBoundPrimaryType(bridge), chainId, (nonce) =>
+    receiveAddressBoundTypedValue(
+      nonce,
+      sessionId,
+      chainId,
+      bridge ? recipientAddress : ethers.getAddress(tronBase58ToHex(recipientAddress)),
+      bridge,
+    ),
+  );
 
 export const buildTronReceiveVaultRecoverAuthFields = (
   sessionId: string,

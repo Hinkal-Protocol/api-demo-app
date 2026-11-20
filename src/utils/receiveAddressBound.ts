@@ -5,7 +5,7 @@ import { requestSignaturePostHeader, sessionBodyParams } from "./request-signatu
 import { resolveReceiveAddressBoundAuth, resolveReceiveVaultRecoverAuth } from "./resolve-tx-auth";
 import { broadcastSolanaTransaction, isSolanaChain } from "./solana-wallet";
 import { isTronChain } from "./tron-wallet";
-import type { Auth, TxSessionAuth, TxWallet } from "./types";
+import type { Auth, BoundBridgeParams, TxSessionAuth, TxWallet } from "./types";
 
 export type BoundReceiveRecord = {
   vaultAddress: string;
@@ -19,8 +19,9 @@ export const createBoundReceiveAddress = async (
   session: TxSessionAuth,
   chainId: number,
   recipientAddress: string,
+  bridge?: BoundBridgeParams,
 ): Promise<BoundReceiveRecord> => {
-  const txParams = { recipientAddress };
+  const txParams = { recipientAddress, ...bridge };
   const { bodyJson, headers, requestNonce } = await buildAuthPost(
     session,
     chainId,
@@ -32,6 +33,7 @@ export const createBoundReceiveAddress = async (
         session.sessionId,
         chainId,
         recipientAddress,
+        bridge,
       ),
   );
 

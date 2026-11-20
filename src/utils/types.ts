@@ -33,3 +33,10 @@ export type Auth = {
   privateKey: Uint8Array;
   chainId: number;
 };
+
+/** Bridges each payment to a bound receive address to another chain. */
+export type BoundBridgeParams = {
+  destinationChainId: number;
+  destinationTokenAddress: string;
+  slippagePercentage?: string;
+};

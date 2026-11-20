@@ -33,7 +33,7 @@ import {
   buildTronWithdrawStuckUtxosAuthFields,
 } from "./tron-auth";
 import { isTronChain } from "./tron-wallet";
-import type { EnclaveTxAuthFields, TxWallet } from "./types";
+import type { BoundBridgeParams, EnclaveTxAuthFields, TxWallet } from "./types";
 import { isSolanaChain, SolanaWalletProvider } from "./solana-wallet";
 
 const requireSolanaProvider = (
@@ -311,6 +311,7 @@ export const resolveReceiveAddressBoundAuth = (
   sessionId: string,
   chainId: number,
   recipientAddress: string,
+  bridge?: BoundBridgeParams,
 ): Promise<EnclaveTxAuthFields> =>
   resolveByChain(chainId, {
     solana: () =>
@@ -319,19 +320,15 @@ export const resolveReceiveAddressBoundAuth = (
         requireSolanaProvider(wallet.solanaProvider),
         chainId,
         recipientAddress,
+        bridge,
       ),
-    tron: () =>
-      buildTronReceiveAddressBoundAuthFields(
-        sessionId,
+    tron: () => buildTronReceiveAddressBoundAuthFields(sessionId, chainId, recipientAddress, bridge),
+    evm: () =>
+      buildReceiveAddressBoundAuthFields(sessionId, requireEvmSigner(wallet.signer), {
         chainId,
         recipientAddress,
-      ),
-    evm: () =>
-      buildReceiveAddressBoundAuthFields(
-        sessionId,
-        requireEvmSigner(wallet.signer),
-        { chainId, recipientAddress },
-      ),
+        bridge,
+      }),
   });
 
 export const resolveReceiveVaultRecoverAuth = (

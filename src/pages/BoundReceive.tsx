@@ -24,7 +24,8 @@ import {
 } from "../utils/receiveAddressBound";
 import { formatUnits } from "ethers";
 import { zeroAddress } from "../constants";
-import { getSolanaBalance, SOLANA_NATIVE_ADDRESS } from "../utils/solana-wallet";
+import { getSolanaBalance, isSolanaChain, SOLANA_NATIVE_ADDRESS } from "../utils/solana-wallet";
+import { isTronChain } from "../utils/tron-wallet";
 
 export const BoundReceive = () => {
   const {
@@ -38,6 +39,9 @@ export const BoundReceive = () => {
     solanaProvider,
   } = useAppContext();
   const [recipientAddress, setRecipientAddress] = useState("");
+  const [destinationChainId, setDestinationChainId] = useState("");
+  const [destinationTokenAddress, setDestinationTokenAddress] = useState("");
+  const [slippagePercentage, setSlippagePercentage] = useState("");
   const [record, setRecord] = useState<BoundReceiveRecord | undefined>();
   const [isBound, setIsBound] = useState(true);
   const [isProcessing, setIsProcessing] = useState(false);
@@ -88,9 +92,24 @@ export const BoundReceive = () => {
     void loadAddresses();
   }, [loadAddresses]);
 
+  const bridge = useMemo(
+    () =>
+      destinationChainId
+        ? {
+            destinationChainId: Number(destinationChainId),
+            destinationTokenAddress: destinationTokenAddress.trim(),
+            ...(slippagePercentage && { slippagePercentage }),
+          }
+        : undefined,
+    [destinationChainId, destinationTokenAddress, slippagePercentage],
+  );
+  // A bridged payment lands on the destination chain, so the recipient is in that chain's format.
+  const recipientIsSolana = bridge ? isSolanaChain(bridge.destinationChainId) : isSolana;
+  const recipientIsTron = bridge ? isTronChain(bridge.destinationChainId) : isTron;
+
   const isRecipientAddressValid = useMemo(
-    () => isValidRecipientAddress(recipientAddress, isSolana, isTron),
-    [recipientAddress, isSolana, isTron],
+    () => isValidRecipientAddress(recipientAddress, recipientIsSolana, recipientIsTron),
+    [recipientAddress, recipientIsSolana, recipientIsTron],
   );
 
   const handleCreate = useCallback(async () => {
@@ -104,6 +123,7 @@ export const BoundReceive = () => {
           session,
           chainId,
           recipientAddress,
+          bridge,
         ),
       );
       setIsBound(true);
@@ -123,6 +143,7 @@ export const BoundReceive = () => {
     privateKey,
     authMode,
     recipientAddress,
+    bridge,
     getWallet,
     loadAddresses,
   ]);
@@ -167,7 +188,8 @@ export const BoundReceive = () => {
     event.preventDefault();
   };
 
-  const isDisabled = !walletAddress || !isRecipientAddressValid || isProcessing;
+  const isDisabled =
+    !walletAddress || !isRecipientAddressValid || (!!bridge && !bridge.destinationTokenAddress) || isProcessing;
 
   return (
     <div>
@@ -191,8 +213,38 @@ export const BoundReceive = () => {
           />
           {recipientAddress && !isRecipientAddressValid && walletAddress && (
             <p className="text-hinkal-red-100 text-[13px] pl-[5%] mt-1">
-              {getRecipientAddressError(isTron, isSolana, false)}
+              {getRecipientAddressError(recipientIsTron, recipientIsSolana, false)}
             </p>
+          )}
+          <p className="text-white pl-[5%] text-[14px] font-[300]">Bridge each payment (optional)</p>
+          <input
+            type="number"
+            placeholder="Destination chain ID (empty = withdraw on this chain)"
+            className="bg-hinkal-blue-900 h-10 w-[90%] ml-[5%] rounded-lg mb-3 pl-2 outline-none placeholder:text-[13.5px] mt-1"
+            disabled={isProcessing}
+            onChange={(event) => setDestinationChainId(event.target.value)}
+            value={destinationChainId}
+          />
+          {destinationChainId && (
+            <>
+              <input
+                type="text"
+                placeholder="Destination token address"
+                className="bg-hinkal-blue-900 h-10 w-[90%] ml-[5%] rounded-lg mb-3 pl-2 outline-none placeholder:text-[13.5px]"
+                disabled={isProcessing}
+                onChange={(event) => setDestinationTokenAddress(event.target.value)}
+                value={destinationTokenAddress}
+              />
+              <input
+                type="text"
+                inputMode="decimal"
+                placeholder="Slippage % (empty = route default)"
+                className="bg-hinkal-blue-900 h-10 w-[90%] ml-[5%] rounded-lg mb-4 pl-2 outline-none placeholder:text-[13.5px]"
+                disabled={isProcessing}
+                onChange={(event) => setSlippagePercentage(event.target.value.trim())}
+                value={slippagePercentage}
+              />
+            </>
           )}
         </div>
         {record && (
