@@ -6,7 +6,7 @@ import {
 } from "../constants/enclave.constants";
 import { EnclaveSessionAuthMode } from "./auth";
 import { requestSignatureGetHeader, requestSignaturePostHeader, sessionBodyParams, sessionQueryParams } from "./request-signature";
-import type { Auth, BoundBridgeParams, EnclaveTxAuthFields, StuckRecoveryPrimaryType, TxSessionAuth } from "./types";
+import type { Auth, TransferBridgeParams, EnclaveTxAuthFields, StuckRecoveryPrimaryType, TxSessionAuth } from "./types";
 import { Recipient } from "./multiSend";
 
 type TokenAmountPair = { token: string; amount: string };
@@ -216,16 +216,16 @@ export const buildWithdrawStuckUtxosAuthFields = (
     }),
   );
 
-export const receiveAddressBoundPrimaryType = (bridge?: BoundBridgeParams) =>
-  bridge ? "ReceiveAddressBoundBridge" : "ReceiveAddressBound";
+export const transferAddressPrimaryType = (bridge?: TransferBridgeParams) =>
+  bridge ? "TransferAddressBridge" : "TransferAddress";
 
 // A bridged recipient lives on the destination chain, so it is signed as a plain string.
-export const receiveAddressBoundTypedValue = (
+export const transferAddressTypedValue = (
   nonce: string,
   sessionId: string,
   chainId: number,
   recipient: string,
-  bridge?: BoundBridgeParams,
+  bridge?: TransferBridgeParams,
 ): Record<string, unknown> => ({
   nonce,
   sessionId,
@@ -238,13 +238,13 @@ export const receiveAddressBoundTypedValue = (
   }),
 });
 
-export const buildReceiveAddressBoundAuthFields = (
+export const buildTransferAddressAuthFields = (
   sessionId: string,
   signer: ethers.Signer,
-  params: { chainId: number; recipientAddress: string; bridge?: BoundBridgeParams },
+  params: { chainId: number; recipientAddress: string; bridge?: TransferBridgeParams },
 ) =>
-  signEnclaveTypedData(sessionId, signer, receiveAddressBoundPrimaryType(params.bridge), params.chainId, (nonce) =>
-    receiveAddressBoundTypedValue(
+  signEnclaveTypedData(sessionId, signer, transferAddressPrimaryType(params.bridge), params.chainId, (nonce) =>
+    transferAddressTypedValue(
       nonce,
       sessionId,
       params.chainId,

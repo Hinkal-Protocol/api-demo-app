@@ -2,33 +2,33 @@ import { buildAuthGet, buildAuthPost } from "./enclave-auth";
 import { enclaveFetch } from "./enclaveApi";
 import { requireEvmSigner } from "./ethers-wallet";
 import { requestSignaturePostHeader, sessionBodyParams } from "./request-signature";
-import { resolveReceiveAddressBoundAuth, resolveReceiveVaultRecoverAuth } from "./resolve-tx-auth";
+import { resolveTransferAddressAuth, resolveReceiveVaultRecoverAuth } from "./resolve-tx-auth";
 import { broadcastSolanaTransaction, isSolanaChain } from "./solana-wallet";
 import { isTronChain } from "./tron-wallet";
-import type { Auth, BoundBridgeParams, TxSessionAuth, TxWallet } from "./types";
+import type { Auth, TransferBridgeParams, TxSessionAuth, TxWallet } from "./types";
 
-export type BoundReceiveRecord = {
+export type ReceiveAddressRecord = {
   vaultAddress: string;
   expiry: string;
   network?: string;
   createBlockedUtxos?: boolean;
 };
 
-export const createBoundReceiveAddress = async (
+export const createTransferAddress = async (
   wallet: TxWallet,
   session: TxSessionAuth,
   chainId: number,
   recipientAddress: string,
-  bridge?: BoundBridgeParams,
-): Promise<BoundReceiveRecord> => {
+  bridge?: TransferBridgeParams,
+): Promise<ReceiveAddressRecord> => {
   const txParams = { recipientAddress, ...bridge };
   const { bodyJson, headers, requestNonce } = await buildAuthPost(
     session,
     chainId,
-    "/receive-address-bound",
+    "/transfer-address",
     txParams,
     () =>
-      resolveReceiveAddressBoundAuth(
+      resolveTransferAddressAuth(
         wallet,
         session.sessionId,
         chainId,
@@ -38,8 +38,8 @@ export const createBoundReceiveAddress = async (
   );
 
   const { res, data } = await enclaveFetch<
-    { success: true; record: BoundReceiveRecord } | { error?: string }
-  >("/receive-address-bound", requestNonce, {
+    { success: true; record: ReceiveAddressRecord } | { error?: string }
+  >("/transfer-address", requestNonce, {
     method: "POST",
     headers,
     body: bodyJson,
@@ -48,7 +48,7 @@ export const createBoundReceiveAddress = async (
   if (!res.ok || !("success" in data && data.success)) {
     throw new Error(
       (data as { error?: string }).error ??
-        "Create bound receive address failed",
+        "Create transfer address failed",
     );
   }
 
@@ -58,15 +58,15 @@ export const createBoundReceiveAddress = async (
 const failed = (data: unknown, fallback: string) =>
   new Error((data as { error?: string }).error ?? fallback);
 
-/** A plain (unbound) receive address: settles into the caller's own shielded balance. Always uses the
+/** A plain receive address: settles into the caller's own shielded balance. Always uses the
  *  session request signature, in both auth modes. */
 export const createReceiveAddress = async (
   session: TxSessionAuth,
   chainId: number,
-): Promise<BoundReceiveRecord> => {
+): Promise<ReceiveAddressRecord> => {
   const body = { ...sessionBodyParams(session, chainId), forceFresh: true };
   const { res, data } = await enclaveFetch<
-    { success: true; record: BoundReceiveRecord } | { error?: string }
+    { success: true; record: ReceiveAddressRecord } | { error?: string }
   >("/receive-address", body.nonce, {
     method: "POST",
     headers: {
@@ -80,10 +80,10 @@ export const createReceiveAddress = async (
 };
 
 /** Every receive address this account created on auth.chainId, so they can be recovered after a reload. */
-export const fetchReceiveAddresses = async (auth: Auth): Promise<BoundReceiveRecord[]> => {
+export const fetchReceiveAddresses = async (auth: Auth): Promise<ReceiveAddressRecord[]> => {
   const { queryString, headers, requestNonce } = await buildAuthGet(auth, "/receive-vault-account");
   const { res, data } = await enclaveFetch<
-    { success: true; entries: BoundReceiveRecord[] } | { error?: string }
+    { success: true; entries: ReceiveAddressRecord[] } | { error?: string }
   >(`/receive-vault-account?${queryString}`, requestNonce, { headers });
   if (!res.ok || !("success" in data && data.success)) throw failed(data, "Fetch receive addresses failed");
   // The account spans every network; keep the ones this chain can see.

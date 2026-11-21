@@ -34,8 +34,8 @@ export type Auth = {
   chainId: number;
 };
 
-/** Bridges each payment to a bound receive address to another chain. */
-export type BoundBridgeParams = {
+/** Bridges each payment to a transfer address to another chain. */
+export type TransferBridgeParams = {
   destinationChainId: number;
   destinationTokenAddress: string;
   slippagePercentage?: string;

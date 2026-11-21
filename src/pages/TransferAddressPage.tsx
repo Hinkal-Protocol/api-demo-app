@@ -16,12 +16,12 @@ import {
   isValidRecipientAddress,
 } from "../utils/recipientAddress";
 import {
-  BoundReceiveRecord,
-  createBoundReceiveAddress,
+  ReceiveAddressRecord,
+  createTransferAddress,
   createReceiveAddress,
   fetchReceiveAddresses,
   recoverReceiveVault,
-} from "../utils/receiveAddressBound";
+} from "../utils/transferAddress";
 import { formatUnits } from "ethers";
 import { zeroAddress } from "../constants";
 import { getSolanaBalance, isSolanaChain, SOLANA_NATIVE_ADDRESS } from "../utils/solana-wallet";
@@ -89,7 +89,7 @@ const BRIDGE_DESTINATIONS: { chainId: number; name: string; tokens: { symbol: st
   },
 ];
 
-export const BoundReceive = () => {
+export const TransferAddressPage = () => {
   const {
     walletAddress,
     chainId,
@@ -104,13 +104,13 @@ export const BoundReceive = () => {
   const [destinationChainId, setDestinationChainId] = useState("");
   const [destinationTokenAddress, setDestinationTokenAddress] = useState("");
   const [slippagePercentage, setSlippagePercentage] = useState("");
-  const [record, setRecord] = useState<BoundReceiveRecord | undefined>();
-  const [isBound, setIsBound] = useState(true);
+  const [record, setRecord] = useState<ReceiveAddressRecord | undefined>();
+  const [isTransfer, setIsTransfer] = useState(true);
   const [isProcessing, setIsProcessing] = useState(false);
   const [recoverToken, setRecoverToken] = useState("");
   const [recoverRecipient, setRecoverRecipient] = useState("");
   const [isRecovering, setIsRecovering] = useState(false);
-  const [addresses, setAddresses] = useState<BoundReceiveRecord[]>([]);
+  const [addresses, setAddresses] = useState<ReceiveAddressRecord[]>([]);
   // Native balance per vault (EVM and Solana); Tron is not read.
   const [vaultBalances, setVaultBalances] = useState<Record<string, bigint>>({});
   const [bridgeRefunds, setBridgeRefunds] = useState<TokenBalance[]>([]);
@@ -218,7 +218,7 @@ export const BoundReceive = () => {
       setIsProcessing(true);
       const session = { sessionId, authMode, privateKey };
       setRecord(
-        await createBoundReceiveAddress(
+        await createTransferAddress(
           await getWallet(),
           session,
           chainId,
@@ -226,12 +226,12 @@ export const BoundReceive = () => {
           bridge,
         ),
       );
-      setIsBound(true);
-      toast.success("Bound receive address created");
+      setIsTransfer(true);
+      toast.success("Transfer address created");
       void loadAddresses();
     } catch (err) {
       toast.error(
-        getFriendlyErrorMessage(err, "Create bound receive address failed"),
+        getFriendlyErrorMessage(err, "Create transfer address failed"),
       );
     } finally {
       setIsProcessing(false);
@@ -253,7 +253,7 @@ export const BoundReceive = () => {
       if (!chainId || !walletAddress || !sessionId || !privateKey) return;
       setIsProcessing(true);
       setRecord(await createReceiveAddress({ sessionId, authMode, privateKey }, chainId));
-      setIsBound(false);
+      setIsTransfer(false);
       toast.success("Normal receive address created");
       void loadAddresses();
     } catch (err) {
@@ -296,14 +296,14 @@ export const BoundReceive = () => {
       <form className="rounded-lg" onSubmit={handleSubmit}>
         <div className="text-white">
           <label
-            htmlFor="recipientAddressBoundReceive"
+            htmlFor="recipientAddressTransferAddress"
             className="text-white pl-[5%] text-[14px] font-[300]"
           >
             Withdraw recipient{" "}
           </label>
           <br />
           <input
-            id="recipientAddressBoundReceive"
+            id="recipientAddressTransferAddress"
             type="text"
             placeholder="Funds sent to the address below go here"
             className="bg-hinkal-blue-900 h-10 w-[90%] ml-[5%] rounded-lg mb-4 pl-2 outline-none placeholder:text-[13.5px] mt-1"
@@ -368,7 +368,7 @@ export const BoundReceive = () => {
         </div>
         {record && (
           <div className="px-[5%] mb-2 text-[13px] text-hinkal-gray-100 break-all">
-            <p>{isBound ? "Bound address" : "Normal address"} — send tokens to:</p>
+            <p>{isTransfer ? "Transfer address" : "Normal address"} — send tokens to:</p>
             <button
               type="button"
               className="text-white text-left"
@@ -429,7 +429,7 @@ export const BoundReceive = () => {
               <span>Creating</span> <Spinner />
             </div>
           ) : (
-            <span>Create bound address</span>
+            <span>Create transfer address</span>
           )}
         </button>
         <button
@@ -438,7 +438,7 @@ export const BoundReceive = () => {
           onClick={handleCreateNormal}
           className="w-[90%] mb-3 mx-[5%] rounded-lg h-10 text-sm font-semibold outline-none bg-hinkal-blue-900 text-white disabled:text-hinkal-gray-200 disabled:cursor-not-allowed"
         >
-          Create normal (unbound) address
+          Create normal address
         </button>
         {addresses.length > 0 && (
           <div className="px-[5%] mt-2 mb-4 text-[13px] text-hinkal-gray-100">
@@ -454,14 +454,14 @@ export const BoundReceive = () => {
                 key={entry.vaultAddress}
                 onClick={() => {
                   setRecord(entry);
-                  setIsBound(!!entry.createBlockedUtxos);
+                  setIsTransfer(!!entry.createBlockedUtxos);
                   setRecoverToken(isSolana ? SOLANA_NATIVE_ADDRESS : zeroAddress);
                 }}
                 className={`w-full text-left break-all rounded-lg p-2 mb-1 bg-hinkal-blue-900 ${
                   record?.vaultAddress === entry.vaultAddress ? "text-white" : ""
                 }`}
               >
-                {entry.createBlockedUtxos ? "bound" : "normal"} · {entry.vaultAddress}
+                {entry.createBlockedUtxos ? "transfer" : "normal"} · {entry.vaultAddress}
                 {entry.vaultAddress in vaultBalances &&
                   ` · ${formatUnits(vaultBalances[entry.vaultAddress], isSolana ? 9 : 18)} native`}
               </button>

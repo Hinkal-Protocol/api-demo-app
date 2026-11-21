@@ -1,5 +1,5 @@
 import { signSolanaMessage, SolanaWalletProvider } from "./solana-wallet";
-import type { BoundBridgeParams, EnclaveTxAuthFields, StuckRecoveryPrimaryType } from "./types";
+import type { TransferBridgeParams, EnclaveTxAuthFields, StuckRecoveryPrimaryType } from "./types";
 import type { Recipient } from "./multiSend";
 
 const DOMAIN_NAME = "Hinkal Enclave";
@@ -182,16 +182,16 @@ export const buildSolanaWithdrawStuckUtxosAuthFields = async (
   return sign(sessionId, provider, message, nonce);
 };
 
-export const buildSolanaReceiveAddressBoundAuthFields = async (
+export const buildSolanaTransferAddressAuthFields = async (
   sessionId: string,
   provider: SolanaWalletProvider,
   chainId: number,
   recipientAddress: string,
-  bridge?: BoundBridgeParams,
+  bridge?: TransferBridgeParams,
 ): Promise<EnclaveTxAuthFields> => {
   const nonce = crypto.randomUUID();
   const message =
-    `${buildHeader("ReceiveAddressBound", nonce, sessionId, chainId)}` +
+    `${buildHeader("TransferAddress", nonce, sessionId, chainId)}` +
     `\nRecipient: ${recipientAddress}` +
     (bridge
       ? `\nDestination Chain ID: ${bridge.destinationChainId}` +

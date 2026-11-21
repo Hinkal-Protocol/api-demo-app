@@ -3,7 +3,7 @@ import {
   buildDepositAndWithdrawAuthFields,
   buildDepositAuthFields,
   buildDepositForOtherAuthFields,
-  buildReceiveAddressBoundAuthFields,
+  buildTransferAddressAuthFields,
   buildReceiveVaultRecoverAuthFields,
   buildSwapAuthFields,
   buildTransferAuthFields,
@@ -15,7 +15,7 @@ import {
   buildSolanaDepositAuthFields,
   buildSolanaDepositForOtherAuthFields,
   buildSolanaPrivateSendAuthFields,
-  buildSolanaReceiveAddressBoundAuthFields,
+  buildSolanaTransferAddressAuthFields,
   buildSolanaReceiveVaultRecoverAuthFields,
   buildSolanaSwapAuthFields,
   buildSolanaTransferAuthFields,
@@ -26,14 +26,14 @@ import {
   buildTronDepositAuthFields,
   buildTronDepositForOtherAuthFields,
   buildTronPrivateSendAuthFields,
-  buildTronReceiveAddressBoundAuthFields,
+  buildTronTransferAddressAuthFields,
   buildTronReceiveVaultRecoverAuthFields,
   buildTronTransferAuthFields,
   buildTronWithdrawAuthFields,
   buildTronWithdrawStuckUtxosAuthFields,
 } from "./tron-auth";
 import { isTronChain } from "./tron-wallet";
-import type { BoundBridgeParams, EnclaveTxAuthFields, StuckRecoveryPrimaryType, TxWallet } from "./types";
+import type { TransferBridgeParams, EnclaveTxAuthFields, StuckRecoveryPrimaryType, TxWallet } from "./types";
 import { isSolanaChain, SolanaWalletProvider } from "./solana-wallet";
 
 const requireSolanaProvider = (
@@ -310,25 +310,25 @@ export const resolveSwapAuth = (
   });
 };
 
-export const resolveReceiveAddressBoundAuth = (
+export const resolveTransferAddressAuth = (
   wallet: TxWallet,
   sessionId: string,
   chainId: number,
   recipientAddress: string,
-  bridge?: BoundBridgeParams,
+  bridge?: TransferBridgeParams,
 ): Promise<EnclaveTxAuthFields> =>
   resolveByChain(chainId, {
     solana: () =>
-      buildSolanaReceiveAddressBoundAuthFields(
+      buildSolanaTransferAddressAuthFields(
         sessionId,
         requireSolanaProvider(wallet.solanaProvider),
         chainId,
         recipientAddress,
         bridge,
       ),
-    tron: () => buildTronReceiveAddressBoundAuthFields(sessionId, chainId, recipientAddress, bridge),
+    tron: () => buildTronTransferAddressAuthFields(sessionId, chainId, recipientAddress, bridge),
     evm: () =>
-      buildReceiveAddressBoundAuthFields(sessionId, requireEvmSigner(wallet.signer), {
+      buildTransferAddressAuthFields(sessionId, requireEvmSigner(wallet.signer), {
         chainId,
         recipientAddress,
         bridge,
