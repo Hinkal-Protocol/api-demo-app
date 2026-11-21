@@ -33,3 +33,13 @@ export type Auth = {
   privateKey: Uint8Array;
   chainId: number;
 };
+
+/** Bridges each payment to a transfer address to another chain. */
+export type TransferBridgeParams = {
+  destinationChainId: number;
+  destinationTokenAddress: string;
+  slippagePercentage?: string;
+};
+
+/** Both stuck-fund recoveries sign the same fields; only the primary type differs. */
+export type StuckRecoveryPrimaryType = "WithdrawStuckUtxos" | "RecoverStuckBridgeBalance";

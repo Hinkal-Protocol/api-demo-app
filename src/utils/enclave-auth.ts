@@ -6,7 +6,7 @@ import {
 } from "../constants/enclave.constants";
 import { EnclaveSessionAuthMode } from "./auth";
 import { requestSignatureGetHeader, requestSignaturePostHeader, sessionBodyParams, sessionQueryParams } from "./request-signature";
-import type { Auth, EnclaveTxAuthFields, TxSessionAuth } from "./types";
+import type { Auth, TransferBridgeParams, EnclaveTxAuthFields, StuckRecoveryPrimaryType, TxSessionAuth } from "./types";
 import { Recipient } from "./multiSend";
 
 type TokenAmountPair = { token: string; amount: string };
@@ -200,11 +200,12 @@ export const buildWithdrawStuckUtxosAuthFields = (
     tokenAddress: string;
     recipientAddress: string;
   },
+  primaryType: StuckRecoveryPrimaryType = "WithdrawStuckUtxos",
 ) =>
   signEnclaveTypedData(
     sessionId,
     signer,
-    "WithdrawStuckUtxos",
+    primaryType,
     params.chainId,
     (nonce) => ({
       nonce,
@@ -214,6 +215,60 @@ export const buildWithdrawStuckUtxosAuthFields = (
       recipient: ethers.getAddress(params.recipientAddress),
     }),
   );
+
+export const transferAddressPrimaryType = (bridge?: TransferBridgeParams) =>
+  bridge ? "TransferAddressBridge" : "TransferAddress";
+
+// A bridged recipient lives on the destination chain, so it is signed as a plain string.
+export const transferAddressTypedValue = (
+  nonce: string,
+  sessionId: string,
+  chainId: number,
+  recipient: string,
+  bridge?: TransferBridgeParams,
+): Record<string, unknown> => ({
+  nonce,
+  sessionId,
+  chainId: BigInt(chainId),
+  recipient,
+  ...(bridge && {
+    destinationChainId: BigInt(bridge.destinationChainId),
+    destinationTokenAddress: bridge.destinationTokenAddress,
+    ...(bridge.slippagePercentage !== undefined && { slippagePercentage: bridge.slippagePercentage }),
+  }),
+});
+
+export const buildTransferAddressAuthFields = (
+  sessionId: string,
+  signer: ethers.Signer,
+  params: { chainId: number; recipientAddress: string; bridge?: TransferBridgeParams },
+) =>
+  signEnclaveTypedData(sessionId, signer, transferAddressPrimaryType(params.bridge), params.chainId, (nonce) =>
+    transferAddressTypedValue(
+      nonce,
+      sessionId,
+      params.chainId,
+      params.bridge ? params.recipientAddress : ethers.getAddress(params.recipientAddress),
+      params.bridge,
+    ),
+  );
+
+export const buildReceiveVaultRecoverAuthFields = (
+  sessionId: string,
+  signer: ethers.Signer,
+  params: { chainId: number; vaultAddress: string; tokenAddress: string; recipientAddress: string },
+) =>
+  signEnclaveTypedData(sessionId, signer, "ReceiveVaultRecover", params.chainId, (nonce) => ({
+    nonce,
+    sessionId,
+    chainId: BigInt(params.chainId),
+    vaultAddress: params.vaultAddress,
+    tokenAddress: params.tokenAddress,
+    // The enclave checksums a hex recipient before rebuilding the typed data.
+    recipient: ethers.isAddress(params.recipientAddress)
+      ? ethers.getAddress(params.recipientAddress)
+      : params.recipientAddress,
+  }));
 
 export const buildSwapAuthFields = (
   sessionId: string,

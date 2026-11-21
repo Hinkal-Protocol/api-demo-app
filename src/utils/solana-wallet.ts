@@ -9,6 +9,10 @@ const ASSOCIATED_TOKEN_PROGRAM_ID = new PublicKey(
 );
 const SOLANA_MAINNET_CHAIN = "solana:mainnet";
 
+/** Native SOL balance in lamports, read from the demo's RPC rather than the wallet's network. */
+export const getSolanaBalance = async (address: string): Promise<bigint> =>
+  BigInt(await new Connection(SOLANA_RPC, "confirmed").getBalance(new PublicKey(address)));
+
 declare global {
   interface Window {
     // eslint-disable-next-line @typescript-eslint/no-explicit-any

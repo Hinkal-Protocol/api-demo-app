@@ -3,6 +3,8 @@ import {
   buildDepositAndWithdrawAuthFields,
   buildDepositAuthFields,
   buildDepositForOtherAuthFields,
+  buildTransferAddressAuthFields,
+  buildReceiveVaultRecoverAuthFields,
   buildSwapAuthFields,
   buildTransferAuthFields,
   buildWithdrawAuthFields,
@@ -13,6 +15,8 @@ import {
   buildSolanaDepositAuthFields,
   buildSolanaDepositForOtherAuthFields,
   buildSolanaPrivateSendAuthFields,
+  buildSolanaTransferAddressAuthFields,
+  buildSolanaReceiveVaultRecoverAuthFields,
   buildSolanaSwapAuthFields,
   buildSolanaTransferAuthFields,
   buildSolanaWithdrawAuthFields,
@@ -22,12 +26,14 @@ import {
   buildTronDepositAuthFields,
   buildTronDepositForOtherAuthFields,
   buildTronPrivateSendAuthFields,
+  buildTronTransferAddressAuthFields,
+  buildTronReceiveVaultRecoverAuthFields,
   buildTronTransferAuthFields,
   buildTronWithdrawAuthFields,
   buildTronWithdrawStuckUtxosAuthFields,
 } from "./tron-auth";
 import { isTronChain } from "./tron-wallet";
-import type { EnclaveTxAuthFields, TxWallet } from "./types";
+import type { TransferBridgeParams, EnclaveTxAuthFields, StuckRecoveryPrimaryType, TxWallet } from "./types";
 import { isSolanaChain, SolanaWalletProvider } from "./solana-wallet";
 
 const requireSolanaProvider = (
@@ -200,6 +206,7 @@ export const resolveWithdrawStuckUtxosAuth = (
   chainId: number,
   tokenAddress: string,
   recipientAddress: string,
+  primaryType: StuckRecoveryPrimaryType = "WithdrawStuckUtxos",
 ): Promise<EnclaveTxAuthFields> =>
   resolveByChain(chainId, {
     solana: () =>
@@ -209,6 +216,7 @@ export const resolveWithdrawStuckUtxosAuth = (
         chainId,
         tokenAddress,
         recipientAddress,
+        primaryType,
       ),
     tron: () =>
       buildTronWithdrawStuckUtxosAuthFields(
@@ -216,12 +224,14 @@ export const resolveWithdrawStuckUtxosAuth = (
         chainId,
         tokenAddress,
         recipientAddress,
+        primaryType,
       ),
     evm: () =>
       buildWithdrawStuckUtxosAuthFields(
         sessionId,
         requireEvmSigner(wallet.signer),
         { chainId, tokenAddress, recipientAddress },
+        primaryType,
       ),
   });
 
@@ -299,3 +309,57 @@ export const resolveSwapAuth = (
     feeAmount,
   });
 };
+
+export const resolveTransferAddressAuth = (
+  wallet: TxWallet,
+  sessionId: string,
+  chainId: number,
+  recipientAddress: string,
+  bridge?: TransferBridgeParams,
+): Promise<EnclaveTxAuthFields> =>
+  resolveByChain(chainId, {
+    solana: () =>
+      buildSolanaTransferAddressAuthFields(
+        sessionId,
+        requireSolanaProvider(wallet.solanaProvider),
+        chainId,
+        recipientAddress,
+        bridge,
+      ),
+    tron: () => buildTronTransferAddressAuthFields(sessionId, chainId, recipientAddress, bridge),
+    evm: () =>
+      buildTransferAddressAuthFields(sessionId, requireEvmSigner(wallet.signer), {
+        chainId,
+        recipientAddress,
+        bridge,
+      }),
+  });
+
+export const resolveReceiveVaultRecoverAuth = (
+  wallet: TxWallet,
+  sessionId: string,
+  chainId: number,
+  vaultAddress: string,
+  tokenAddress: string,
+  recipientAddress: string,
+): Promise<EnclaveTxAuthFields> =>
+  resolveByChain(chainId, {
+    solana: () =>
+      buildSolanaReceiveVaultRecoverAuthFields(
+        sessionId,
+        requireSolanaProvider(wallet.solanaProvider),
+        chainId,
+        vaultAddress,
+        tokenAddress,
+        recipientAddress,
+      ),
+    tron: () =>
+      buildTronReceiveVaultRecoverAuthFields(sessionId, chainId, vaultAddress, tokenAddress, recipientAddress),
+    evm: () =>
+      buildReceiveVaultRecoverAuthFields(sessionId, requireEvmSigner(wallet.signer), {
+        chainId,
+        vaultAddress,
+        tokenAddress,
+        recipientAddress,
+      }),
+  });

@@ -68,6 +68,13 @@ export const NavigationBar = ({
             onClick={() => setActiveTab(AppTab.MultiSend)}
           />
         </div>
+        <div className={buttonClassName}>
+          <TabButton
+            isActive={activeTab === AppTab.TransferAddress}
+            title="Transfer Address"
+            onClick={() => setActiveTab(AppTab.TransferAddress)}
+          />
+        </div>
       </div>
     </div>
   );

@@ -8,7 +8,7 @@ type BalanceResponse =
   | { error?: string };
 
 const fetchBalanceEndpoint = async (
-  endpoint: "balance" | "stuck-utxo-balance",
+  endpoint: "balance" | "stuck-utxo-balance" | "stuck-bridge-balance",
   auth: Auth,
   signal?: AbortSignal,
 ): Promise<TokenBalance[]> => {
@@ -24,9 +24,7 @@ const fetchBalanceEndpoint = async (
     const errorMessage = "error" in data ? data.error : undefined;
     throw new Error(
       errorMessage ??
-        (endpoint === "balance"
-          ? "Balance fetch failed"
-          : "Stuck UTXO balance fetch failed"),
+        (endpoint === "balance" ? "Balance fetch failed" : `${endpoint} fetch failed`),
     );
   }
 
@@ -46,5 +44,14 @@ export const fetchStuckUtxoBalances = async (
   signal?: AbortSignal,
 ): Promise<TokenBalance[]> => {
   const balances = await fetchBalanceEndpoint("stuck-utxo-balance", auth, signal);
+  return balances.filter((b) => b.balance !== "0");
+};
+
+/** Bridge refunds parked in a temporary wallet or the NEAR Intents account, on auth.chainId. */
+export const fetchStuckBridgeBalances = async (
+  auth: Auth,
+  signal?: AbortSignal,
+): Promise<TokenBalance[]> => {
+  const balances = await fetchBalanceEndpoint("stuck-bridge-balance", auth, signal);
   return balances.filter((b) => b.balance !== "0");
 };

@@ -1,5 +1,5 @@
 import { signSolanaMessage, SolanaWalletProvider } from "./solana-wallet";
-import type { EnclaveTxAuthFields } from "./types";
+import type { TransferBridgeParams, EnclaveTxAuthFields, StuckRecoveryPrimaryType } from "./types";
 import type { Recipient } from "./multiSend";
 
 const DOMAIN_NAME = "Hinkal Enclave";
@@ -172,10 +172,47 @@ export const buildSolanaWithdrawStuckUtxosAuthFields = async (
   chainId: number,
   tokenAddress: string,
   recipientAddress: string,
+  primaryType: StuckRecoveryPrimaryType = "WithdrawStuckUtxos",
 ): Promise<EnclaveTxAuthFields> => {
   const nonce = crypto.randomUUID();
   const message =
-    `${buildHeader("WithdrawStuckUtxos", nonce, sessionId, chainId)}` +
+    `${buildHeader(primaryType, nonce, sessionId, chainId)}` +
+    `\nToken Address: ${tokenAddress}` +
+    `\nRecipient: ${recipientAddress}`;
+  return sign(sessionId, provider, message, nonce);
+};
+
+export const buildSolanaTransferAddressAuthFields = async (
+  sessionId: string,
+  provider: SolanaWalletProvider,
+  chainId: number,
+  recipientAddress: string,
+  bridge?: TransferBridgeParams,
+): Promise<EnclaveTxAuthFields> => {
+  const nonce = crypto.randomUUID();
+  const message =
+    `${buildHeader("TransferAddress", nonce, sessionId, chainId)}` +
+    `\nRecipient: ${recipientAddress}` +
+    (bridge
+      ? `\nDestination Chain ID: ${bridge.destinationChainId}` +
+        `\nDestination Token Address: ${bridge.destinationTokenAddress}` +
+        (bridge.slippagePercentage !== undefined ? `\nSlippage Percentage: ${bridge.slippagePercentage}` : "")
+      : "");
+  return sign(sessionId, provider, message, nonce);
+};
+
+export const buildSolanaReceiveVaultRecoverAuthFields = async (
+  sessionId: string,
+  provider: SolanaWalletProvider,
+  chainId: number,
+  vaultAddress: string,
+  tokenAddress: string,
+  recipientAddress: string,
+): Promise<EnclaveTxAuthFields> => {
+  const nonce = crypto.randomUUID();
+  const message =
+    `${buildHeader("ReceiveVaultRecover", nonce, sessionId, chainId)}` +
+    `\nVault Address: ${vaultAddress}` +
     `\nToken Address: ${tokenAddress}` +
     `\nRecipient: ${recipientAddress}`;
   return sign(sessionId, provider, message, nonce);

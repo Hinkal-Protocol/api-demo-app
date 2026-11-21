@@ -98,3 +98,43 @@ export const withdrawStuckUtxos = async (
 
   return data.txHashes;
 };
+
+/** Recovers a stuck bridge balance (temporary wallet or NEAR Intents refund) of one token to recipientAddress. */
+export const recoverStuckBridgeBalance = async (
+  wallet: TxWallet,
+  session: TxSessionAuth,
+  chainId: number,
+  tokenAddress: string,
+  recipientAddress: string,
+): Promise<string> => {
+  const txParams = { tokenAddress, recipientAddress };
+  const { bodyJson, headers, requestNonce } = await buildAuthPost(
+    session,
+    chainId,
+    "/recover-stuck-bridge-balance",
+    txParams,
+    () =>
+      resolveWithdrawStuckUtxosAuth(
+        wallet,
+        session.sessionId,
+        chainId,
+        tokenAddress,
+        recipientAddress,
+        "RecoverStuckBridgeBalance",
+      ),
+  );
+
+  const { res, data } = await enclaveFetch<
+    { success: true; recoveredAmount: string; failedCount: number } | { error?: string }
+  >("/recover-stuck-bridge-balance", requestNonce, {
+    method: "POST",
+    headers,
+    body: bodyJson,
+  });
+
+  if (!res.ok || !("success" in data && data.success)) {
+    throw new Error((data as { error?: string }).error ?? "Recover stuck bridge balance failed");
+  }
+
+  return data.recoveredAmount;
+};
