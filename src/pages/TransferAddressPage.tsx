@@ -18,6 +18,7 @@ import {
 import {
   ReceiveAddressRecord,
   createTransferAddress,
+  createTransferAddressWithApiKey,
   createReceiveAddress,
   fetchReceiveAddresses,
   recoverReceiveVault,
@@ -33,6 +34,7 @@ import { isTronChain } from "../utils/tron-wallet";
 import { fetchStuckBalances } from "../utils/balance";
 import { recoverStuckBalance } from "../utils/withdraw";
 import type { TokenBalance } from "../types";
+import type { ReceiveVaultNetwork } from "../utils/types";
 
 // Bridge destinations with their native token and USDC/USDT, as the token registry spells them.
 const SLIPPAGE_OPTIONS = ["0.5", "1", "2", "3", "5"];
@@ -112,6 +114,10 @@ export const TransferAddressPage = () => {
     solanaProvider,
   } = useAppContext();
   const [recipientAddress, setRecipientAddress] = useState("");
+  const [refundTo, setRefundTo] = useState("");
+  // The API-key route needs no wallet, so its network is picked here.
+  const [apiKeyNetwork, setApiKeyNetwork] = useState<ReceiveVaultNetwork>("evm");
+  const [acceptedChainIds, setAcceptedChainIds] = useState<number[]>([]);
   const [destinationChainId, setDestinationChainId] = useState("");
   const [destinationTokenAddress, setDestinationTokenAddress] = useState("");
   const [slippagePercentage, setSlippagePercentage] = useState("");
@@ -134,6 +140,7 @@ export const TransferAddressPage = () => {
 
   useEffect(() => {
     setRecipientAddress("");
+    setRefundTo("");
     setDestinationChainId("");
     setDestinationTokenAddress("");
     setSlippagePercentage("");
@@ -288,6 +295,7 @@ export const TransferAddressPage = () => {
           bridge,
         ),
       );
+      setAcceptedChainIds([]);
       setIsTransfer(true);
       toast.success("Transfer address created");
       void loadAddresses();
@@ -309,6 +317,39 @@ export const TransferAddressPage = () => {
     getWallet,
     loadAddresses,
   ]);
+
+  // Without a bridge the recipient is paid on the vault's network, so it is in that network's format.
+  const isApiKeyRecipientValid = useMemo(
+    () =>
+      isValidRecipientAddress(
+        recipientAddress,
+        bridge ? isSolanaChain(bridge.destinationChainId) : apiKeyNetwork === "solana",
+        bridge ? isTronChain(bridge.destinationChainId) : apiKeyNetwork === "tron",
+      ),
+    [recipientAddress, bridge, apiKeyNetwork],
+  );
+
+  const handleCreateWithApiKey = useCallback(async () => {
+    try {
+      setIsProcessing(true);
+      const created = await createTransferAddressWithApiKey(
+        apiKeyNetwork,
+        recipientAddress.trim(),
+        refundTo.trim(),
+        bridge,
+      );
+      setRecord(created.record);
+      setAcceptedChainIds(created.acceptedChainIds);
+      setIsTransfer(true);
+      toast.success("Transfer address created (API key)");
+    } catch (err) {
+      toast.error(
+        getFriendlyErrorMessage(err, "Create transfer address failed"),
+      );
+    } finally {
+      setIsProcessing(false);
+    }
+  }, [apiKeyNetwork, recipientAddress, refundTo, bridge]);
 
   const handleCreateNormal = useCallback(async () => {
     try {
@@ -531,6 +572,45 @@ export const TransferAddressPage = () => {
             <span>Create transfer address</span>
           )}
         </button>
+        <select
+          className="bg-hinkal-blue-900 h-10 w-[90%] ml-[5%] rounded-lg mb-3 pl-2 outline-none text-[13.5px] text-white"
+          disabled={isProcessing}
+          onChange={(event) =>
+            setApiKeyNetwork(event.target.value as ReceiveVaultNetwork)
+          }
+          value={apiKeyNetwork}
+        >
+          <option value="evm">Network for API key route: EVM</option>
+          <option value="solana">Network for API key route: Solana</option>
+          <option value="tron">Network for API key route: Tron</option>
+        </select>
+        <input
+          type="text"
+          placeholder="Refund to (address on this network) — API key route"
+          className="bg-hinkal-blue-900 h-10 w-[90%] ml-[5%] rounded-lg mb-3 pl-2 outline-none placeholder:text-[13.5px] text-white"
+          disabled={isProcessing}
+          onChange={(event) => setRefundTo(event.target.value)}
+          value={refundTo}
+        />
+        <button
+          type="button"
+          disabled={
+            !isApiKeyRecipientValid ||
+            (!!bridge && !bridge.destinationTokenAddress) ||
+            !refundTo.trim() ||
+            isProcessing
+          }
+          onClick={handleCreateWithApiKey}
+          className="w-[90%] mb-3 mx-[5%] rounded-lg h-10 text-sm font-semibold outline-none bg-hinkal-blue-900 text-white disabled:text-hinkal-gray-200 disabled:cursor-not-allowed"
+        >
+          Create transfer address (API key, no signature)
+        </button>
+        {acceptedChainIds.length > 0 && (
+          <p className="px-[5%] mb-3 text-[13px] text-hinkal-gray-100">
+            API key address accepts payments on chains:{" "}
+            {acceptedChainIds.join(", ")}
+          </p>
+        )}
         <button
           type="button"
           disabled={!walletAddress || isProcessing}
