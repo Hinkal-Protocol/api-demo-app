@@ -4,8 +4,8 @@ import {
   getTypesForPrimary,
 } from "../constants/enclave.constants";
 import { getTronWeb, tronBase58ToHex } from "./tron-wallet";
-import type { TransferBridgeParams, EnclaveTxAuthFields, StuckRecoveryPrimaryType } from "./types";
-import { transferAddressPrimaryType, transferAddressTypedValue } from "./enclave-auth";
+import type { TransferBridgeParams, EnclaveTxAuthFields, RecoverStuckBalanceParams } from "./types";
+import { recoverStuckBalanceTypedValue, transferAddressPrimaryType, transferAddressTypedValue } from "./enclave-auth";
 import type { Recipient } from "./multiSend";
 
 // eslint-disable-next-line @typescript-eslint/no-explicit-any
@@ -171,20 +171,14 @@ export const buildTronPrivateSendAuthFields = (
     return value;
   });
 
-export const buildTronWithdrawStuckUtxosAuthFields = (
+export const buildTronRecoverStuckBalanceAuthFields = (
   sessionId: string,
   chainId: number,
-  tokenAddress: string,
-  recipientAddress: string,
-  primaryType: StuckRecoveryPrimaryType = "WithdrawStuckUtxos",
+  params: RecoverStuckBalanceParams,
 ): Promise<EnclaveTxAuthFields> =>
-  signTypedData(sessionId, primaryType, chainId, (nonce) => ({
-    nonce,
-    sessionId,
-    chainId: BigInt(chainId),
-    tokenAddress: ethers.getAddress(tokenAddress),
-    recipient: ethers.getAddress(recipientAddress),
-  }));
+  signTypedData(sessionId, "RecoverStuckBalance", chainId, (nonce) =>
+    recoverStuckBalanceTypedValue(nonce, sessionId, chainId, params),
+  );
 
 export const buildTronTransferAddressAuthFields = (
   sessionId: string,
@@ -201,19 +195,3 @@ export const buildTronTransferAddressAuthFields = (
       bridge,
     ),
   );
-
-export const buildTronReceiveVaultRecoverAuthFields = (
-  sessionId: string,
-  chainId: number,
-  vaultAddress: string,
-  tokenAddress: string,
-  recipientAddress: string,
-): Promise<EnclaveTxAuthFields> =>
-  signTypedData(sessionId, "ReceiveVaultRecover", chainId, (nonce) => ({
-    nonce,
-    sessionId,
-    chainId: BigInt(chainId),
-    vaultAddress,
-    tokenAddress,
-    recipient: recipientAddress,
-  }));

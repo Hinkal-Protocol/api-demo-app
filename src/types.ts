@@ -47,6 +47,13 @@ export interface TokenBalance {
   balance: string;
 }
 
+export type StuckBalanceKind = "utxo" | "bridge" | "vault";
+
+/** One token's stuck total and where it sits; vaultAddress only on vault sources. */
+export interface StuckBalance extends TokenBalance {
+  sources: { kind: StuckBalanceKind; amount: string; vaultAddress?: string }[];
+}
+
 export interface NFT {
   tokenId: number;
   image?: string;

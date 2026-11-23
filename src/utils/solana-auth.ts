@@ -1,5 +1,5 @@
 import { signSolanaMessage, SolanaWalletProvider } from "./solana-wallet";
-import type { TransferBridgeParams, EnclaveTxAuthFields, StuckRecoveryPrimaryType } from "./types";
+import type { TransferBridgeParams, EnclaveTxAuthFields, RecoverStuckBalanceParams } from "./types";
 import type { Recipient } from "./multiSend";
 
 const DOMAIN_NAME = "Hinkal Enclave";
@@ -166,19 +166,19 @@ export const buildSolanaSwapAuthFields = async (
   return sign(sessionId, provider, message, nonce);
 };
 
-export const buildSolanaWithdrawStuckUtxosAuthFields = async (
+export const buildSolanaRecoverStuckBalanceAuthFields = async (
   sessionId: string,
   provider: SolanaWalletProvider,
   chainId: number,
-  tokenAddress: string,
-  recipientAddress: string,
-  primaryType: StuckRecoveryPrimaryType = "WithdrawStuckUtxos",
+  { tokenAddress, recipientAddress, kind, vaultAddress }: RecoverStuckBalanceParams,
 ): Promise<EnclaveTxAuthFields> => {
   const nonce = crypto.randomUUID();
   const message =
-    `${buildHeader(primaryType, nonce, sessionId, chainId)}` +
+    `${buildHeader("RecoverStuckBalance", nonce, sessionId, chainId)}` +
     `\nToken Address: ${tokenAddress}` +
-    `\nRecipient: ${recipientAddress}`;
+    `\nRecipient: ${recipientAddress}` +
+    `\nKind: ${kind}` +
+    `\nVault Address: ${vaultAddress ?? ""}`;
   return sign(sessionId, provider, message, nonce);
 };
 
@@ -198,22 +198,5 @@ export const buildSolanaTransferAddressAuthFields = async (
         `\nDestination Token Address: ${bridge.destinationTokenAddress}` +
         (bridge.slippagePercentage !== undefined ? `\nSlippage Percentage: ${bridge.slippagePercentage}` : "")
       : "");
-  return sign(sessionId, provider, message, nonce);
-};
-
-export const buildSolanaReceiveVaultRecoverAuthFields = async (
-  sessionId: string,
-  provider: SolanaWalletProvider,
-  chainId: number,
-  vaultAddress: string,
-  tokenAddress: string,
-  recipientAddress: string,
-): Promise<EnclaveTxAuthFields> => {
-  const nonce = crypto.randomUUID();
-  const message =
-    `${buildHeader("ReceiveVaultRecover", nonce, sessionId, chainId)}` +
-    `\nVault Address: ${vaultAddress}` +
-    `\nToken Address: ${tokenAddress}` +
-    `\nRecipient: ${recipientAddress}`;
   return sign(sessionId, provider, message, nonce);
 };

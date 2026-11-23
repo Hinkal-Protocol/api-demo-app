@@ -13,7 +13,7 @@ import {
 } from "react";
 import toast from "react-hot-toast";
 import { networkRegistry } from "./constants/chain.constants";
-import { fetchBalances, fetchStuckUtxoBalances } from "./utils/balance";
+import { fetchBalances, fetchStuckBalances } from "./utils/balance";
 import { getPublicBalances } from "./utils/public-balances";
 import { createEnclaveSession } from "./utils/session";
 import { getFriendlyErrorMessage } from "./utils/errors";
@@ -22,7 +22,7 @@ import { EnclaveSessionAuthMode } from "./utils/auth";
 import type { SolanaWalletProvider } from "./utils/solana-wallet";
 import { getERC20Registry } from "./constants/token-data";
 import { getEthersSigner } from "./utils/ethers-wallet";
-import { ERC20Token, TokenBalance } from "./types";
+import { ERC20Token, StuckBalance, TokenBalance } from "./types";
 export type WalletType = "evm" | "tron" | "solana";
 
 type AppContextArgumnets = {
@@ -50,7 +50,7 @@ type AppContextArgumnets = {
   setDataLoaded: (val: boolean) => void;
   erc20List: ERC20Token[];
   balances: TokenBalance[];
-  stuckUtxoBalances: TokenBalance[];
+  stuckBalances: StuckBalance[];
   refreshBalances: () => Promise<void>;
   refreshBalancesSoon: (delaysMs?: number[]) => Promise<void>;
   isBalancesRefreshing: boolean;
@@ -87,7 +87,7 @@ const AppContext = createContext<AppContextArgumnets>({
   setDataLoaded: () => {},
   erc20List: [],
   balances: [],
-  stuckUtxoBalances: [],
+  stuckBalances: [],
   refreshBalances: async () => {},
   refreshBalancesSoon: async () => {},
   isBalancesRefreshing: false,
@@ -115,9 +115,7 @@ export const AppContextProvider: FC<AppContextProps> = ({
   const [chainId, setChainId] = useState<number | undefined>();
   const [dataLoaded, setDataLoaded] = useState<boolean>(false);
   const [balances, setBalances] = useState<TokenBalance[]>([]);
-  const [stuckUtxoBalances, setStuckUtxoBalances] = useState<TokenBalance[]>(
-    [],
-  );
+  const [stuckBalances, setStuckBalances] = useState<StuckBalance[]>([]);
   const [walletBalances, setWalletBalances] = useState<Record<string, bigint>>(
     {},
   );
@@ -232,12 +230,12 @@ export const AppContextProvider: FC<AppContextProps> = ({
       };
       const [bals, stuckBals] = await Promise.all([
         fetchBalances(auth, controller.signal),
-        fetchStuckUtxoBalances(auth, controller.signal),
+        fetchStuckBalances(auth, controller.signal),
       ]);
       if (!controller.signal.aborted) {
         balancesRef.current = bals;
         setBalances(bals);
-        setStuckUtxoBalances(stuckBals);
+        setStuckBalances(stuckBals);
       }
     } catch (error: any) {
       if (error?.name !== "AbortError") {
@@ -276,7 +274,7 @@ export const AppContextProvider: FC<AppContextProps> = ({
   useEffect(() => {
     if (!dataLoaded || !chainId) return;
     setBalances([]);
-    setStuckUtxoBalances([]);
+    setStuckBalances([]);
     refreshBalances();
     const interval = setInterval(refreshBalances, BALANCE_REFRESH_INTERVAL);
     return () => {
@@ -348,7 +346,7 @@ export const AppContextProvider: FC<AppContextProps> = ({
         setDataLoaded,
         erc20List,
         balances,
-        stuckUtxoBalances,
+        stuckBalances,
         refreshBalances,
         refreshBalancesSoon,
         isBalancesRefreshing,

@@ -1,20 +1,20 @@
-import { TokenBalance } from "../types";
+import { StuckBalance, TokenBalance } from "../types";
 import { buildAuthGet } from "./enclave-auth";
 import { enclaveFetch } from "./enclaveApi";
 import { Auth } from "./types";
 
-type BalanceResponse =
-  | { success: true; balances: TokenBalance[] }
+type BalanceResponse<T> =
+  | { success: true; balances: T[] }
   | { error?: string };
 
-const fetchBalanceEndpoint = async (
-  endpoint: "balance" | "stuck-utxo-balance" | "stuck-bridge-balance",
+const fetchBalanceEndpoint = async <T extends TokenBalance>(
+  endpoint: "balance" | "stuck-balances",
   auth: Auth,
   signal?: AbortSignal,
-): Promise<TokenBalance[]> => {
+): Promise<T[]> => {
   const { queryString, headers, requestNonce } = await buildAuthGet(auth, `/${endpoint}`);
 
-  const { res, data } = await enclaveFetch<BalanceResponse>(
+  const { res, data } = await enclaveFetch<BalanceResponse<T>>(
     `/${endpoint}?${queryString}`,
     requestNonce,
     { signal, headers },
@@ -39,19 +39,11 @@ export const fetchBalances = async (
   return balances.filter((b) => b.balance !== "0");
 };
 
-export const fetchStuckUtxoBalances = async (
+/** Everything stuck on auth.chainId, per token, split by source (utxo, bridge, vault). */
+export const fetchStuckBalances = async (
   auth: Auth,
   signal?: AbortSignal,
-): Promise<TokenBalance[]> => {
-  const balances = await fetchBalanceEndpoint("stuck-utxo-balance", auth, signal);
-  return balances.filter((b) => b.balance !== "0");
-};
-
-/** Bridge refunds parked in a temporary wallet or the NEAR Intents account, on auth.chainId. */
-export const fetchStuckBridgeBalances = async (
-  auth: Auth,
-  signal?: AbortSignal,
-): Promise<TokenBalance[]> => {
-  const balances = await fetchBalanceEndpoint("stuck-bridge-balance", auth, signal);
+): Promise<StuckBalance[]> => {
+  const balances = await fetchBalanceEndpoint<StuckBalance>("stuck-balances", auth, signal);
   return balances.filter((b) => b.balance !== "0");
 };

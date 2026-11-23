@@ -1,6 +1,7 @@
 import type { Signer } from "ethers";
 import type { EnclaveSessionAuthMode } from "./auth";
 import type { SolanaWalletProvider } from "./solana-wallet";
+import type { StuckBalanceKind } from "../types";
 
 export type TxWallet = {
   signer: Signer | null;
@@ -41,5 +42,10 @@ export type TransferBridgeParams = {
   slippagePercentage?: string;
 };
 
-/** Both stuck-fund recoveries sign the same fields; only the primary type differs. */
-export type StuckRecoveryPrimaryType = "WithdrawStuckUtxos" | "RecoverStuckBridgeBalance";
+/** What POST /recover-stuck-balance recovers: one token from one stuck source. */
+export type RecoverStuckBalanceParams = {
+  tokenAddress: string;
+  recipientAddress: string;
+  kind: StuckBalanceKind;
+  vaultAddress?: string;
+};

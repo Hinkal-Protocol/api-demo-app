@@ -6,7 +6,7 @@ import {
 } from "../constants/enclave.constants";
 import { EnclaveSessionAuthMode } from "./auth";
 import { requestSignatureGetHeader, requestSignaturePostHeader, sessionBodyParams, sessionQueryParams } from "./request-signature";
-import type { Auth, TransferBridgeParams, EnclaveTxAuthFields, StuckRecoveryPrimaryType, TxSessionAuth } from "./types";
+import type { Auth, TransferBridgeParams, EnclaveTxAuthFields, RecoverStuckBalanceParams, TxSessionAuth } from "./types";
 import { Recipient } from "./multiSend";
 
 type TokenAmountPair = { token: string; amount: string };
@@ -192,28 +192,33 @@ export const buildWithdrawAuthFields = (
     return value;
   });
 
-export const buildWithdrawStuckUtxosAuthFields = (
+// Signed as the body sends them; vaultAddress is "" for every kind but vault.
+export const recoverStuckBalanceTypedValue = (
+  nonce: string,
+  sessionId: string,
+  chainId: number,
+  params: RecoverStuckBalanceParams,
+): Record<string, unknown> => ({
+  nonce,
+  sessionId,
+  chainId: BigInt(chainId),
+  tokenAddress: params.tokenAddress,
+  // The enclave checksums a hex recipient before rebuilding the typed data.
+  recipient: ethers.isAddress(params.recipientAddress)
+    ? ethers.getAddress(params.recipientAddress)
+    : params.recipientAddress,
+  kind: params.kind,
+  vaultAddress: params.vaultAddress ?? "",
+});
+
+export const buildRecoverStuckBalanceAuthFields = (
   sessionId: string,
   signer: ethers.Signer,
-  params: {
-    chainId: number;
-    tokenAddress: string;
-    recipientAddress: string;
-  },
-  primaryType: StuckRecoveryPrimaryType = "WithdrawStuckUtxos",
+  chainId: number,
+  params: RecoverStuckBalanceParams,
 ) =>
-  signEnclaveTypedData(
-    sessionId,
-    signer,
-    primaryType,
-    params.chainId,
-    (nonce) => ({
-      nonce,
-      sessionId,
-      chainId: BigInt(params.chainId),
-      tokenAddress: ethers.getAddress(params.tokenAddress),
-      recipient: ethers.getAddress(params.recipientAddress),
-    }),
+  signEnclaveTypedData(sessionId, signer, "RecoverStuckBalance", chainId, (nonce) =>
+    recoverStuckBalanceTypedValue(nonce, sessionId, chainId, params),
   );
 
 export const transferAddressPrimaryType = (bridge?: TransferBridgeParams) =>
@@ -252,23 +257,6 @@ export const buildTransferAddressAuthFields = (
       params.bridge,
     ),
   );
-
-export const buildReceiveVaultRecoverAuthFields = (
-  sessionId: string,
-  signer: ethers.Signer,
-  params: { chainId: number; vaultAddress: string; tokenAddress: string; recipientAddress: string },
-) =>
-  signEnclaveTypedData(sessionId, signer, "ReceiveVaultRecover", params.chainId, (nonce) => ({
-    nonce,
-    sessionId,
-    chainId: BigInt(params.chainId),
-    vaultAddress: params.vaultAddress,
-    tokenAddress: params.tokenAddress,
-    // The enclave checksums a hex recipient before rebuilding the typed data.
-    recipient: ethers.isAddress(params.recipientAddress)
-      ? ethers.getAddress(params.recipientAddress)
-      : params.recipientAddress,
-  }));
 
 export const buildSwapAuthFields = (
   sessionId: string,

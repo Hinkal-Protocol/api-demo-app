@@ -2,7 +2,8 @@ import { buildAuthGet, buildAuthPost } from "./enclave-auth";
 import { enclaveFetch } from "./enclaveApi";
 import { requireEvmSigner } from "./ethers-wallet";
 import { requestSignaturePostHeader, sessionBodyParams } from "./request-signature";
-import { resolveTransferAddressAuth, resolveReceiveVaultRecoverAuth } from "./resolve-tx-auth";
+import { resolveTransferAddressAuth } from "./resolve-tx-auth";
+import { recoverStuckBalance } from "./withdraw";
 import { broadcastSolanaTransaction, isSolanaChain } from "./solana-wallet";
 import { isTronChain } from "./tron-wallet";
 import type { Auth, TransferBridgeParams, TxSessionAuth, TxWallet } from "./types";
@@ -100,26 +101,20 @@ export const recoverReceiveVault = async (
   tokenAddress: string,
   recipientAddress: string,
 ): Promise<string> => {
-  const txParams = { vaultAddress, tokenAddress, recipientAddress };
-  const { bodyJson, headers, requestNonce } = await buildAuthPost(
-    session,
-    chainId,
-    "/receive-vault-recover",
-    txParams,
-    () =>
-      resolveReceiveVaultRecoverAuth(wallet, session.sessionId, chainId, vaultAddress, tokenAddress, recipientAddress),
-  );
-  const { res, data } = await enclaveFetch<
-    { success: true; txData: { to: string; data: string } | string } | { error?: string }
-  >("/receive-vault-recover", requestNonce, { method: "POST", headers, body: bodyJson });
-  if (!res.ok || !("success" in data && data.success)) throw failed(data, "Recover failed");
+  const { txData } = await recoverStuckBalance(wallet, session, chainId, {
+    tokenAddress,
+    recipientAddress,
+    kind: "vault",
+    vaultAddress,
+  });
+  if (!txData) throw new Error("Recover returned no txData");
 
   if (isSolanaChain(chainId)) {
     if (!wallet.solanaProvider) throw new Error("Solana provider not set");
-    return broadcastSolanaTransaction(wallet.solanaProvider, data.txData as string);
+    return broadcastSolanaTransaction(wallet.solanaProvider, txData as string);
   }
   if (isTronChain(chainId)) throw new Error("Tron recover broadcast is not wired in the demo app");
-  const { to, data: callData } = data.txData as { to: string; data: string };
+  const { to, data: callData } = txData as { to: string; data: string };
   const tx = await requireEvmSigner(wallet.signer).sendTransaction({ to, data: callData });
   return tx.hash;
 };

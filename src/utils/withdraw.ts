@@ -1,10 +1,20 @@
 import { buildAuthPost } from "./enclave-auth";
 import { enclaveFetch } from "./enclaveApi";
 import {
+  resolveRecoverStuckBalanceAuth,
   resolveWithdrawAuth,
-  resolveWithdrawStuckUtxosAuth,
 } from "./resolve-tx-auth";
-import type { TxSessionAuth, TxWallet } from "./types";
+import type { RecoverStuckBalanceParams, TxSessionAuth, TxWallet } from "./types";
+
+/** utxo -> txHashes; bridge -> counts and amount; vault -> txData the caller's wallet broadcasts. */
+export type RecoverStuckBalanceResult = {
+  txHashes?: string[];
+  recoveredCount?: number;
+  recoveredAmount?: string;
+  failedCount?: number;
+  errors?: string[];
+  txData?: { to: string; data: string } | string;
+};
 
 export const withdraw = async (
   wallet: TxWallet,
@@ -59,82 +69,35 @@ export const withdraw = async (
   return data.txHash;
 };
 
-export const withdrawStuckUtxos = async (
+/** Recovers one token from one stuck source (utxo, bridge or vault) to recipientAddress. */
+export const recoverStuckBalance = async (
   wallet: TxWallet,
   session: TxSessionAuth,
   chainId: number,
-  tokenAddress: string,
-  recipientAddress: string,
-): Promise<string[]> => {
-  const txParams = { tokenAddress, recipientAddress };
+  params: RecoverStuckBalanceParams,
+): Promise<RecoverStuckBalanceResult> => {
+  const { vaultAddress, ...rest } = params;
+  // The enclave rejects vaultAddress on any kind but vault.
+  const txParams = { ...rest, ...(vaultAddress && { vaultAddress }) };
   const { bodyJson, headers, requestNonce } = await buildAuthPost(
     session,
     chainId,
-    "/withdraw-stuck-utxos",
+    "/recover-stuck-balance",
     txParams,
-    () =>
-      resolveWithdrawStuckUtxosAuth(
-        wallet,
-        session.sessionId,
-        chainId,
-        tokenAddress,
-        recipientAddress,
-      ),
+    () => resolveRecoverStuckBalanceAuth(wallet, session.sessionId, chainId, params),
   );
 
   const { res, data } = await enclaveFetch<
-    { success: true; txHashes: string[] } | { error?: string }
-  >("/withdraw-stuck-utxos", requestNonce, {
+    ({ success: true } & RecoverStuckBalanceResult) | { error?: string }
+  >("/recover-stuck-balance", requestNonce, {
     method: "POST",
     headers,
     body: bodyJson,
   });
 
   if (!res.ok || !("success" in data && data.success)) {
-    throw new Error(
-      (data as { error?: string }).error ?? "Withdraw stuck UTXOs failed",
-    );
+    throw new Error((data as { error?: string }).error ?? "Recover stuck balance failed");
   }
 
-  return data.txHashes;
-};
-
-/** Recovers a stuck bridge balance (temporary wallet or NEAR Intents refund) of one token to recipientAddress. */
-export const recoverStuckBridgeBalance = async (
-  wallet: TxWallet,
-  session: TxSessionAuth,
-  chainId: number,
-  tokenAddress: string,
-  recipientAddress: string,
-): Promise<string> => {
-  const txParams = { tokenAddress, recipientAddress };
-  const { bodyJson, headers, requestNonce } = await buildAuthPost(
-    session,
-    chainId,
-    "/recover-stuck-bridge-balance",
-    txParams,
-    () =>
-      resolveWithdrawStuckUtxosAuth(
-        wallet,
-        session.sessionId,
-        chainId,
-        tokenAddress,
-        recipientAddress,
-        "RecoverStuckBridgeBalance",
-      ),
-  );
-
-  const { res, data } = await enclaveFetch<
-    { success: true; recoveredAmount: string; failedCount: number } | { error?: string }
-  >("/recover-stuck-bridge-balance", requestNonce, {
-    method: "POST",
-    headers,
-    body: bodyJson,
-  });
-
-  if (!res.ok || !("success" in data && data.success)) {
-    throw new Error((data as { error?: string }).error ?? "Recover stuck bridge balance failed");
-  }
-
-  return data.recoveredAmount;
+  return data;
 };

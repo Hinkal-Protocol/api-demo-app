@@ -24,16 +24,24 @@ import {
 } from "../utils/transferAddress";
 import { formatUnits } from "ethers";
 import { zeroAddress } from "../constants";
-import { getSolanaBalance, isSolanaChain, SOLANA_NATIVE_ADDRESS } from "../utils/solana-wallet";
+import {
+  getSolanaBalance,
+  isSolanaChain,
+  SOLANA_NATIVE_ADDRESS,
+} from "../utils/solana-wallet";
 import { isTronChain } from "../utils/tron-wallet";
-import { fetchStuckBridgeBalances } from "../utils/balance";
-import { recoverStuckBridgeBalance } from "../utils/withdraw";
+import { fetchStuckBalances } from "../utils/balance";
+import { recoverStuckBalance } from "../utils/withdraw";
 import type { TokenBalance } from "../types";
 
 // Bridge destinations with their native token and USDC/USDT, as the token registry spells them.
 const SLIPPAGE_OPTIONS = ["0.5", "1", "2", "3", "5"];
 
-const BRIDGE_DESTINATIONS: { chainId: number; name: string; tokens: { symbol: string; address: string }[] }[] = [
+const BRIDGE_DESTINATIONS: {
+  chainId: number;
+  name: string;
+  tokens: { symbol: string; address: string }[];
+}[] = [
   {
     chainId: 1,
     name: "Ethereum",
@@ -79,7 +87,10 @@ const BRIDGE_DESTINATIONS: { chainId: number; name: string; tokens: { symbol: st
     name: "Solana",
     tokens: [
       { symbol: "SOL", address: "11111111111111111111111111111111" },
-      { symbol: "USDC", address: "EPjFWdd5AufqSSqeM2qN1xzybapC8G4wEGGkZwyTDt1v" },
+      {
+        symbol: "USDC",
+        address: "EPjFWdd5AufqSSqeM2qN1xzybapC8G4wEGGkZwyTDt1v",
+      },
     ],
   },
   {
@@ -112,10 +123,14 @@ export const TransferAddressPage = () => {
   const [isRecovering, setIsRecovering] = useState(false);
   const [addresses, setAddresses] = useState<ReceiveAddressRecord[]>([]);
   // Native balance per vault (EVM and Solana); Tron is not read.
-  const [vaultBalances, setVaultBalances] = useState<Record<string, bigint>>({});
+  const [vaultBalances, setVaultBalances] = useState<Record<string, bigint>>(
+    {},
+  );
   const [bridgeRefunds, setBridgeRefunds] = useState<TokenBalance[]>([]);
   const [refundRecipient, setRefundRecipient] = useState("");
-  const [recoveringRefund, setRecoveringRefund] = useState<string | undefined>();
+  const [recoveringRefund, setRecoveringRefund] = useState<
+    string | undefined
+  >();
 
   useEffect(() => {
     setRecipientAddress("");
@@ -138,19 +153,33 @@ export const TransferAddressPage = () => {
   const loadAddresses = useCallback(async () => {
     try {
       if (!chainId || !sessionId || !privateKey) return;
-      const entries = await fetchReceiveAddresses({ sessionId, privateKey, chainId });
+      const entries = await fetchReceiveAddresses({
+        sessionId,
+        privateKey,
+        chainId,
+      });
       setAddresses(entries);
       if (isTron) return;
-      const provider = isSolana ? undefined : (await getEthersSigner(chainId))?.provider;
+      const provider = isSolana
+        ? undefined
+        : (await getEthersSigner(chainId))?.provider;
       if (!isSolana && !provider) return;
       const balances = await Promise.all(
         entries.map((entry) =>
-          isSolana ? getSolanaBalance(entry.vaultAddress) : provider!.getBalance(entry.vaultAddress),
+          isSolana
+            ? getSolanaBalance(entry.vaultAddress)
+            : provider!.getBalance(entry.vaultAddress),
         ),
       );
-      setVaultBalances(Object.fromEntries(entries.map((entry, i) => [entry.vaultAddress, balances[i]])));
+      setVaultBalances(
+        Object.fromEntries(
+          entries.map((entry, i) => [entry.vaultAddress, balances[i]]),
+        ),
+      );
     } catch (err) {
-      toast.error(getFriendlyErrorMessage(err, "Fetch receive addresses failed"));
+      toast.error(
+        getFriendlyErrorMessage(err, "Fetch receive addresses failed"),
+      );
     }
   }, [chainId, sessionId, privateKey, isTron, isSolana]);
 
@@ -163,7 +192,18 @@ export const TransferAddressPage = () => {
   const loadBridgeRefunds = useCallback(async () => {
     try {
       if (!chainId || !sessionId || !privateKey) return;
-      setBridgeRefunds(await fetchStuckBridgeBalances({ sessionId, privateKey, chainId }));
+      const stuck = await fetchStuckBalances({
+        sessionId,
+        privateKey,
+        chainId,
+      });
+      setBridgeRefunds(
+        stuck.flatMap(({ sources, ...balance }) =>
+          sources
+            .filter(({ kind }) => kind === "bridge")
+            .map(({ amount }) => ({ ...balance, balance: amount })),
+        ),
+      );
     } catch (err) {
       toast.error(getFriendlyErrorMessage(err, "Fetch bridge refunds failed"));
     }
@@ -174,22 +214,35 @@ export const TransferAddressPage = () => {
       try {
         if (!chainId || !sessionId || !privateKey) return;
         setRecoveringRefund(tokenAddress);
-        const recovered = await recoverStuckBridgeBalance(
+        const { recoveredAmount } = await recoverStuckBalance(
           await getWallet(),
           { sessionId, authMode, privateKey },
           chainId,
-          tokenAddress,
-          refundRecipient.trim(),
+          {
+            tokenAddress,
+            recipientAddress: refundRecipient.trim(),
+            kind: "bridge",
+          },
         );
-        toast.success(`Recovered ${recovered}`);
+        toast.success(`Recovered ${recoveredAmount}`);
         void loadBridgeRefunds();
       } catch (err) {
-        toast.error(getFriendlyErrorMessage(err, "Recover bridge refund failed"));
+        toast.error(
+          getFriendlyErrorMessage(err, "Recover bridge refund failed"),
+        );
       } finally {
         setRecoveringRefund(undefined);
       }
     },
-    [chainId, sessionId, privateKey, authMode, refundRecipient, getWallet, loadBridgeRefunds],
+    [
+      chainId,
+      sessionId,
+      privateKey,
+      authMode,
+      refundRecipient,
+      getWallet,
+      loadBridgeRefunds,
+    ],
   );
 
   const bridge = useMemo(
@@ -204,11 +257,20 @@ export const TransferAddressPage = () => {
     [destinationChainId, destinationTokenAddress, slippagePercentage],
   );
   // A bridged payment lands on the destination chain, so the recipient is in that chain's format.
-  const recipientIsSolana = bridge ? isSolanaChain(bridge.destinationChainId) : isSolana;
-  const recipientIsTron = bridge ? isTronChain(bridge.destinationChainId) : isTron;
+  const recipientIsSolana = bridge
+    ? isSolanaChain(bridge.destinationChainId)
+    : isSolana;
+  const recipientIsTron = bridge
+    ? isTronChain(bridge.destinationChainId)
+    : isTron;
 
   const isRecipientAddressValid = useMemo(
-    () => isValidRecipientAddress(recipientAddress, recipientIsSolana, recipientIsTron),
+    () =>
+      isValidRecipientAddress(
+        recipientAddress,
+        recipientIsSolana,
+        recipientIsTron,
+      ),
     [recipientAddress, recipientIsSolana, recipientIsTron],
   );
 
@@ -252,12 +314,19 @@ export const TransferAddressPage = () => {
     try {
       if (!chainId || !walletAddress || !sessionId || !privateKey) return;
       setIsProcessing(true);
-      setRecord(await createReceiveAddress({ sessionId, authMode, privateKey }, chainId));
+      setRecord(
+        await createReceiveAddress(
+          { sessionId, authMode, privateKey },
+          chainId,
+        ),
+      );
       setIsTransfer(false);
       toast.success("Normal receive address created");
       void loadAddresses();
     } catch (err) {
-      toast.error(getFriendlyErrorMessage(err, "Create receive address failed"));
+      toast.error(
+        getFriendlyErrorMessage(err, "Create receive address failed"),
+      );
     } finally {
       setIsProcessing(false);
     }
@@ -282,14 +351,27 @@ export const TransferAddressPage = () => {
     } finally {
       setIsRecovering(false);
     }
-  }, [record, chainId, sessionId, privateKey, authMode, recoverToken, recoverRecipient, getWallet, loadAddresses]);
+  }, [
+    record,
+    chainId,
+    sessionId,
+    privateKey,
+    authMode,
+    recoverToken,
+    recoverRecipient,
+    getWallet,
+    loadAddresses,
+  ]);
 
   const handleSubmit = (event: SyntheticEvent) => {
     event.preventDefault();
   };
 
   const isDisabled =
-    !walletAddress || !isRecipientAddressValid || (!!bridge && !bridge.destinationTokenAddress) || isProcessing;
+    !walletAddress ||
+    !isRecipientAddressValid ||
+    (!!bridge && !bridge.destinationTokenAddress) ||
+    isProcessing;
 
   return (
     <div>
@@ -313,22 +395,32 @@ export const TransferAddressPage = () => {
           />
           {recipientAddress && !isRecipientAddressValid && walletAddress && (
             <p className="text-hinkal-red-100 text-[13px] pl-[5%] mt-1">
-              {getRecipientAddressError(recipientIsTron, recipientIsSolana, false)}
+              {getRecipientAddressError(
+                recipientIsTron,
+                recipientIsSolana,
+                false,
+              )}
             </p>
           )}
-          <p className="text-white pl-[5%] text-[14px] font-[300]">Bridge each payment (optional)</p>
+          <p className="text-white pl-[5%] text-[14px] font-[300]">
+            Bridge each payment (optional)
+          </p>
           <select
             className="bg-hinkal-blue-900 h-10 w-[90%] ml-[5%] rounded-lg mb-3 pl-2 outline-none text-[13.5px] mt-1"
             disabled={isProcessing}
             onChange={(event) => {
               setDestinationChainId(event.target.value);
-              const destination = BRIDGE_DESTINATIONS.find(({ chainId: id }) => String(id) === event.target.value);
-              setDestinationTokenAddress(destination?.tokens.at(-1)?.address ?? "");
+              const destination = BRIDGE_DESTINATIONS.find(
+                ({ chainId: id }) => String(id) === event.target.value,
+              );
+              setDestinationTokenAddress(
+                destination?.tokens.at(-1)?.address ?? "",
+              );
             }}
             value={destinationChainId}
           >
             <option value="">No bridge — withdraw on this chain</option>
-            {BRIDGE_DESTINATIONS.filter(({ chainId: id }) => id !== chainId).map(({ chainId: id, name }) => (
+            {BRIDGE_DESTINATIONS.map(({ chainId: id, name }) => (
               <option key={id} value={id}>
                 {name} ({id})
               </option>
@@ -339,16 +431,18 @@ export const TransferAddressPage = () => {
               <select
                 className="bg-hinkal-blue-900 h-10 w-[90%] ml-[5%] rounded-lg mb-3 pl-2 outline-none text-[13.5px]"
                 disabled={isProcessing}
-                onChange={(event) => setDestinationTokenAddress(event.target.value)}
+                onChange={(event) =>
+                  setDestinationTokenAddress(event.target.value)
+                }
                 value={destinationTokenAddress}
               >
-                {BRIDGE_DESTINATIONS.find(({ chainId: id }) => String(id) === destinationChainId)?.tokens.map(
-                  ({ symbol, address }) => (
-                    <option key={address} value={address}>
-                      {symbol}
-                    </option>
-                  ),
-                )}
+                {BRIDGE_DESTINATIONS.find(
+                  ({ chainId: id }) => String(id) === destinationChainId,
+                )?.tokens.map(({ symbol, address }) => (
+                  <option key={address} value={address}>
+                    {symbol}
+                  </option>
+                ))}
               </select>
               <select
                 className="bg-hinkal-blue-900 h-10 w-[90%] ml-[5%] rounded-lg mb-4 pl-2 outline-none text-[13.5px]"
@@ -368,7 +462,10 @@ export const TransferAddressPage = () => {
         </div>
         {record && (
           <div className="px-[5%] mb-2 text-[13px] text-hinkal-gray-100 break-all">
-            <p>{isTransfer ? "Transfer address" : "Normal address"} — send tokens to:</p>
+            <p>
+              {isTransfer ? "Transfer address" : "Normal address"} — send tokens
+              to:
+            </p>
             <button
               type="button"
               className="text-white text-left"
@@ -386,7 +483,9 @@ export const TransferAddressPage = () => {
         )}
         {record && (
           <div className="mt-2">
-            <p className="text-white pl-[5%] text-[14px] font-[300]">Recover funds sitting in this address</p>
+            <p className="text-white pl-[5%] text-[14px] font-[300]">
+              Recover funds sitting in this address
+            </p>
             <input
               type="text"
               placeholder="Token address"
@@ -443,8 +542,14 @@ export const TransferAddressPage = () => {
         {addresses.length > 0 && (
           <div className="px-[5%] mt-2 mb-4 text-[13px] text-hinkal-gray-100">
             <div className="flex justify-between mb-1">
-              <p className="text-white text-[14px] font-[300]">My deposit addresses</p>
-              <button type="button" className="text-white" onClick={() => void loadAddresses()}>
+              <p className="text-white text-[14px] font-[300]">
+                My deposit addresses
+              </p>
+              <button
+                type="button"
+                className="text-white"
+                onClick={() => void loadAddresses()}
+              >
                 Refresh
               </button>
             </div>
@@ -455,23 +560,37 @@ export const TransferAddressPage = () => {
                 onClick={() => {
                   setRecord(entry);
                   setIsTransfer(!!entry.createBlockedUtxos);
-                  setRecoverToken(isSolana ? SOLANA_NATIVE_ADDRESS : zeroAddress);
+                  setRecoverToken(
+                    isSolana ? SOLANA_NATIVE_ADDRESS : zeroAddress,
+                  );
                 }}
                 className={`w-full text-left break-all rounded-lg p-2 mb-1 bg-hinkal-blue-900 ${
-                  record?.vaultAddress === entry.vaultAddress ? "text-white" : ""
+                  record?.vaultAddress === entry.vaultAddress
+                    ? "text-white"
+                    : ""
                 }`}
               >
-                {entry.createBlockedUtxos ? "transfer" : "normal"} · {entry.vaultAddress}
+                {entry.createBlockedUtxos ? "transfer" : "normal"} ·{" "}
+                {entry.vaultAddress}
                 {entry.vaultAddress in vaultBalances &&
-                  ` · ${formatUnits(vaultBalances[entry.vaultAddress], isSolana ? 9 : 18)} native`}
+                  ` · ${formatUnits(
+                    vaultBalances[entry.vaultAddress],
+                    isSolana ? 9 : 18,
+                  )} native`}
               </button>
             ))}
           </div>
         )}
         <div className="px-[5%] mt-2 mb-4 text-[13px] text-hinkal-gray-100">
           <div className="flex justify-between mb-1">
-            <p className="text-white text-[14px] font-[300]">Bridge refunds (temporary wallet / NEAR)</p>
-            <button type="button" className="text-white" onClick={() => void loadBridgeRefunds()}>
+            <p className="text-white text-[14px] font-[300]">
+              Bridge refunds (temporary wallet / NEAR)
+            </p>
+            <button
+              type="button"
+              className="text-white"
+              onClick={() => void loadBridgeRefunds()}
+            >
               Refresh
             </button>
           </div>
@@ -491,7 +610,9 @@ export const TransferAddressPage = () => {
               onClick={() => void handleRecoverRefund(refund.tokenAddress)}
               className="w-full text-left break-all rounded-lg p-2 mb-1 bg-hinkal-blue-900 text-white disabled:text-hinkal-gray-200"
             >
-              {recoveringRefund === refund.tokenAddress ? "Recovering… " : "Recover "}
+              {recoveringRefund === refund.tokenAddress
+                ? "Recovering… "
+                : "Recover "}
               {refund.balance} · {refund.tokenAddress}
             </button>
           ))}
