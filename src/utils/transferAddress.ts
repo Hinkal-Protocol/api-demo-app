@@ -68,7 +68,7 @@ export const createTransferAddressWithApiKey = async (
 ): Promise<{ record: ReceiveAddressRecord; acceptedChainIds: number[] }> => {
   const { res, data } = await enclaveFetch<
     { success: true; record: ReceiveAddressRecord; acceptedChainIds: number[] } | { error?: string }
-  >("/transfer-address-api-key", undefined, {
+  >("/receive-address-api-key", undefined, {
     method: "POST",
     headers: { "Content-Type": "application/json" },
     body: JSON.stringify({ network, recipientAddress, refundTo, ...bridge }),
