@@ -12,7 +12,9 @@ export type ReceiveAddressRecord = {
   vaultAddress: string;
   expiry: string;
   network?: string;
-  createBlockedUtxos?: boolean;
+  recipientAddress?: string; // set only on a transfer address
+  destinationChainId?: number;
+  destinationTokenAddress?: string;
 };
 
 export const createTransferAddress = async (
@@ -26,7 +28,7 @@ export const createTransferAddress = async (
   const { bodyJson, headers, requestNonce } = await buildAuthPost(
     session,
     chainId,
-    "/transfer-address",
+    "/receive-address",
     txParams,
     () =>
       resolveTransferAddressAuth(
@@ -40,7 +42,7 @@ export const createTransferAddress = async (
 
   const { res, data } = await enclaveFetch<
     { success: true; record: ReceiveAddressRecord } | { error?: string }
-  >("/transfer-address", requestNonce, {
+  >("/receive-address", requestNonce, {
     method: "POST",
     headers,
     body: bodyJson,

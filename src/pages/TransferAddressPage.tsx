@@ -286,15 +286,15 @@ export const TransferAddressPage = () => {
       if (!chainId || !walletAddress || !sessionId || !privateKey) return;
       setIsProcessing(true);
       const session = { sessionId, authMode, privateKey };
-      setRecord(
-        await createTransferAddress(
-          await getWallet(),
-          session,
-          chainId,
-          recipientAddress,
-          bridge,
-        ),
+      const created = await createTransferAddress(
+        await getWallet(),
+        session,
+        chainId,
+        recipientAddress,
+        bridge,
       );
+      // The create response has no payout terms; show the ones just signed until the list reloads.
+      setRecord({ ...created, recipientAddress, ...bridge });
       setAcceptedChainIds([]);
       setIsTransfer(true);
       toast.success("Transfer address created");
@@ -520,6 +520,21 @@ export const TransferAddressPage = () => {
             <p>
               Expires: {new Date(Number(record.expiry) * 1000).toLocaleString()}
             </p>
+            {record.recipientAddress && (
+              <>
+                <p>Pays out to: {record.recipientAddress}</p>
+                {record.destinationChainId !== undefined && (
+                  <p>
+                    Bridged to chain {record.destinationChainId}, token{" "}
+                    {record.destinationTokenAddress}
+                  </p>
+                )}
+                <p className="text-yellow-400">
+                  Tell the sender exactly which chain to send on: each payment
+                  is paid out on the chain it is sent on.
+                </p>
+              </>
+            )}
           </div>
         )}
         {record && (
@@ -639,7 +654,7 @@ export const TransferAddressPage = () => {
                 key={entry.vaultAddress}
                 onClick={() => {
                   setRecord(entry);
-                  setIsTransfer(!!entry.createBlockedUtxos);
+                  setIsTransfer(!!entry.recipientAddress);
                   setRecoverToken(
                     isSolana ? SOLANA_NATIVE_ADDRESS : zeroAddress,
                   );
@@ -650,8 +665,11 @@ export const TransferAddressPage = () => {
                     : ""
                 }`}
               >
-                {entry.createBlockedUtxos ? "transfer" : "normal"} ·{" "}
+                {entry.recipientAddress ? "transfer" : "normal"} ·{" "}
                 {entry.vaultAddress}
+                {entry.recipientAddress && ` → ${entry.recipientAddress}`}
+                {entry.destinationChainId !== undefined &&
+                  ` (bridge to chain ${entry.destinationChainId})`}
                 {entry.vaultAddress in vaultBalances &&
                   ` · ${formatUnits(
                     vaultBalances[entry.vaultAddress],
