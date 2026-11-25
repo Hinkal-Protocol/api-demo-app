@@ -42,6 +42,8 @@ export type TransferBridgeParams = {
   slippagePercentage?: string;
 };
 
+export type ReceiveVaultNetwork = "evm" | "solana" | "tron";
+
 /** What POST /recover-stuck-balance recovers: one token from one stuck source. */
 export type RecoverStuckBalanceParams = {
   tokenAddress: string;

@@ -6,13 +6,15 @@ import { resolveTransferAddressAuth } from "./resolve-tx-auth";
 import { recoverStuckBalance } from "./withdraw";
 import { broadcastSolanaTransaction, isSolanaChain } from "./solana-wallet";
 import { isTronChain } from "./tron-wallet";
-import type { Auth, TransferBridgeParams, TxSessionAuth, TxWallet } from "./types";
+import type { Auth, ReceiveVaultNetwork, TransferBridgeParams, TxSessionAuth, TxWallet } from "./types";
 
 export type ReceiveAddressRecord = {
   vaultAddress: string;
   expiry: string;
   network?: string;
-  createBlockedUtxos?: boolean;
+  recipientAddress?: string; // set only on a transfer address
+  destinationChainId?: number;
+  destinationTokenAddress?: string;
 };
 
 export const createTransferAddress = async (
@@ -26,7 +28,7 @@ export const createTransferAddress = async (
   const { bodyJson, headers, requestNonce } = await buildAuthPost(
     session,
     chainId,
-    "/transfer-address",
+    "/receive-address",
     txParams,
     () =>
       resolveTransferAddressAuth(
@@ -40,7 +42,7 @@ export const createTransferAddress = async (
 
   const { res, data } = await enclaveFetch<
     { success: true; record: ReceiveAddressRecord } | { error?: string }
-  >("/transfer-address", requestNonce, {
+  >("/receive-address", requestNonce, {
     method: "POST",
     headers,
     body: bodyJson,
@@ -54,6 +56,25 @@ export const createTransferAddress = async (
   }
 
   return data.record;
+};
+
+/** Same as createTransferAddress, but no session or signature: enclaveFetch sends VITE_PARTNER_API_KEY,
+ *  and each address gets its own fresh account. Takes a network: one address serves all its chains. */
+export const createTransferAddressWithApiKey = async (
+  network: ReceiveVaultNetwork,
+  recipientAddress: string,
+  refundTo: string,
+  bridge?: TransferBridgeParams,
+): Promise<{ record: ReceiveAddressRecord; acceptedChainIds: number[] }> => {
+  const { res, data } = await enclaveFetch<
+    { success: true; record: ReceiveAddressRecord; acceptedChainIds: number[] } | { error?: string }
+  >("/transfer-address-api-key", undefined, {
+    method: "POST",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify({ network, recipientAddress, refundTo, ...bridge }),
+  });
+  if (!res.ok || !("success" in data && data.success)) throw failed(data, "Create transfer address failed");
+  return data;
 };
 
 const failed = (data: unknown, fallback: string) =>
