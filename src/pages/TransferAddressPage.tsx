@@ -18,7 +18,7 @@ import {
 import {
   ReceiveAddressRecord,
   createTransferAddress,
-//   createTransferAddressWithApiKey,
+  createTransferAddressWithApiKey,
   createReceiveAddress,
   fetchReceiveAddresses,
   recoverReceiveVault,
@@ -31,8 +31,8 @@ import {
   SOLANA_NATIVE_ADDRESS,
 } from "../utils/solana-wallet";
 import { isTronChain } from "../utils/tron-wallet";
-// import { fetchStuckBalances } from "../utils/balance";
-// import { recoverStuckBalance } from "../utils/withdraw";
+import { fetchStuckBalances } from "../utils/balance";
+import { recoverStuckBalance } from "../utils/withdraw";
 import type { TokenBalance } from "../types";
 import type { ReceiveVaultNetwork } from "../utils/types";
 
@@ -196,7 +196,7 @@ export const TransferAddressPage = () => {
     void loadAddresses();
   }, [loadAddresses]);
 
-  /* const loadBridgeRefunds = useCallback(async () => {
+  const loadBridgeRefunds = useCallback(async () => {
     try {
       if (!chainId || !sessionId || !privateKey) return;
       const stuck = await fetchStuckBalances({
@@ -250,7 +250,7 @@ export const TransferAddressPage = () => {
       getWallet,
       loadBridgeRefunds,
     ],
-  ); */
+  );
 
   const bridge = useMemo(
     () =>
@@ -318,7 +318,7 @@ export const TransferAddressPage = () => {
     loadAddresses,
   ]);
 
-  /* // Without a bridge the recipient is paid on the vault's network, so it is in that network's format.
+  // Without a bridge the recipient is paid on the vault's network, so it is in that network's format.
   const isApiKeyRecipientValid = useMemo(
     () =>
       isValidRecipientAddress(
@@ -349,7 +349,7 @@ export const TransferAddressPage = () => {
     } finally {
       setIsProcessing(false);
     }
-  }, [apiKeyNetwork, recipientAddress, refundTo, bridge]); */
+  }, [apiKeyNetwork, recipientAddress, refundTo, bridge]);
 
   const handleCreateNormal = useCallback(async () => {
     try {
@@ -537,7 +537,7 @@ export const TransferAddressPage = () => {
             )}
           </div>
         )}
-        {record && (
+        {/* {record && (
           <div className="mt-2">
             <p className="text-white pl-[5%] text-[14px] font-[300]">
               Recover funds sitting in this address
@@ -567,9 +567,9 @@ export const TransferAddressPage = () => {
               {isRecovering ? "Recovering…" : "Recover"}
             </button>
           </div>
-        )}
+        )} */}
         <div className="w-[90%] mx-auto mb-4 mt-2 h-[1px] bg-hinkal-blue-900" />
-        <button
+        {/* <button
           type="submit"
           disabled={isDisabled}
           onClick={handleCreate}
@@ -586,8 +586,8 @@ export const TransferAddressPage = () => {
           ) : (
             <span>Create transfer address</span>
           )}
-        </button>
-        {/* <select
+        </button> */}
+        <select
           className="bg-hinkal-blue-900 h-10 w-[90%] ml-[5%] rounded-lg mb-3 pl-2 outline-none text-[13.5px] text-white"
           disabled={isProcessing}
           onChange={(event) =>
@@ -625,15 +625,15 @@ export const TransferAddressPage = () => {
             API key address accepts payments on chains:{" "}
             {acceptedChainIds.join(", ")}
           </p>
-        )} */}
-        <button
+        )}
+        {/* <button
           type="button"
           disabled={!walletAddress || isProcessing}
           onClick={handleCreateNormal}
           className="w-[90%] mb-3 mx-[5%] rounded-lg h-10 text-sm font-semibold outline-none bg-hinkal-blue-900 text-white disabled:text-hinkal-gray-200 disabled:cursor-not-allowed"
         >
           Create normal address
-        </button>
+        </button> */}
         {addresses.length > 0 && (
           <div className="px-[5%] mt-2 mb-4 text-[13px] text-hinkal-gray-100">
             <div className="flex justify-between mb-1">
