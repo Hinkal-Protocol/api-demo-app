@@ -69,7 +69,7 @@ export const createTransferAddressWithApiKey = async (
 ): Promise<{ record: ReceiveAddressRecord; acceptedChainIds: number[] }> => {
   const { res, data } = await enclaveFetch<
     { success: true; record: ReceiveAddressRecord; acceptedChainIds: number[] } | { error?: string }
-  >("/api-key/transfer-address", undefined, {
+  >("/partner/transfer-address", undefined, {
     method: "POST",
     headers: { "Content-Type": "application/json" },
     body: JSON.stringify({ networkType: network, recipientAddress, refundTo, ...bridge }),
@@ -87,7 +87,7 @@ export type RefundToChainStuck = {
 /** What is stuck, per chain and summed over every address, for this partner's API-key addresses refunding to refundTo. */
 export const fetchRefundToStuckBalances = async (refundTo: string): Promise<RefundToChainStuck[]> => {
   const { res, data } = await enclaveFetch<{ success: true; chains: RefundToChainStuck[] } | { error?: string }>(
-    `/api-key/transfer-address/stuck-balances?refundTo=${encodeURIComponent(refundTo)}`,
+    `/partner/transfer-address/stuck-balances?refundTo=${encodeURIComponent(refundTo)}`,
     undefined,
   );
   if (!res.ok || !("success" in data && data.success)) throw failed(data, "Fetch stuck balances failed");
@@ -141,7 +141,7 @@ export const recoverRefundToStuck = async (
   };
   const signature = await signRefundToRecover(wallet, fields);
   const { res, data } = await enclaveFetch<{ success: true; results: RefundToRecoverResult[] } | { error?: string }>(
-    "/api-key/transfer-address/recover",
+    "/partner/transfer-address/recover",
     undefined,
     {
       method: "POST",

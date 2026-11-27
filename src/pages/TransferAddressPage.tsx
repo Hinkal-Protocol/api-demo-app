@@ -696,6 +696,12 @@ export const TransferAddressPage = () => {
             {isLoadingStuck ? "Checking every chain…" : "Check stuck funds"}
           </button>
           {refundToStuck?.length === 0 && <p>Nothing stuck.</p>}
+          {refundToStuck && (
+            <p className="mb-1">
+              Recover needs wallet {stuckRefundTo.trim() || "-"} on the funds' chain. Connected:{" "}
+              {walletAddress ?? "none"} on chain {chainId ?? "-"}
+            </p>
+          )}
           {refundToStuck?.map(({ chainId: id, balances, error }) => (
             <div key={id} className="rounded-lg p-2 mb-1 bg-hinkal-blue-900 break-all">
               <p className="text-white">Chain {id}</p>
@@ -716,11 +722,8 @@ export const TransferAddressPage = () => {
                         <button
                           type="button"
                           className="text-white underline disabled:text-hinkal-gray-200 disabled:no-underline"
-                          disabled={
-                            id !== chainId ||
-                            walletAddress?.toLowerCase() !== stuckRefundTo.trim().toLowerCase() ||
-                            !!recoveringStuck
-                          }
+                          // TEMP test: wallet/chain match check off, the server rejects a wrong signer anyway
+                          disabled={!!recoveringStuck}
                           onClick={() => void handleRecoverRefundToStuck(tokenAddress, kind)}
                         >
                           {recoveringStuck === `${tokenAddress}:${kind}` ? "Recovering…" : "Recover"}
@@ -741,6 +744,7 @@ export const TransferAddressPage = () => {
         >
           Create normal address
         </button> */}
+        {/* Hidden: deposit address list.
         {addresses.length > 0 && (
           <div className="px-[5%] mt-2 mb-4 text-[13px] text-hinkal-gray-100">
             <div className="flex justify-between mb-1">
@@ -785,7 +789,7 @@ export const TransferAddressPage = () => {
               </button>
             ))}
           </div>
-        )}
+        )} */}
         {/* <div className="px-[5%] mt-2 mb-4 text-[13px] text-hinkal-gray-100">
           <div className="flex justify-between mb-1">
             <p className="text-white text-[14px] font-[300]">
