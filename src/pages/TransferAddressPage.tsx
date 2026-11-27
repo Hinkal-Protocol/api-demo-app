@@ -24,6 +24,7 @@ import {
   fetchReceiveAddresses,
   fetchRefundToStuckBalances,
   recoverReceiveVault,
+  recoverRefundToStuck,
 } from "../utils/transferAddress";
 import { formatUnits } from "ethers";
 import { zeroAddress } from "../constants";
@@ -145,6 +146,7 @@ export const TransferAddressPage = () => {
     RefundToChainStuck[] | undefined
   >();
   const [isLoadingStuck, setIsLoadingStuck] = useState(false);
+  const [recoveringStuck, setRecoveringStuck] = useState<string | undefined>();
 
   useEffect(() => {
     setRecipientAddress("");
@@ -369,6 +371,34 @@ export const TransferAddressPage = () => {
       setIsLoadingStuck(false);
     }
   }, [stuckRefundTo]);
+
+  const handleRecoverRefundToStuck = useCallback(
+    async (tokenAddress: string, kind: string) => {
+      try {
+        if (!chainId) return;
+        setRecoveringStuck(`${tokenAddress}:${kind}`);
+        const { results, sentTxHashes } = await recoverRefundToStuck(
+          await getWallet(),
+          stuckRefundTo.trim(),
+          chainId,
+          tokenAddress,
+          kind,
+        );
+        const errors = results.flatMap(({ error }) => (error ? [error] : []));
+        if (errors.length) toast.error(`Some recoveries failed: ${errors.join("; ")}`);
+        toast.success(
+          `Recovered ${results.length - errors.length} of ${results.length}` +
+            (sentTxHashes.length ? `, sent ${sentTxHashes.join(", ")}` : ""),
+        );
+        setRefundToStuck(await fetchRefundToStuckBalances(stuckRefundTo.trim()));
+      } catch (err) {
+        toast.error(getFriendlyErrorMessage(err, "Recover failed"));
+      } finally {
+        setRecoveringStuck(undefined);
+      }
+    },
+    [chainId, getWallet, stuckRefundTo],
+  );
 
   const handleCreateNormal = useCallback(async () => {
     try {
@@ -681,7 +711,20 @@ export const TransferAddressPage = () => {
                     {!token && <p>{tokenAddress}</p>}
                     {sources.map(({ kind, amount }) => (
                       <p key={kind}>
-                        · {kind}: {format(amount)}
+                        · {kind}: {format(amount)}{" "}
+                        {/* The refundTo wallet signs and sends, on the chain the funds are on. */}
+                        <button
+                          type="button"
+                          className="text-white underline disabled:text-hinkal-gray-200 disabled:no-underline"
+                          disabled={
+                            id !== chainId ||
+                            walletAddress?.toLowerCase() !== stuckRefundTo.trim().toLowerCase() ||
+                            !!recoveringStuck
+                          }
+                          onClick={() => void handleRecoverRefundToStuck(tokenAddress, kind)}
+                        >
+                          {recoveringStuck === `${tokenAddress}:${kind}` ? "Recovering…" : "Recover"}
+                        </button>
                       </p>
                     ))}
                   </div>

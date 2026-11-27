@@ -14,7 +14,8 @@ export type EnclaveTypedDataPrimaryType =
   | "PrivateSend"
   | "RecoverStuckBalance"
   | "TransferAddress"
-  | "TransferAddressBridge";
+  | "TransferAddressBridge"
+  | "RefundToRecover";
 
 const ENCLAVE_TYPED_DATA_TYPES: Record<string, TypedDataField[]> = {
   TokenAmount: [
@@ -95,6 +96,14 @@ const ENCLAVE_TYPED_DATA_TYPES: Record<string, TypedDataField[]> = {
     { name: "recipient", type: "string" },
     { name: "destinationChainId", type: "uint256" },
     { name: "destinationTokenAddress", type: "string" },
+  ],
+  RefundToRecover: [
+    { name: "refundTo", type: "string" },
+    { name: "chainId", type: "uint256" },
+    { name: "tokenAddress", type: "string" },
+    { name: "kind", type: "string" },
+    { name: "nonce", type: "string" },
+    { name: "timestamp", type: "uint256" },
   ],
 };
 
