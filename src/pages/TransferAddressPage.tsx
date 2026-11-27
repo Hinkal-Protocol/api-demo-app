@@ -33,6 +33,7 @@ import {
   SOLANA_NATIVE_ADDRESS,
 } from "../utils/solana-wallet";
 import { isTronChain } from "../utils/tron-wallet";
+import { getERC20Token } from "../utils/tokens.utils";
 import { fetchStuckBalances } from "../utils/balance";
 import { recoverStuckBalance } from "../utils/withdraw";
 import type { TokenBalance } from "../types";
@@ -669,12 +670,23 @@ export const TransferAddressPage = () => {
             <div key={id} className="rounded-lg p-2 mb-1 bg-hinkal-blue-900 break-all">
               <p className="text-white">Chain {id}</p>
               {error && <p className="text-hinkal-red-100">Scan failed: {error}</p>}
-              {balances.map(({ tokenAddress, balance, sources }) => (
-                <p key={tokenAddress}>
-                  {balance} · {tokenAddress} (
-                  {sources.map(({ kind, amount }) => `${kind} ${amount}`).join(", ")})
-                </p>
-              ))}
+              {balances.map(({ tokenAddress, balance, sources }) => {
+                const token = getERC20Token(tokenAddress, id);
+                // Unknown tokens fall back to raw units and the address.
+                const format = (amount: string) =>
+                  token ? `${formatUnits(amount, token.decimals)} ${token.symbol}` : `${amount} (raw)`;
+                return (
+                  <div key={tokenAddress} className="mt-1">
+                    <p className="text-white">{format(balance)}</p>
+                    {!token && <p>{tokenAddress}</p>}
+                    {sources.map(({ kind, amount }) => (
+                      <p key={kind}>
+                        · {kind}: {format(amount)}
+                      </p>
+                    ))}
+                  </div>
+                );
+              })}
             </div>
           ))}
         </div>
