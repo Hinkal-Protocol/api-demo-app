@@ -17,10 +17,12 @@ import {
 } from "../utils/recipientAddress";
 import {
   ReceiveAddressRecord,
+  RefundToChainStuck,
   createTransferAddress,
   createTransferAddressWithApiKey,
   createReceiveAddress,
   fetchReceiveAddresses,
+  fetchRefundToStuckBalances,
   recoverReceiveVault,
 } from "../utils/transferAddress";
 import { formatUnits } from "ethers";
@@ -137,6 +139,11 @@ export const TransferAddressPage = () => {
   const [recoveringRefund, setRecoveringRefund] = useState<
     string | undefined
   >();
+  const [stuckRefundTo, setStuckRefundTo] = useState("");
+  const [refundToStuck, setRefundToStuck] = useState<
+    RefundToChainStuck[] | undefined
+  >();
+  const [isLoadingStuck, setIsLoadingStuck] = useState(false);
 
   useEffect(() => {
     setRecipientAddress("");
@@ -350,6 +357,17 @@ export const TransferAddressPage = () => {
       setIsProcessing(false);
     }
   }, [apiKeyNetwork, recipientAddress, refundTo, bridge]);
+
+  const handleLoadRefundToStuck = useCallback(async () => {
+    try {
+      setIsLoadingStuck(true);
+      setRefundToStuck(await fetchRefundToStuckBalances(stuckRefundTo.trim()));
+    } catch (err) {
+      toast.error(getFriendlyErrorMessage(err, "Fetch stuck balances failed"));
+    } finally {
+      setIsLoadingStuck(false);
+    }
+  }, [stuckRefundTo]);
 
   const handleCreateNormal = useCallback(async () => {
     try {
@@ -626,6 +644,40 @@ export const TransferAddressPage = () => {
             {acceptedChainIds.join(", ")}
           </p>
         )}
+        <div className="px-[5%] mt-2 mb-4 text-[13px] text-hinkal-gray-100">
+          <p className="text-white text-[14px] font-[300] mb-1">
+            Stuck funds for a refundTo (API key)
+          </p>
+          <input
+            type="text"
+            placeholder="Refund to address"
+            className="bg-hinkal-blue-900 h-10 w-full rounded-lg mb-2 pl-2 outline-none placeholder:text-[13.5px] text-white"
+            disabled={isLoadingStuck}
+            onChange={(event) => setStuckRefundTo(event.target.value)}
+            value={stuckRefundTo}
+          />
+          <button
+            type="button"
+            disabled={!stuckRefundTo.trim() || isLoadingStuck}
+            onClick={() => void handleLoadRefundToStuck()}
+            className="w-full rounded-lg h-10 mb-2 text-sm font-semibold outline-none bg-hinkal-blue-900 text-white disabled:text-hinkal-gray-200 disabled:cursor-not-allowed"
+          >
+            {isLoadingStuck ? "Checking every chain…" : "Check stuck funds"}
+          </button>
+          {refundToStuck?.length === 0 && <p>Nothing stuck.</p>}
+          {refundToStuck?.map(({ chainId: id, balances, error }) => (
+            <div key={id} className="rounded-lg p-2 mb-1 bg-hinkal-blue-900 break-all">
+              <p className="text-white">Chain {id}</p>
+              {error && <p className="text-hinkal-red-100">Scan failed: {error}</p>}
+              {balances.map(({ tokenAddress, balance, sources }) => (
+                <p key={tokenAddress}>
+                  {balance} · {tokenAddress} (
+                  {sources.map(({ kind, amount }) => `${kind} ${amount}`).join(", ")})
+                </p>
+              ))}
+            </div>
+          ))}
+        </div>
         {/* <button
           type="button"
           disabled={!walletAddress || isProcessing}

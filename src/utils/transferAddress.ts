@@ -77,6 +77,22 @@ export const createTransferAddressWithApiKey = async (
   return data;
 };
 
+export type RefundToChainStuck = {
+  chainId: number;
+  balances: { tokenAddress: string; balance: string; sources: { kind: string; amount: string }[] }[];
+  error?: string;
+};
+
+/** What is stuck, per chain and summed over every address, for this partner's API-key addresses refunding to refundTo. */
+export const fetchRefundToStuckBalances = async (refundTo: string): Promise<RefundToChainStuck[]> => {
+  const { res, data } = await enclaveFetch<{ success: true; chains: RefundToChainStuck[] } | { error?: string }>(
+    `/refund-to/stuck-balances?refundTo=${encodeURIComponent(refundTo)}`,
+    undefined,
+  );
+  if (!res.ok || !("success" in data && data.success)) throw failed(data, "Fetch stuck balances failed");
+  return data.chains;
+};
+
 const failed = (data: unknown, fallback: string) =>
   new Error((data as { error?: string }).error ?? fallback);
 
