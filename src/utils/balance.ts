@@ -1,20 +1,20 @@
-import { TokenBalance } from "../types";
+import { StuckBalance, TokenBalance } from "../types";
 import { buildAuthGet } from "./enclave-auth";
 import { enclaveFetch } from "./enclaveApi";
 import { Auth } from "./types";
 
-type BalanceResponse =
-  | { success: true; balances: TokenBalance[] }
+type BalanceResponse<T> =
+  | { success: true; balances: T[] }
   | { error?: string };
 
-const fetchBalanceEndpoint = async (
-  endpoint: "balance" | "stuck-utxo-balance",
+const fetchBalanceEndpoint = async <T extends TokenBalance>(
+  endpoint: "balance" | "stuck-balances",
   auth: Auth,
   signal?: AbortSignal,
-): Promise<TokenBalance[]> => {
+): Promise<T[]> => {
   const { queryString, headers, requestNonce } = await buildAuthGet(auth, `/${endpoint}`);
 
-  const { res, data } = await enclaveFetch<BalanceResponse>(
+  const { res, data } = await enclaveFetch<BalanceResponse<T>>(
     `/${endpoint}?${queryString}`,
     requestNonce,
     { signal, headers },
@@ -24,9 +24,7 @@ const fetchBalanceEndpoint = async (
     const errorMessage = "error" in data ? data.error : undefined;
     throw new Error(
       errorMessage ??
-        (endpoint === "balance"
-          ? "Balance fetch failed"
-          : "Stuck UTXO balance fetch failed"),
+        (endpoint === "balance" ? "Balance fetch failed" : `${endpoint} fetch failed`),
     );
   }
 
@@ -41,10 +39,11 @@ export const fetchBalances = async (
   return balances.filter((b) => b.balance !== "0");
 };
 
-export const fetchStuckUtxoBalances = async (
+/** Everything stuck on auth.chainId, per token, split by source (utxo, bridge, vault). */
+export const fetchStuckBalances = async (
   auth: Auth,
   signal?: AbortSignal,
-): Promise<TokenBalance[]> => {
-  const balances = await fetchBalanceEndpoint("stuck-utxo-balance", auth, signal);
+): Promise<StuckBalance[]> => {
+  const balances = await fetchBalanceEndpoint<StuckBalance>("stuck-balances", auth, signal);
   return balances.filter((b) => b.balance !== "0");
 };

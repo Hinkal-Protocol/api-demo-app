@@ -4,7 +4,8 @@ import {
   getTypesForPrimary,
 } from "../constants/enclave.constants";
 import { getTronWeb, tronBase58ToHex } from "./tron-wallet";
-import type { EnclaveTxAuthFields } from "./types";
+import type { TransferBridgeParams, EnclaveTxAuthFields, RecoverStuckBalanceParams } from "./types";
+import { recoverStuckBalanceTypedValue, transferAddressPrimaryType, transferAddressTypedValue } from "./enclave-auth";
 import type { Recipient } from "./multiSend";
 
 // eslint-disable-next-line @typescript-eslint/no-explicit-any
@@ -170,16 +171,27 @@ export const buildTronPrivateSendAuthFields = (
     return value;
   });
 
-export const buildTronWithdrawStuckUtxosAuthFields = (
+export const buildTronRecoverStuckBalanceAuthFields = (
   sessionId: string,
   chainId: number,
-  tokenAddress: string,
-  recipientAddress: string,
+  params: RecoverStuckBalanceParams,
 ): Promise<EnclaveTxAuthFields> =>
-  signTypedData(sessionId, "WithdrawStuckUtxos", chainId, (nonce) => ({
-    nonce,
-    sessionId,
-    chainId: BigInt(chainId),
-    tokenAddress: ethers.getAddress(tokenAddress),
-    recipient: ethers.getAddress(recipientAddress),
-  }));
+  signTypedData(sessionId, "RecoverStuckBalance", chainId, (nonce) =>
+    recoverStuckBalanceTypedValue(nonce, sessionId, chainId, params),
+  );
+
+export const buildTronTransferAddressAuthFields = (
+  sessionId: string,
+  chainId: number,
+  recipientAddress: string,
+  bridge?: TransferBridgeParams,
+): Promise<EnclaveTxAuthFields> =>
+  signTypedData(sessionId, transferAddressPrimaryType(bridge), chainId, (nonce) =>
+    transferAddressTypedValue(
+      nonce,
+      sessionId,
+      chainId,
+      bridge ? recipientAddress : ethers.getAddress(tronBase58ToHex(recipientAddress)),
+      bridge,
+    ),
+  );

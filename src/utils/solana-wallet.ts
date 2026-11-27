@@ -1,13 +1,23 @@
 import { Connection, PublicKey, VersionedTransaction } from "@solana/web3.js";
 import { getWallets } from "@wallet-standard/app";
 
+
 export const SOLANA_MAINNET_CHAIN_ID = 501;
 export const SOLANA_NATIVE_ADDRESS = "11111111111111111111111111111111";
 const SOLANA_RPC = "https://solana-rpc.publicnode.com";
+
+// LOCAL TEST ONLY: solanaLocalnet (102) and the local validator; mainnet is 501 / publicnode.
+// export const SOLANA_MAINNET_CHAIN_ID = 102;
+// export const SOLANA_NATIVE_ADDRESS = "11111111111111111111111111111111";
+// const SOLANA_RPC = "http://127.0.0.1:8899";
 const ASSOCIATED_TOKEN_PROGRAM_ID = new PublicKey(
   "ATokenGPvbdGVxr1b2hvZbsiqW5xWH25efTNsLJA8knL",
 );
 const SOLANA_MAINNET_CHAIN = "solana:mainnet";
+
+/** Native SOL balance in lamports, read from the demo's RPC rather than the wallet's network. */
+export const getSolanaBalance = async (address: string): Promise<bigint> =>
+  BigInt(await new Connection(SOLANA_RPC, "confirmed").getBalance(new PublicKey(address)));
 
 declare global {
   interface Window {

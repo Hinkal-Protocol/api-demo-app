@@ -4,6 +4,7 @@ export enum AppTab {
   Withdraw,
   Swap,
   MultiSend,
+  TransferAddress,
 }
 
 export interface ERC20Token {
@@ -44,6 +45,13 @@ export interface TokenBalance {
   chainId: number;
   tokenAddress: string;
   balance: string;
+}
+
+export type StuckBalanceKind = "utxo" | "bridge" | "vault";
+
+/** One token's stuck total and where it sits; vaultAddress only on vault sources. */
+export interface StuckBalance extends TokenBalance {
+  sources: { kind: StuckBalanceKind; amount: string; vaultAddress?: string }[];
 }
 
 export interface NFT {

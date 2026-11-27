@@ -1,4 +1,4 @@
-import { useCallback, useMemo, useState } from "react";
+import { useCallback, useState } from "react";
 import toast from "react-hot-toast";
 import { useConfig } from "wagmi";
 import { disconnect } from "wagmi/actions";
@@ -20,17 +20,21 @@ import {
   setActiveDfnsWallet,
   setActiveOpenfort,
 } from "../../utils/ethers-wallet";
-import { withdrawStuckUtxos } from "../../utils/withdraw";
+import { recoverStuckBalance } from "../../utils/withdraw";
+import { recoverReceiveVault } from "../../utils/transferAddress";
+import { shortenAddress } from "../../utils/shortenAddress";
 import { WalletInfoBalance } from "./WalletInfoBalance";
 import { useAppContext } from "../../AppContext";
-import { TokenBalance } from "../../types";
+import { StuckBalance } from "../../types";
 
-const filterNonZeroTokenBalances = (tokenBalances: TokenBalance[]) =>
-  tokenBalances.filter((b) => b.balance !== "0");
+type StuckSource = StuckBalance["sources"][number];
+
+const stuckSourceKey = (tokenAddress: string, { kind, vaultAddress }: StuckSource) =>
+  `${tokenAddress}:${kind}:${vaultAddress ?? ""}`;
 
 export const WalletInfoDropDown = () => {
   const {
-    stuckUtxoBalances,
+    stuckBalances,
     walletAddress,
     chainId,
     sessionId,
@@ -50,12 +54,7 @@ export const WalletInfoDropDown = () => {
   const { handleLogOut: dynamicLogout } = useDynamicContext();
   const { authState: turnkeyAuthState, logout: turnkeyLogout } = useTurnkey();
   const { signOut: openfortSignOut } = useSignOut();
-  const visibleStuckUtxoBalances = useMemo(
-    () => filterNonZeroTokenBalances(stuckUtxoBalances),
-    [stuckUtxoBalances],
-  );
-  const [withdrawingStuckTokenAddress, setWithdrawingStuckTokenAddress] =
-    useState<string | null>(null);
+  const [recoveringStuckKey, setRecoveringStuckKey] = useState<string | null>(null);
   const [isCopyingPrivate, setIsCopyingPrivate] = useState(false);
 
   const { isTron } = useAppContext();
@@ -141,33 +140,45 @@ export const WalletInfoDropDown = () => {
     }
   };
 
-  const handleWithdrawStuckUtxos = useCallback(
-    async (tokenAddress: string) => {
+  // Recovers one source of a stuck token to the connected wallet; a vault's tx is sent by the wallet itself.
+  const handleRecoverStuck = useCallback(
+    async (tokenAddress: string, source: StuckSource) => {
       try {
         if (!walletAddress || !chainId || !sessionId || !privateKey) return;
 
-        setWithdrawingStuckTokenAddress(tokenAddress);
+        setRecoveringStuckKey(stuckSourceKey(tokenAddress, source));
         const session = { sessionId, authMode, privateKey };
         const wallet = {
           signer: isTron || isSolana ? null : await getEthersSigner(),
           solanaProvider: isSolana ? solanaProvider : undefined,
         };
-        const txHashes = await withdrawStuckUtxos(
-          wallet,
-          session,
-          chainId,
-          tokenAddress,
-          walletAddress,
-        );
-
-        toast.success(`Withdraw sent (${txHashes.length} txs)`);
+        if (source.kind === "vault" && source.vaultAddress) {
+          const txHash = await recoverReceiveVault(
+            wallet,
+            session,
+            chainId,
+            source.vaultAddress,
+            tokenAddress,
+            walletAddress,
+          );
+          toast.success(`Vault recover sent: ${txHash}`);
+        } else {
+          const result = await recoverStuckBalance(wallet, session, chainId, {
+            tokenAddress,
+            recipientAddress: walletAddress,
+            kind: source.kind,
+          });
+          toast.success(
+            source.kind === "utxo"
+              ? `Withdraw sent (${result.txHashes?.length ?? 0} txs)`
+              : `Recovered ${result.recoveredAmount} (${result.failedCount ?? 0} failed)`,
+          );
+        }
         await refreshBalances();
       } catch (err) {
-        toast.error(
-          getFriendlyErrorMessage(err, "Withdraw stuck UTXOs failed"),
-        );
+        toast.error(getFriendlyErrorMessage(err, "Recover stuck balance failed"));
       } finally {
-        setWithdrawingStuckTokenAddress(null);
+        setRecoveringStuckKey(null);
       }
     },
     [walletAddress, chainId, sessionId, privateKey, authMode, refreshBalances, isSolana, isTron, solanaProvider],
@@ -175,41 +186,45 @@ export const WalletInfoDropDown = () => {
 
   return (
     <div className="absolute top-20 md:top-2 right-0 left-auto w-60 max-w-[90vw] bg-hinkal-blue-900 rounded-xl shadow-metamask font-generalSans p-4 items-center">
-      {visibleStuckUtxoBalances.length > 0 && (
+      {stuckBalances.length > 0 && (
         <div className="border-t-2 border-hinkal-blue-900 pt-3 mb-[10%]">
           <p className="text-hinkal-white-300 text-[12px] text-left mb-3">
             Stuck Balances
           </p>
           <div className="flex flex-col justify-center gap-4">
-            {visibleStuckUtxoBalances.map((tokenBalance) => {
-              const isWithdrawing =
-                withdrawingStuckTokenAddress === tokenBalance.tokenAddress;
-
-              return (
-                <div
-                  className="flex items-center justify-between gap-3"
-                  key={`stuck-${tokenBalance.tokenAddress}`}
-                >
-                  <WalletInfoBalance tokenBalance={tokenBalance} />
-                  <button
-                    type="button"
-                    disabled={withdrawingStuckTokenAddress !== null}
-                    onClick={() =>
-                      handleWithdrawStuckUtxos(tokenBalance.tokenAddress)
-                    }
-                    className="rounded-md bg-primary px-3 py-1 text-[12px] font-semibold text-white hover:bg-hinkal-purple-200 transition-all duration-300 disabled:cursor-not-allowed disabled:opacity-50"
-                  >
-                    {isWithdrawing ? (
-                      <span className="flex items-center gap-x-1">
-                        Withdraw <Spinner />
-                      </span>
-                    ) : (
-                      "Withdraw"
-                    )}
-                  </button>
-                </div>
-              );
-            })}
+            {stuckBalances.map((stuckBalance) => (
+              <div className="flex flex-col gap-2" key={`stuck-${stuckBalance.tokenAddress}`}>
+                <WalletInfoBalance tokenBalance={stuckBalance} />
+                {stuckBalance.sources.map((source) => {
+                  const key = stuckSourceKey(stuckBalance.tokenAddress, source);
+                  return (
+                    <div className="flex items-center justify-between gap-3 pl-2" key={key}>
+                      <div className="text-hinkal-white-300 text-[12px]">
+                        <p>
+                          {source.kind}
+                          {source.vaultAddress && ` ${shortenAddress(source.vaultAddress)}`}
+                        </p>
+                        <WalletInfoBalance tokenBalance={{ ...stuckBalance, balance: source.amount }} />
+                      </div>
+                      <button
+                        type="button"
+                        disabled={recoveringStuckKey !== null}
+                        onClick={() => handleRecoverStuck(stuckBalance.tokenAddress, source)}
+                        className="rounded-md bg-primary px-3 py-1 text-[12px] font-semibold text-white hover:bg-hinkal-purple-200 transition-all duration-300 disabled:cursor-not-allowed disabled:opacity-50"
+                      >
+                        {recoveringStuckKey === key ? (
+                          <span className="flex items-center gap-x-1">
+                            Recover <Spinner />
+                          </span>
+                        ) : (
+                          "Recover"
+                        )}
+                      </button>
+                    </div>
+                  );
+                })}
+              </div>
+            ))}
           </div>
         </div>
       )}
