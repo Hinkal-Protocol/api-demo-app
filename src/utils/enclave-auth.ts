@@ -238,6 +238,32 @@ export const buildRecoverStuckBridgeBalanceAuthFields = (
     }),
   );
 
+export const buildReceiveVaultRecoverAuthFields = (
+  sessionId: string,
+  signer: ethers.Signer,
+  params: {
+    chainId: number;
+    vaultAddress: string;
+    tokenAddress: string;
+    recipientAddress: string;
+  },
+) =>
+  signEnclaveTypedData(
+    sessionId,
+    signer,
+    "ReceiveVaultRecover",
+    params.chainId,
+    (nonce) => ({
+      nonce,
+      sessionId,
+      chainId: BigInt(params.chainId),
+      // String fields: the server verifies vaultAddress and tokenAddress exactly as sent.
+      vaultAddress: params.vaultAddress,
+      tokenAddress: params.tokenAddress,
+      recipient: ethers.getAddress(params.recipientAddress),
+    }),
+  );
+
 export const buildSwapAuthFields = (
   sessionId: string,
   signer: ethers.Signer,

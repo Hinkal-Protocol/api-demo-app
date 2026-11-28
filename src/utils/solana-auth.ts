@@ -216,3 +216,20 @@ export const buildSolanaRecoverStuckBridgeBalanceAuthFields = async (
     `\nRecipient: ${recipientAddress}`;
   return sign(sessionId, provider, message, nonce);
 };
+
+export const buildSolanaReceiveVaultRecoverAuthFields = async (
+  sessionId: string,
+  provider: SolanaWalletProvider,
+  chainId: number,
+  vaultAddress: string,
+  tokenAddress: string,
+  recipientAddress: string,
+): Promise<EnclaveTxAuthFields> => {
+  const nonce = crypto.randomUUID();
+  const message =
+    `${buildHeader("ReceiveVaultRecover", nonce, sessionId, chainId)}` +
+    `\nVault Address: ${vaultAddress}` +
+    `\nToken Address: ${tokenAddress}` +
+    `\nRecipient: ${recipientAddress}`;
+  return sign(sessionId, provider, message, nonce);
+};

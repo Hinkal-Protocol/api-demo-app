@@ -86,3 +86,10 @@ export type ReceiveVaultRecord = {
   version: string;
   vaultAddress: string;
 };
+
+export type ReceiveVaultBlockedFund = {
+  record: ReceiveVaultRecord;
+  token: ERC20Token;
+  amount: string;
+  reason: string;
+};

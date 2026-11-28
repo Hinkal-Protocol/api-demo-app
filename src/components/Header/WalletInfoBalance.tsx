@@ -1,21 +1,27 @@
 import { useMemo } from "react";
 import { useAppContext } from "../../AppContext";
-import { TokenBalance } from "../../types";
+import { ERC20Token, TokenBalance } from "../../types";
 import { getAmountInToken } from "../../utils/amount.utils";
 
 interface WalletInfoBalanceProps {
   tokenBalance: TokenBalance;
+  // Overrides the erc20List lookup for tokens outside the registry.
+  token?: ERC20Token;
 }
 
-export const WalletInfoBalance = ({ tokenBalance }: WalletInfoBalanceProps) => {
+export const WalletInfoBalance = ({
+  tokenBalance,
+  token: tokenOverride,
+}: WalletInfoBalanceProps) => {
   const { erc20List } = useAppContext();
 
   const token = useMemo(
     () =>
+      tokenOverride ??
       erc20List.find(
         (token) => token.erc20TokenAddress === tokenBalance.tokenAddress,
       ),
-    [erc20List, tokenBalance.tokenAddress],
+    [tokenOverride, erc20List, tokenBalance.tokenAddress],
   );
 
   const amount = useMemo(

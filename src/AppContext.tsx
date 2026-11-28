@@ -18,6 +18,7 @@ import {
   fetchStuckBridgeBalances,
   fetchStuckUtxoBalances,
 } from "./utils/balance";
+import { fetchReceiveVaultBlockedFunds } from "./utils/receiveVault";
 import { getPublicBalances } from "./utils/public-balances";
 import { createEnclaveSession } from "./utils/session";
 import { getFriendlyErrorMessage } from "./utils/errors";
@@ -26,7 +27,12 @@ import { EnclaveSessionAuthMode } from "./utils/auth";
 import type { SolanaWalletProvider } from "./utils/solana-wallet";
 import { getERC20Registry } from "./constants/token-data";
 import { getEthersSigner } from "./utils/ethers-wallet";
-import { ERC20Token, TokenBalance, WalletType } from "./types";
+import {
+  ERC20Token,
+  ReceiveVaultBlockedFund,
+  TokenBalance,
+  WalletType,
+} from "./types";
 
 type AppContextArgumnets = {
   sessionId: string | null;
@@ -57,6 +63,8 @@ type AppContextArgumnets = {
   stuckBridgeBalances: TokenBalance[];
   isStuckBridgeBalancesLoading: boolean;
   refreshStuckBridgeBalances: () => Promise<void>;
+  receiveVaultBlockedFunds: ReceiveVaultBlockedFund[];
+  refreshReceiveVaultBlockedFunds: () => Promise<void>;
   refreshBalances: () => Promise<void>;
   refreshBalancesSoon: (delaysMs?: number[]) => Promise<void>;
   isBalancesRefreshing: boolean;
@@ -97,6 +105,8 @@ const AppContext = createContext<AppContextArgumnets>({
   stuckBridgeBalances: [],
   isStuckBridgeBalancesLoading: false,
   refreshStuckBridgeBalances: async () => {},
+  receiveVaultBlockedFunds: [],
+  refreshReceiveVaultBlockedFunds: async () => {},
   refreshBalances: async () => {},
   refreshBalancesSoon: async () => {},
   isBalancesRefreshing: false,
@@ -132,6 +142,9 @@ export const AppContextProvider: FC<AppContextProps> = ({
   >([]);
   const [isStuckBridgeBalancesLoading, setIsStuckBridgeBalancesLoading] =
     useState(false);
+  const [receiveVaultBlockedFunds, setReceiveVaultBlockedFunds] = useState<
+    ReceiveVaultBlockedFund[]
+  >([]);
   const [walletBalances, setWalletBalances] = useState<Record<string, bigint>>(
     {},
   );
@@ -142,6 +155,7 @@ export const AppContextProvider: FC<AppContextProps> = ({
   const abortControllerRef = useRef<AbortController | null>(null);
   const prevChainIdRef = useRef<number | undefined>();
   const walletBalancesRequestRef = useRef(0);
+  const receiveVaultBlockedFundsRequestRef = useRef(0);
 
   const isTron = useMemo(() => walletType === WalletType.Tron, [walletType]);
   const isSolana = useMemo(
@@ -250,6 +264,24 @@ export const AppContextProvider: FC<AppContextProps> = ({
     }
   }, [dataLoaded, chainId, sessionId, privateKey]);
 
+  const refreshReceiveVaultBlockedFunds = useCallback(async () => {
+    const requestId = ++receiveVaultBlockedFundsRequestRef.current;
+    if (!dataLoaded || !chainId || !sessionId || !privateKey) return;
+
+    try {
+      const funds = await fetchReceiveVaultBlockedFunds({
+        sessionId,
+        privateKey,
+        chainId,
+      });
+      // A newer refresh (e.g. after a chain switch) owns the state.
+      if (requestId !== receiveVaultBlockedFundsRequestRef.current) return;
+      setReceiveVaultBlockedFunds(funds);
+    } catch (error) {
+      console.error("Error fetching receive vault blocked funds:", error);
+    }
+  }, [dataLoaded, chainId, sessionId, privateKey]);
+
   const refreshBalances = useCallback(async () => {
     if (!dataLoaded || !chainId || !walletAddress || !sessionId || !privateKey)
       return;
@@ -265,6 +297,7 @@ export const AppContextProvider: FC<AppContextProps> = ({
         chainId,
       };
       refreshStuckBridgeBalances();
+      refreshReceiveVaultBlockedFunds();
       const [bals, stuckBals] = await Promise.all([
         fetchBalances(auth, controller.signal),
         fetchStuckUtxoBalances(auth, controller.signal),
@@ -286,6 +319,7 @@ export const AppContextProvider: FC<AppContextProps> = ({
     sessionId,
     privateKey,
     refreshStuckBridgeBalances,
+    refreshReceiveVaultBlockedFunds,
   ]);
 
   // After a tx the new balance may not be indexed yet, so a single immediate
@@ -320,6 +354,7 @@ export const AppContextProvider: FC<AppContextProps> = ({
     setBalances([]);
     setStuckUtxoBalances([]);
     setStuckBridgeBalances([]);
+    setReceiveVaultBlockedFunds([]);
     refreshBalances();
     const interval = setInterval(refreshBalances, BALANCE_REFRESH_INTERVAL);
     return () => {
@@ -408,6 +443,8 @@ export const AppContextProvider: FC<AppContextProps> = ({
         stuckBridgeBalances,
         isStuckBridgeBalancesLoading,
         refreshStuckBridgeBalances,
+        receiveVaultBlockedFunds,
+        refreshReceiveVaultBlockedFunds,
         refreshBalances,
         refreshBalancesSoon,
         isBalancesRefreshing,

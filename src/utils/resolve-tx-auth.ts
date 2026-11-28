@@ -10,6 +10,7 @@ import {
   buildWithdrawAuthFields,
   buildWithdrawStuckUtxosAuthFields,
   buildRecoverStuckBridgeBalanceAuthFields,
+  buildReceiveVaultRecoverAuthFields,
 } from "./enclave-auth";
 import type { Recipient } from "./multiSend";
 import {
@@ -22,6 +23,7 @@ import {
   buildSolanaWithdrawAuthFields,
   buildSolanaWithdrawStuckUtxosAuthFields,
   buildSolanaRecoverStuckBridgeBalanceAuthFields,
+  buildSolanaReceiveVaultRecoverAuthFields,
 } from "./solana-auth";
 import {
   buildTronDepositAuthFields,
@@ -32,6 +34,7 @@ import {
   buildTronWithdrawAuthFields,
   buildTronWithdrawStuckUtxosAuthFields,
   buildTronRecoverStuckBridgeBalanceAuthFields,
+  buildTronReceiveVaultRecoverAuthFields,
 } from "./tron-auth";
 import { isTronChain } from "./tron-wallet";
 import type { EnclaveTxAuthFields, TxWallet } from "./types";
@@ -260,6 +263,40 @@ export const resolveRecoverStuckBridgeBalanceAuth = (
         sessionId,
         requireEvmSigner(wallet.signer),
         { chainId, tokenAddress, recipientAddress },
+      ),
+  });
+
+export const resolveReceiveVaultRecoverAuth = (
+  wallet: TxWallet,
+  sessionId: string,
+  chainId: number,
+  vaultAddress: string,
+  tokenAddress: string,
+  recipientAddress: string,
+): Promise<EnclaveTxAuthFields> =>
+  resolveByChain(chainId, {
+    solana: () =>
+      buildSolanaReceiveVaultRecoverAuthFields(
+        sessionId,
+        requireSolanaProvider(wallet.solanaProvider),
+        chainId,
+        vaultAddress,
+        tokenAddress,
+        recipientAddress,
+      ),
+    tron: () =>
+      buildTronReceiveVaultRecoverAuthFields(
+        sessionId,
+        chainId,
+        vaultAddress,
+        tokenAddress,
+        recipientAddress,
+      ),
+    evm: () =>
+      buildReceiveVaultRecoverAuthFields(
+        sessionId,
+        requireEvmSigner(wallet.signer),
+        { chainId, vaultAddress, tokenAddress, recipientAddress },
       ),
   });
 
