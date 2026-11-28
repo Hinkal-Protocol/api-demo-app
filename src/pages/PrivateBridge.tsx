@@ -298,6 +298,14 @@ export const PrivateBridge = () => {
 
   return (
     <form className="rounded-lg text-white" onSubmit={handleSubmit}>
+      <div className="w-[90%] mx-auto mb-4 text-[12px] text-hinkal-gray-100">
+        <p>
+          Bridges into a Hinkal deposit address on{" "}
+          {getChainName(destinationChainId)}: what arrives is shielded into that
+          account's private balance. Leave the recipient empty to use your own,
+          or get one from the Deposit Address tab.
+        </p>
+      </div>
       <TokenAmountInput
         tokenAmount={bridgeAmount}
         setTokenAmount={setBridgeAmount}
