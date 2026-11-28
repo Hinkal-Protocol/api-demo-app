@@ -1,4 +1,5 @@
 import { ReceiveVaultRecord } from "../types";
+import { ENCLAVE_SERVER_BASE_URL } from "../constants/server.constants";
 import { enclaveFetch } from "./enclaveApi";
 import {
   type Session,
@@ -31,4 +32,23 @@ export const createReceiveAddress = async (
   }
 
   return data.record;
+};
+
+export const checkReceiveVaultAddress = async (
+  vaultAddress: string,
+): Promise<boolean> => {
+  const res = await fetch(`${ENCLAVE_SERVER_BASE_URL}/receive-vault/check`, {
+    method: "POST",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify({ vaultAddress }),
+  });
+  const data: { isReceiveVault?: boolean; detail?: string } = await res
+    .json()
+    .catch(() => ({}));
+
+  if (!res.ok) {
+    throw new Error(data.detail ?? "Deposit address check failed");
+  }
+
+  return !!data.isReceiveVault;
 };

@@ -70,13 +70,6 @@ export const NavigationBar = ({
         </div>
         <div className={buttonClassName}>
           <TabButton
-            isActive={activeTab === AppTab.Bridge}
-            title="Bridge"
-            onClick={() => setActiveTab(AppTab.Bridge)}
-          />
-        </div>
-        <div className={buttonClassName}>
-          <TabButton
             isActive={activeTab === AppTab.PrivateBridge}
             title="Private Bridge"
             onClick={() => setActiveTab(AppTab.PrivateBridge)}

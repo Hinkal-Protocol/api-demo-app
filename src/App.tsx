@@ -11,7 +11,6 @@ import { Swap } from "./pages/Swap";
 import { Withdraw } from "./pages/Withdraw";
 import { Transfer } from "./pages/Transfer";
 import { MultiSend } from "./pages/MultiSend";
-import { Bridge } from "./pages/Bridge";
 import { PrivateBridge } from "./pages/PrivateBridge";
 import { DepositAddress } from "./pages/DepositAddress";
 const App = () => {
@@ -36,7 +35,6 @@ const App = () => {
               {activeTab === AppTab.Withdraw && <Withdraw />}
               {activeTab === AppTab.Swap && <Swap />}
               {activeTab === AppTab.MultiSend && <MultiSend />}
-              {activeTab === AppTab.Bridge && <Bridge />}
               {activeTab === AppTab.PrivateBridge && <PrivateBridge />}
               {activeTab === AppTab.DepositAddress && <DepositAddress />}
             </section>

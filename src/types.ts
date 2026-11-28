@@ -4,7 +4,6 @@ export enum AppTab {
   Withdraw,
   Swap,
   MultiSend,
-  Bridge,
   PrivateBridge,
   DepositAddress,
 }

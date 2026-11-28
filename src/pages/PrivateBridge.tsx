@@ -27,7 +27,10 @@ import {
   PrivateSendBridgeQuote,
   waitForScheduledTxsComplete,
 } from "../utils/privateSendBridge";
-import { createReceiveAddress } from "../utils/receiveVault";
+import {
+  checkReceiveVaultAddress,
+  createReceiveAddress,
+} from "../utils/receiveVault";
 import type { Auth } from "../utils/types";
 import {
   approveErc20,
@@ -149,9 +152,18 @@ export const PrivateBridge = () => {
       setIsQuoting(true);
 
       const auth: Auth = { sessionId, privateKey, chainId };
+      const typedRecipient = recipientAddress.trim();
+      if (
+        typedRecipient &&
+        !(await checkReceiveVaultAddress(typedRecipient))
+      ) {
+        throw new Error(
+          "Recipient is not a Hinkal deposit address. Ask the recipient for one, or leave it empty to use your own",
+        );
+      }
       // Empty recipient = bridge into your own deposit address on the destination chain.
       const recipient =
-        recipientAddress.trim() ||
+        typedRecipient ||
         (
           await createReceiveAddress(
             { sessionId, privateKey },
