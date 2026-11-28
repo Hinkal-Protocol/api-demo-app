@@ -1,13 +1,12 @@
 import { zeroAddress } from "../constants";
-import { ERC20Token } from "../types";
-import type { WalletType } from "../AppContext";
-import { getErc20Balance, getNativeBalance } from "./ethers-wallet";
-import { getTronErc20Balance, getTronNativeBalance } from "./tron-wallet";
+import { ERC20Token, WalletType } from "../types";
 import {
-  getSolanaNativeBalance,
-  getSolanaTokenBalance,
-  SOLANA_NATIVE_ADDRESS,
-} from "./solana-wallet";
+  getErc20Balance,
+  getEvmBalancesMulticall,
+  getNativeBalance,
+} from "./ethers-wallet";
+import { getTronErc20Balance, getTronNativeBalance } from "./tron-wallet";
+import { getSolanaBalances } from "./solana-wallet";
 
 export interface PublicBalance {
   token: ERC20Token;
@@ -18,20 +17,14 @@ const getTokenWalletBalance = (
   token: ERC20Token,
   walletAddress: string,
   chainId: number,
-  walletType: WalletType
+  walletType: WalletType,
 ): Promise<bigint> => {
   const address = token.erc20TokenAddress;
 
-  if (walletType === "tron") {
+  if (walletType === WalletType.Tron) {
     return address.toLowerCase() === zeroAddress
       ? getTronNativeBalance(walletAddress)
       : getTronErc20Balance(address, walletAddress);
-  }
-
-  if (walletType === "solana") {
-    return address === SOLANA_NATIVE_ADDRESS
-      ? getSolanaNativeBalance(walletAddress)
-      : getSolanaTokenBalance(address, walletAddress);
   }
 
   return address.toLowerCase() === zeroAddress
@@ -46,8 +39,23 @@ export const getPublicBalances = async (
   tokens: ERC20Token[],
   walletAddress: string,
   chainId: number,
-  walletType: WalletType
+  walletType: WalletType,
 ): Promise<PublicBalance[]> => {
+  if (walletType === WalletType.Solana) {
+    const balances = await getSolanaBalances(walletAddress, tokens);
+    return tokens.map((token, i) => ({ token, balance: balances[i] }));
+  }
+  if (walletType === WalletType.Evm) {
+    const balances = await getEvmBalancesMulticall(
+      chainId,
+      tokens.map((token) => token.erc20TokenAddress),
+      walletAddress,
+    );
+    if (balances) {
+      return tokens.map((token, i) => ({ token, balance: balances[i] }));
+    }
+  }
+
   const results: PublicBalance[] = new Array(tokens.length);
   let next = 0;
   const worker = async () => {
@@ -60,16 +68,16 @@ export const getPublicBalances = async (
           token,
           walletAddress,
           chainId,
-          walletType
-        ).catch(() => 0n),
+          walletType,
+        ),
       };
     }
   };
   await Promise.all(
     Array.from(
       { length: Math.min(MAX_CONCURRENT_BALANCE_REQUESTS, tokens.length) },
-      worker
-    )
+      worker,
+    ),
   );
   return results;
 };

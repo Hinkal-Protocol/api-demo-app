@@ -2,12 +2,12 @@ import { ethers } from "ethers";
 import type { Account, Chain, Client, Transport } from "viem";
 import { getConnectorClient, switchChain } from "wagmi/actions";
 import { TurnkeySigner } from "@turnkey/ethers";
-import type { TurnkeyClient } from "@turnkey/http";
 import { getSigner } from "@dynamic-labs/ethers-v6";
 import { isEthereumWallet } from "@dynamic-labs/ethereum";
 import type { Wallet } from "@dynamic-labs/sdk-react-core";
 import type { DfnsWallet } from "@dfns/lib-ethersjs6";
 import { ERC20_ABI } from "../constants/erc20.constants";
+import { zeroAddress } from "../constants";
 import { networkRegistry } from "../constants/chain.constants";
 import { wagmiConfig } from "../wagmi.config";
 import { populateOpenfortGas } from "./openfort-gas";
@@ -32,7 +32,9 @@ export const setActivePrivyWallet = (wallet: PrivyEvmWallet | null): void => {
 };
 
 interface TurnkeySignerParams {
-  client: TurnkeyClient;
+  // Typed from TurnkeySigner itself: @turnkey/ethers pins its own
+  // @turnkey/http version, so the top-level TurnkeyClient type doesn't match.
+  client: ConstructorParameters<typeof TurnkeySigner>[0]["client"];
   organizationId: string;
   signWith: string;
 }
@@ -249,7 +251,9 @@ const getReadProvider = (chainId: number): ethers.JsonRpcProvider => {
     if (!rpcUrl) {
       throw new Error(`No RPC URL configured for chain ${chainId}`);
     }
-    provider = new ethers.JsonRpcProvider(rpcUrl, chainId, {
+    const request = new ethers.FetchRequest(rpcUrl);
+    request.timeout = 20_000;
+    provider = new ethers.JsonRpcProvider(request, chainId, {
       staticNetwork: true,
       batchMaxCount: 1,
     });
@@ -274,6 +278,66 @@ export const getErc20Balance = async (
     getReadProvider(chainId),
   );
   return contract.balanceOf(walletAddress);
+};
+
+// Multicall3 is deployed at this address on nearly every EVM chain.
+const MULTICALL3_ADDRESS = "0xcA11bde05977b3631167028862bE2a173976CA11";
+const MULTICALL3_ABI = [
+  "function aggregate3((address target, bool allowFailure, bytes callData)[] calls) payable returns ((bool success, bytes returnData)[] returnData)",
+  "function getEthBalance(address addr) view returns (uint256 balance)",
+];
+const MULTICALL_BATCH_SIZE = 500;
+const multicall3Probes = new Map<number, Promise<boolean>>();
+
+// Balances for a whole token list (same order) in one eth_call per 500
+// tokens, or null when the chain has no Multicall3.
+export const getEvmBalancesMulticall = async (
+  chainId: number,
+  tokenAddresses: string[],
+  walletAddress: string,
+): Promise<bigint[] | null> => {
+  const provider = getReadProvider(chainId);
+  let probe = multicall3Probes.get(chainId);
+  if (!probe) {
+    probe = provider.getCode(MULTICALL3_ADDRESS).then((code) => code !== "0x");
+    probe.catch(() => multicall3Probes.delete(chainId)); // retry failed probes
+    multicall3Probes.set(chainId, probe);
+  }
+  if (!(await probe)) return null;
+
+  const multicall = new ethers.Contract(
+    MULTICALL3_ADDRESS,
+    MULTICALL3_ABI,
+    provider,
+  );
+  const erc20 = new ethers.Interface(ERC20_ABI);
+  const calls = tokenAddresses.map((address) =>
+    address.toLowerCase() === zeroAddress
+      ? {
+          target: MULTICALL3_ADDRESS,
+          allowFailure: true,
+          callData: multicall.interface.encodeFunctionData("getEthBalance", [
+            walletAddress,
+          ]),
+        }
+      : {
+          target: address.toLowerCase(), // skip checksum validation
+          allowFailure: true,
+          callData: erc20.encodeFunctionData("balanceOf", [walletAddress]),
+        },
+  );
+  const requests: Promise<{ success: boolean; returnData: string }[]>[] = [];
+  for (let i = 0; i < calls.length; i += MULTICALL_BATCH_SIZE) {
+    requests.push(
+      multicall.aggregate3.staticCall(calls.slice(i, i + MULTICALL_BATCH_SIZE)),
+    );
+  }
+  // Reverted or empty balanceOf reads as 0, like the per-token path.
+  return (await Promise.all(requests))
+    .flat()
+    .map(({ success, returnData }) =>
+      success && returnData.length >= 66 ? BigInt(returnData.slice(0, 66)) : 0n,
+    );
 };
 
 const sendViaWallet = async (
