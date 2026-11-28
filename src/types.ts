@@ -9,6 +9,12 @@ export enum AppTab {
   DepositAddress,
 }
 
+export enum WalletType {
+  Evm = "evm",
+  Tron = "tron",
+  Solana = "solana",
+}
+
 export interface ERC20Token {
   chainId: number;
   erc20TokenAddress: string;

@@ -23,12 +23,14 @@ export const getFee = async (
   externalActionId: ExternalActionId,
   amounts?: bigint[],
   mintFrom?: string,
+  ref?: string,
 ): Promise<string> => {
   const { queryString, headers, requestNonce } = await buildAuthGet(auth, "/get-fee", {
     feeToken,
     externalActionId,
     tokenAddresses,
     ...(mintFrom !== undefined ? { mintFrom } : {}),
+    ...(ref !== undefined ? { ref } : {}),
     ...(amounts !== undefined
       ? { amounts: amounts.map((amount) => amount.toString()) }
       : {}),

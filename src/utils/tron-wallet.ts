@@ -1,9 +1,11 @@
 import { chainIds } from "../constants/chain.constants";
+import { zeroAddress } from "../constants";
 
 export const TRON_NILE_CHAIN_ID = 3448148188;
 export const TRON_MAINNET_CHAIN_ID = 728126428;
 
 const TRON_FEE_LIMIT_SUN = 1_000_000_000;
+const TRON_EXPIRATION_EXTENSION_SEC = 300;
 
 // Minimal ERC20 approve ABI fragment for Tron
 const APPROVE_FUNC = "approve(address,uint256)";
@@ -107,6 +109,7 @@ export const approveTronToken = async (
       : "Approve failed";
     throw new Error(`TRC20 approve failed: ${msg}`);
   }
+  await waitForTronConfirmation(result.txid ?? signed.txID);
 };
 
 /** Sign and broadcast a raw Tron transaction, returning the txid */
@@ -138,14 +141,24 @@ export const approveAndBroadcastTronDepositTx = async (
   tokenHexAddress: string,
   fromBase58: string,
 ): Promise<string> => {
-  // The deposit txData.to field is the spender (depositOnChainUtxos contract) in EVM hex
-  const spenderHex: string | undefined = txData?.to;
-  if (spenderHex) {
-    await approveTronToken(tokenHexAddress, spenderHex, amount, fromBase58);
+  // Tron tx has no `to`; the spender is the contract the deposit tx calls
+  const spenderHex: string | undefined =
+    txData?.raw_data?.contract?.[0]?.parameter?.value?.contract_address;
+  if (!spenderHex) throw new Error("Invalid Tron deposit tx: missing contract_address");
+
+  let depositTx = txData;
+  if (tokenHexAddress !== zeroAddress) {
+    const allowance = await getTronErc20Allowance(tokenHexAddress, fromBase58, spenderHex);
+    if (allowance < amount) {
+      await approveTronToken(tokenHexAddress, spenderHex, amount, fromBase58);
+      // Server-built tx expires ~60s after creation; the approve round-trip can outlast it
+      depositTx = await getTronWeb().transactionBuilder.extendExpiration(txData, TRON_EXPIRATION_EXTENSION_SEC);
+    }
   }
 
-  // txData itself is the Tron Transaction object (has raw_data)
-  return broadcastRawTronTx(txData);
+  const txid = await broadcastRawTronTx(depositTx);
+  await waitForTronConfirmation(txid);
+  return txid;
 };
 
 /**
@@ -197,7 +210,34 @@ export const getTronErc20Balance = async (
   return BigInt(String(balance));
 };
 
-/** Wait for a Tron transaction to be confirmed (polls getTransactionInfo) */
+const ERC20_ALLOWANCE_ABI = [
+  {
+    constant: true,
+    inputs: [
+      { name: "_owner", type: "address" },
+      { name: "_spender", type: "address" },
+    ],
+    name: "allowance",
+    outputs: [{ name: "remaining", type: "uint256" }],
+    type: "function",
+  },
+];
+
+/** Fetch TRC20 allowance granted by owner to spender */
+export const getTronErc20Allowance = async (
+  tokenHexAddress: string,
+  ownerAddress: string,
+  spenderHexAddress: string,
+): Promise<bigint> => {
+  const tw = getTronWeb();
+  const contract = await tw.contract(ERC20_ALLOWANCE_ABI, tronHexToBase58(tokenHexAddress));
+  const allowance = await contract
+    .allowance(ownerAddress, tronHexToBase58(spenderHexAddress))
+    .call({ from: ownerAddress });
+  return BigInt(String(allowance));
+};
+
+/** Wait for a Tron transaction to be included in a block (polls fullnode tx info) */
 export const waitForTronConfirmation = async (
   txid: string,
   timeoutMs = 120_000,
@@ -206,8 +246,14 @@ export const waitForTronConfirmation = async (
   const deadline = Date.now() + timeoutMs;
   while (Date.now() < deadline) {
     // eslint-disable-next-line @typescript-eslint/no-explicit-any
-    const info: any = await tw.trx.getTransactionInfo(txid);
-    if (info?.receipt) return;
+    // Fullnode query: returns once included in a block, unlike getTransactionInfo which waits for solidification
+    const info: any = await tw.trx.getUnconfirmedTransactionInfo(txid);
+    if (info?.receipt) {
+      if (info.receipt.result && info.receipt.result !== "SUCCESS") {
+        throw new Error(`Tron transaction ${txid} failed: ${info.receipt.result}`);
+      }
+      return;
+    }
     await new Promise((r) => setTimeout(r, 3000));
   }
   throw new Error(`Tron transaction ${txid} not confirmed within timeout`);

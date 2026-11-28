@@ -26,8 +26,7 @@ import { EnclaveSessionAuthMode } from "./utils/auth";
 import type { SolanaWalletProvider } from "./utils/solana-wallet";
 import { getERC20Registry } from "./constants/token-data";
 import { getEthersSigner } from "./utils/ethers-wallet";
-import { ERC20Token, TokenBalance } from "./types";
-export type WalletType = "evm" | "tron" | "solana";
+import { ERC20Token, TokenBalance, WalletType } from "./types";
 
 type AppContextArgumnets = {
   sessionId: string | null;
@@ -67,7 +66,7 @@ type AppContextArgumnets = {
 };
 
 const BALANCE_REFRESH_INTERVAL = 100000;
-const WALLET_BALANCES_REFRESH_INTERVAL = 7000;
+const WALLET_BALANCES_REFRESH_INTERVAL = 20000;
 
 const AppContext = createContext<AppContextArgumnets>({
   sessionId: null,
@@ -142,9 +141,13 @@ export const AppContextProvider: FC<AppContextProps> = ({
   const balancesRef = useRef<TokenBalance[]>([]);
   const abortControllerRef = useRef<AbortController | null>(null);
   const prevChainIdRef = useRef<number | undefined>();
+  const walletBalancesRequestRef = useRef(0);
 
-  const isTron = useMemo(() => walletType === "tron", [walletType]);
-  const isSolana = useMemo(() => walletType === "solana", [walletType]);
+  const isTron = useMemo(() => walletType === WalletType.Tron, [walletType]);
+  const isSolana = useMemo(
+    () => walletType === WalletType.Solana,
+    [walletType],
+  );
 
   const erc20List = useMemo<ERC20Token[]>(
     () => (chainId ? getERC20Registry(chainId) : []),
@@ -184,7 +187,8 @@ export const AppContextProvider: FC<AppContextProps> = ({
     if (!walletAddress || !dataLoaded) return;
     if (prevChainId === undefined || prevChainId === chainId) return;
     // Tron users don't switch chains via wagmi; skip EVM re-auth for them
-    if (walletType === "tron" || walletType === "solana") return;
+    if (walletType === WalletType.Tron || walletType === WalletType.Solana)
+      return;
 
     let cancelled = false;
     setSessionId(null);
@@ -247,13 +251,7 @@ export const AppContextProvider: FC<AppContextProps> = ({
   }, [dataLoaded, chainId, sessionId, privateKey]);
 
   const refreshBalances = useCallback(async () => {
-    if (
-      !dataLoaded ||
-      !chainId ||
-      !walletAddress ||
-      !sessionId ||
-      !privateKey
-    )
+    if (!dataLoaded || !chainId || !walletAddress || !sessionId || !privateKey)
       return;
 
     abortControllerRef.current?.abort();
@@ -332,6 +330,7 @@ export const AppContextProvider: FC<AppContextProps> = ({
 
   const refreshWalletBalances = useCallback(
     async (silent = false) => {
+      const requestId = ++walletBalancesRequestRef.current;
       if (!walletAddress || !chainId || !walletType || erc20List.length === 0) {
         setWalletBalances({});
         return;
@@ -344,6 +343,8 @@ export const AppContextProvider: FC<AppContextProps> = ({
           chainId,
           walletType,
         );
+        // A newer refresh (e.g. after a wallet/chain switch) owns the state.
+        if (requestId !== walletBalancesRequestRef.current) return;
         setWalletBalances(
           Object.fromEntries(
             balances.map((b) => [
@@ -352,24 +353,34 @@ export const AppContextProvider: FC<AppContextProps> = ({
             ]),
           ),
         );
-      } finally {
-        if (!silent) setIsWalletBalancesLoading(false);
+        setIsWalletBalancesLoading(false);
+      } catch (error) {
+        console.error("Error refreshing wallet balances:", error);
       }
     },
     [walletAddress, chainId, walletType, erc20List],
   );
 
   useEffect(() => {
+    setWalletBalances({});
     if (!walletAddress || !chainId || !walletType || erc20List.length === 0) {
-      setWalletBalances({});
+      walletBalancesRequestRef.current++;
+      setIsWalletBalancesLoading(false);
       return;
     }
-    refreshWalletBalances();
-    const interval = setInterval(
-      () => refreshWalletBalances(true),
-      WALLET_BALANCES_REFRESH_INTERVAL,
-    );
-    return () => clearInterval(interval);
+    let stopped = false;
+    let timer: ReturnType<typeof setTimeout> | undefined;
+    const poll = async (silent: boolean) => {
+      if (!silent || !document.hidden) await refreshWalletBalances(silent);
+      if (!stopped) {
+        timer = setTimeout(() => poll(true), WALLET_BALANCES_REFRESH_INTERVAL);
+      }
+    };
+    poll(false);
+    return () => {
+      stopped = true;
+      clearTimeout(timer);
+    };
   }, [walletAddress, chainId, walletType, erc20List, refreshWalletBalances]);
 
   return (
