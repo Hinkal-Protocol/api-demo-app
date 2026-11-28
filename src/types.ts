@@ -6,6 +6,12 @@ export enum AppTab {
   MultiSend,
 }
 
+export enum WalletType {
+  Evm = "evm",
+  Tron = "tron",
+  Solana = "solana",
+}
+
 export interface ERC20Token {
   chainId: number;
   erc20TokenAddress: string;

@@ -1,5 +1,6 @@
 import { Connection, PublicKey, VersionedTransaction } from "@solana/web3.js";
 import { getWallets } from "@wallet-standard/app";
+import type { ERC20Token } from "../types";
 
 export const SOLANA_MAINNET_CHAIN_ID = 501;
 export const SOLANA_NATIVE_ADDRESS = "11111111111111111111111111111111";
@@ -146,7 +147,7 @@ export const broadcastSolanaTransaction = async (
   }
 
   const wallet = provider === "phantom" ? getPhantom() : getSolflare();
-  const tx = VersionedTransaction.deserialize(txBytes);
+  const tx = VersionedTransaction.deserialize(new Uint8Array(txBytes));
   const signed = await wallet.signTransaction(tx);
   const signature = await connection.sendRawTransaction(signed.serialize());
   return signature;
@@ -177,4 +178,62 @@ export const getSolanaTokenBalance = async (
   const data = value?.data;
   if (!data || !("parsed" in data)) return 0n;
   return BigInt(data.parsed.info.tokenAmount.amount);
+};
+
+const TOKEN_PROGRAM_ID = new PublicKey(
+  "TokenkegQfeZyiNwAJbNbGKPFXCWuBvf9Ss623VQ5DA",
+);
+const TOKEN_2022_PROGRAM_ID = new PublicKey(
+  "TokenzQdBNbLqP5VEhdkAS6EPFLC1PHnBqCXEpPxuEb",
+);
+// publicnode rejects getMultipleAccounts with more than 10 keys.
+const MAX_ACCOUNTS_PER_REQUEST = 10;
+
+// Balances for a whole token list (same order), batched with
+// getMultipleAccounts instead of 2 RPC calls per token.
+export const getSolanaBalances = async (
+  ownerAddress: string,
+  tokens: ERC20Token[],
+): Promise<bigint[]> => {
+  // No 429 retries: the next poll retries anyway, retries only add load.
+  const connection = new Connection(SOLANA_RPC, {
+    commitment: "confirmed",
+    disableRetryOnRateLimit: true,
+    fetch: (input, init) =>
+      fetch(input, { ...init, signal: AbortSignal.timeout(20_000) }),
+  });
+  const owner = new PublicKey(ownerAddress);
+  const keys = tokens.map(({ erc20TokenAddress, is2022Program }) =>
+    erc20TokenAddress === SOLANA_NATIVE_ADDRESS
+      ? owner
+      : PublicKey.findProgramAddressSync(
+          [
+            owner.toBuffer(),
+            (is2022Program
+              ? TOKEN_2022_PROGRAM_ID
+              : TOKEN_PROGRAM_ID
+            ).toBuffer(),
+            new PublicKey(erc20TokenAddress).toBuffer(),
+          ],
+          ASSOCIATED_TOKEN_PROGRAM_ID,
+        )[0],
+  );
+  const requests = [];
+  for (let i = 0; i < keys.length; i += MAX_ACCOUNTS_PER_REQUEST) {
+    requests.push(
+      await connection.getMultipleParsedAccounts(
+        keys.slice(i, i + MAX_ACCOUNTS_PER_REQUEST),
+      ),
+    );
+  }
+  const accounts = requests.flatMap(({ value }) => value);
+  return accounts.map((account, i) => {
+    if (!account) return 0n;
+    if (tokens[i].erc20TokenAddress === SOLANA_NATIVE_ADDRESS) {
+      return BigInt(account.lamports);
+    }
+    return "parsed" in account.data
+      ? BigInt(account.data.parsed.info.tokenAmount.amount)
+      : 0n;
+  });
 };
