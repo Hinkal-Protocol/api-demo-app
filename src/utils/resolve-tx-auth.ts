@@ -3,29 +3,38 @@ import {
   buildDepositAndWithdrawAuthFields,
   buildDepositAuthFields,
   buildDepositForOtherAuthFields,
+  buildPrivateSendBridgeAuthFields,
+  type PrivateSendBridgeAuthParams,
   buildSwapAuthFields,
   buildTransferAuthFields,
   buildWithdrawAuthFields,
   buildWithdrawStuckUtxosAuthFields,
+  buildRecoverStuckBridgeBalanceAuthFields,
+  buildReceiveVaultRecoverAuthFields,
 } from "./enclave-auth";
-import type { FeeStructure } from "./fees";
 import type { Recipient } from "./multiSend";
 import {
   buildSolanaDepositAuthFields,
   buildSolanaDepositForOtherAuthFields,
+  buildSolanaPrivateSendBridgeAuthFields,
   buildSolanaPrivateSendAuthFields,
   buildSolanaSwapAuthFields,
   buildSolanaTransferAuthFields,
   buildSolanaWithdrawAuthFields,
   buildSolanaWithdrawStuckUtxosAuthFields,
+  buildSolanaRecoverStuckBridgeBalanceAuthFields,
+  buildSolanaReceiveVaultRecoverAuthFields,
 } from "./solana-auth";
 import {
   buildTronDepositAuthFields,
   buildTronDepositForOtherAuthFields,
+  buildTronPrivateSendBridgeAuthFields,
   buildTronPrivateSendAuthFields,
   buildTronTransferAuthFields,
   buildTronWithdrawAuthFields,
   buildTronWithdrawStuckUtxosAuthFields,
+  buildTronRecoverStuckBridgeBalanceAuthFields,
+  buildTronReceiveVaultRecoverAuthFields,
 } from "./tron-auth";
 import { isTronChain } from "./tron-wallet";
 import type { EnclaveTxAuthFields, TxWallet } from "./types";
@@ -115,7 +124,7 @@ export const resolveTransferAuth = (
   amounts: string[],
   recipientAddress: string,
   feeToken?: string,
-  feeStructure?: FeeStructure,
+  feeAmount?: string,
 ): Promise<EnclaveTxAuthFields> =>
   resolveByChain(chainId, {
     solana: () =>
@@ -126,8 +135,7 @@ export const resolveTransferAuth = (
         tokenAddresses,
         amounts,
         recipientAddress,
-        feeToken,
-        feeStructure,
+        feeAmount,
       ),
     tron: () =>
       buildTronTransferAuthFields(
@@ -137,7 +145,7 @@ export const resolveTransferAuth = (
         amounts,
         recipientAddress,
         feeToken,
-        feeStructure,
+        feeAmount,
       ),
     evm: () =>
       buildTransferAuthFields(sessionId, requireEvmSigner(wallet.signer), {
@@ -146,7 +154,7 @@ export const resolveTransferAuth = (
         amounts,
         recipient: recipientAddress,
         feeToken,
-        feeStructure,
+        feeAmount,
       }),
   });
 
@@ -158,7 +166,8 @@ export const resolveWithdrawAuth = (
   amounts: string[],
   recipientAddress: string,
   feeToken?: string,
-  feeStructure?: FeeStructure,
+  feeAmount?: string,
+  ref?: string,
 ): Promise<EnclaveTxAuthFields> =>
   resolveByChain(chainId, {
     solana: () =>
@@ -169,8 +178,8 @@ export const resolveWithdrawAuth = (
         tokenAddresses,
         amounts,
         recipientAddress,
-        feeToken,
-        feeStructure,
+        feeAmount,
+        ref,
       ),
     tron: () =>
       buildTronWithdrawAuthFields(
@@ -180,7 +189,8 @@ export const resolveWithdrawAuth = (
         amounts,
         recipientAddress,
         feeToken,
-        feeStructure,
+        feeAmount,
+        ref,
       ),
     evm: () =>
       buildWithdrawAuthFields(sessionId, requireEvmSigner(wallet.signer), {
@@ -189,7 +199,8 @@ export const resolveWithdrawAuth = (
         amounts,
         recipient: recipientAddress,
         feeToken,
-        feeStructure,
+        feeAmount,
+        ref,
       }),
   });
 
@@ -224,6 +235,71 @@ export const resolveWithdrawStuckUtxosAuth = (
       ),
   });
 
+export const resolveRecoverStuckBridgeBalanceAuth = (
+  wallet: TxWallet,
+  sessionId: string,
+  chainId: number,
+  tokenAddress: string,
+  recipientAddress: string,
+): Promise<EnclaveTxAuthFields> =>
+  resolveByChain(chainId, {
+    solana: () =>
+      buildSolanaRecoverStuckBridgeBalanceAuthFields(
+        sessionId,
+        requireSolanaProvider(wallet.solanaProvider),
+        chainId,
+        tokenAddress,
+        recipientAddress,
+      ),
+    tron: () =>
+      buildTronRecoverStuckBridgeBalanceAuthFields(
+        sessionId,
+        chainId,
+        tokenAddress,
+        recipientAddress,
+      ),
+    evm: () =>
+      buildRecoverStuckBridgeBalanceAuthFields(
+        sessionId,
+        requireEvmSigner(wallet.signer),
+        { chainId, tokenAddress, recipientAddress },
+      ),
+  });
+
+export const resolveReceiveVaultRecoverAuth = (
+  wallet: TxWallet,
+  sessionId: string,
+  chainId: number,
+  vaultAddress: string,
+  tokenAddress: string,
+  recipientAddress: string,
+): Promise<EnclaveTxAuthFields> =>
+  resolveByChain(chainId, {
+    solana: () =>
+      buildSolanaReceiveVaultRecoverAuthFields(
+        sessionId,
+        requireSolanaProvider(wallet.solanaProvider),
+        chainId,
+        vaultAddress,
+        tokenAddress,
+        recipientAddress,
+      ),
+    tron: () =>
+      buildTronReceiveVaultRecoverAuthFields(
+        sessionId,
+        chainId,
+        vaultAddress,
+        tokenAddress,
+        recipientAddress,
+      ),
+    evm: () =>
+      buildReceiveVaultRecoverAuthFields(
+        sessionId,
+        requireEvmSigner(wallet.signer),
+        { chainId, vaultAddress, tokenAddress, recipientAddress },
+      ),
+  });
+
 export const resolvePrivateSendAuth = (
   wallet: TxWallet,
   sessionId: string,
@@ -232,6 +308,7 @@ export const resolvePrivateSendAuth = (
   recipients: Recipient[],
   feeToken?: string,
   txCompletionTime?: number,
+  ref?: string,
 ): Promise<EnclaveTxAuthFields> =>
   resolveByChain(chainId, {
     solana: () =>
@@ -243,6 +320,7 @@ export const resolvePrivateSendAuth = (
         recipients,
         feeToken,
         txCompletionTime,
+        ref,
       ),
     tron: () =>
       buildTronPrivateSendAuthFields(
@@ -252,12 +330,39 @@ export const resolvePrivateSendAuth = (
         recipients,
         feeToken,
         txCompletionTime,
+        ref,
       ),
     evm: () =>
       buildDepositAndWithdrawAuthFields(
         sessionId,
         requireEvmSigner(wallet.signer),
-        { chainId, tokenAddress, recipients, feeToken, txCompletionTime },
+        { chainId, tokenAddress, recipients, feeToken, txCompletionTime, ref },
+      ),
+  });
+
+export const resolvePrivateSendBridgeAuth = (
+  wallet: TxWallet,
+  sessionId: string,
+  params: PrivateSendBridgeAuthParams,
+): Promise<EnclaveTxAuthFields> =>
+  resolveByChain(params.chainId, {
+    solana: () =>
+      buildSolanaPrivateSendBridgeAuthFields(
+        sessionId,
+        requireSolanaProvider(wallet.solanaProvider),
+        params.chainId,
+        params.tokenAddress,
+        params.destinationChainId,
+        params.destinationTokenAddress,
+        params.recipients,
+        params.quote,
+      ),
+    tron: () => buildTronPrivateSendBridgeAuthFields(sessionId, params),
+    evm: () =>
+      buildPrivateSendBridgeAuthFields(
+        sessionId,
+        requireEvmSigner(wallet.signer),
+        params,
       ),
   });
 
@@ -270,7 +375,7 @@ export const resolveSwapAuth = (
   externalActionId: string,
   swapData: string,
   feeToken?: string,
-  feeStructure?: FeeStructure,
+  feeAmount?: string,
 ): Promise<EnclaveTxAuthFields> => {
   if (isTronChain(chainId)) throw new Error("Swap is not supported on Tron");
   if (isSolanaChain(chainId)) {
@@ -282,8 +387,7 @@ export const resolveSwapAuth = (
       amounts,
       externalActionId,
       swapData,
-      feeToken,
-      feeStructure,
+      feeAmount,
     );
   }
   return buildSwapAuthFields(sessionId, requireEvmSigner(wallet.signer), {
@@ -293,6 +397,6 @@ export const resolveSwapAuth = (
     externalActionId,
     swapData,
     feeToken,
-    feeStructure,
+    feeAmount,
   });
 };

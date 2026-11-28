@@ -29,6 +29,7 @@ import {
 import { createSolanaEnclaveSession } from "../../utils/solana-session";
 import { SUPPORTED_CHAINS } from "../../constants/supported-chain-ids.constants";
 import { getFriendlyErrorMessage } from "../../utils/errors";
+import { WalletType } from "../../types";
 import { WalletConnectId, solanaConnectId } from "./connecting-id";
 
 interface UseChooseWalletConnectionsParams {
@@ -93,7 +94,7 @@ export const useChooseWalletConnections = ({
         account,
         useEIP712Enabled,
       );
-      setWalletType("evm");
+      setWalletType(WalletType.Evm);
       setWalletAddress(account);
       applyEnclaveSession(session);
       setShieldedAddress(undefined);
@@ -366,7 +367,7 @@ export const useChooseWalletConnections = ({
           useEIP712Enabled,
         );
         setRequestedUseEIP712(useEIP712Enabled);
-        setWalletType("solana");
+        setWalletType(WalletType.Solana);
         setSolanaProvider(provider);
         setWalletAddress(address);
         applyEnclaveSession(session);
@@ -410,7 +411,7 @@ export const useChooseWalletConnections = ({
       const { address, chainId } = await connectTronLink();
       const session = await createTronEnclaveSession(address, useEIP712Enabled);
       setRequestedUseEIP712(useEIP712Enabled);
-      setWalletType("tron");
+      setWalletType(WalletType.Tron);
       setWalletAddress(address);
       applyEnclaveSession(session);
       setShieldedAddress(undefined);

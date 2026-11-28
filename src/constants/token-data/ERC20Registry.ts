@@ -3,6 +3,7 @@ import ethMainnetRegistry from "./ethMainnetRegistry.json";
 import baseRegistry from "./baseRegistry.json";
 import bnbMainnetRegistry from "./bnbMainnetRegistry.json";
 import polygonRegistry from "./polygonRegistry.json";
+import arcMainnetRegistry from "./arcMainnetRegistry.json";
 import arcTestnetRegistry from "./arcTestnetRegistry.json";
 import tronNileRegistry from "./tronNileRegistry.json";
 import tronMainnetRegistry from "./tronMainnetRegistry.json";
@@ -27,6 +28,9 @@ export const getERC20Registry = (chainId: number): ERC20Token[] => {
 
     case chainIds.bnbMainnet:
       return bnbMainnetRegistry.networkRegistry as ERC20Token[];
+
+    case chainIds.arcMainnet:
+      return arcMainnetRegistry.networkRegistry as ERC20Token[];
 
     case chainIds.arcTestnet:
       return arcTestnetRegistry.networkRegistry as ERC20Token[];

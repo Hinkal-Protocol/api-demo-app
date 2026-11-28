@@ -62,27 +62,27 @@ export const Transfer = () => {
     }
   }, [selectedToken, transferAmount]);
 
-  const { feeStructure, isFeeLoading } = useTransactFee({
+  const { feeAmount, isFeeLoading } = useTransactFee({
     token: selectedToken,
     amountWei,
   });
 
-  const feeAmount = useMemo(() => getFeeAmount(feeStructure), [feeStructure]);
+  const feeAmountWei = useMemo(() => getFeeAmount(feeAmount), [feeAmount]);
 
   const feeDisplay = useMemo(
     () =>
-      selectedToken && feeStructure
-        ? `${Number(getAmountInToken(selectedToken, feeAmount)).toFixed(6)} ${
+      selectedToken && feeAmount
+        ? `${Number(getAmountInToken(selectedToken, feeAmountWei)).toFixed(6)} ${
             selectedToken.symbol
           }`
         : null,
-    [selectedToken, feeAmount],
+    [selectedToken, feeAmountWei],
   );
 
   const hasInsufficientFunds = useMemo(() => {
     if (!selectedToken || amountWei <= 0n) return false;
-    return getTokenBalanceWei(balances, selectedToken) < amountWei + feeAmount;
-  }, [selectedToken, amountWei, balances, feeAmount]);
+    return getTokenBalanceWei(balances, selectedToken) < amountWei + feeAmountWei;
+  }, [selectedToken, amountWei, balances, feeAmountWei]);
 
   const handleReset = () => {
     setSelectedToken(undefined);
@@ -101,7 +101,7 @@ export const Transfer = () => {
     try {
       if (!chainId || !selectedToken || !walletAddress || !sessionId || !privateKey)
         return;
-      if (!feeStructure) return;
+      if (!feeAmount) return;
       setIsProcessing(true);
 
       const amountInWei = getAmountInWei(selectedToken, transferAmount);
@@ -121,7 +121,7 @@ export const Transfer = () => {
         [amountStr],
         transferAddress,
         tokenAddress,
-        feeStructure,
+        feeAmount,
       );
 
       toast.success("Transfer confirmed");
@@ -140,7 +140,7 @@ export const Transfer = () => {
     privateKey,
     transferAmount,
     transferAddress,
-    feeStructure,
+    feeAmount,
     refreshBalancesSoon,
     authMode,
     isTron,
@@ -182,7 +182,7 @@ export const Transfer = () => {
       !isRecipientAddressValid ||
       isProcessing ||
       isFeeLoading ||
-      !feeStructure ||
+      !feeAmount ||
       hasInsufficientFunds,
     [
       walletAddress,
@@ -192,7 +192,7 @@ export const Transfer = () => {
       isRecipientAddressValid,
       isProcessing,
       isFeeLoading,
-      feeStructure,
+      feeAmount,
       hasInsufficientFunds,
     ],
   );

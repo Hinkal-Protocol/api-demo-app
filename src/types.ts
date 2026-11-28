@@ -4,6 +4,14 @@ export enum AppTab {
   Withdraw,
   Swap,
   MultiSend,
+  PrivateBridge,
+  DepositAddress,
+}
+
+export enum WalletType {
+  Evm = "evm",
+  Tron = "tron",
+  Solana = "solana",
 }
 
 export interface ERC20Token {
@@ -57,6 +65,7 @@ export type Network = {
   chainId: number;
   name: string;
   fetchRpcUrl: string;
+  balanceRpcUrl?: string;
 };
 
 export enum ScheduleDelayOption {
@@ -70,3 +79,17 @@ export enum ScheduleDelayOption {
 export type SVGIconType = React.FunctionComponent<
   React.SVGAttributes<SVGElement>
 >;
+
+export type ReceiveVaultRecord = {
+  index: number;
+  network: string;
+  version: string;
+  vaultAddress: string;
+};
+
+export type ReceiveVaultBlockedFund = {
+  record: ReceiveVaultRecord;
+  token: ERC20Token;
+  amount: string;
+  reason: string;
+};

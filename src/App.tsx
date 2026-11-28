@@ -1,6 +1,5 @@
-import { useEffect, useState } from "react";
-import toast, { Toaster } from "react-hot-toast";
-import { isAlchemyConfigured } from "./constants/chain.constants";
+import { useState } from "react";
+import { Toaster } from "react-hot-toast";
 import { Footer } from "./components/Footer";
 import { Header } from "./components/Header";
 import { NavigationBar } from "./components/NavigationBar";
@@ -12,14 +11,10 @@ import { Swap } from "./pages/Swap";
 import { Withdraw } from "./pages/Withdraw";
 import { Transfer } from "./pages/Transfer";
 import { MultiSend } from "./pages/MultiSend";
+import { PrivateBridge } from "./pages/PrivateBridge";
+import { DepositAddress } from "./pages/DepositAddress";
 const App = () => {
   const [activeTab, setActiveTab] = useState(AppTab.Deposit);
-
-  useEffect(() => {
-    if (!isAlchemyConfigured) {
-      toast.error("Alchemy API key missing in .env — RPC calls will fail");
-    }
-  }, []);
 
   return (
     <div className="bg-bgColor h-screen font-generalSans">
@@ -40,6 +35,8 @@ const App = () => {
               {activeTab === AppTab.Withdraw && <Withdraw />}
               {activeTab === AppTab.Swap && <Swap />}
               {activeTab === AppTab.MultiSend && <MultiSend />}
+              {activeTab === AppTab.PrivateBridge && <PrivateBridge />}
+              {activeTab === AppTab.DepositAddress && <DepositAddress />}
             </section>
           </main>
           <Footer />

@@ -141,7 +141,7 @@ export const buildTransferAuthFields = (
     amounts: string[];
     recipient: string;
     feeToken?: string;
-    feeStructure?: { feeToken: string; flatFee: string; variableRate: string };
+    feeAmount?: string;
   },
 ) =>
   signEnclaveTypedData(sessionId, signer, "Transfer", params.chainId, (nonce) => {
@@ -153,12 +153,8 @@ export const buildTransferAuthFields = (
     if (params.feeToken) {
       value.feeToken = ethers.getAddress(params.feeToken);
     }
-    if (params.feeStructure) {
-      value.feeStructure = {
-        feeToken: ethers.getAddress(params.feeStructure.feeToken),
-        flatFee: BigInt(params.feeStructure.flatFee),
-        variableRate: BigInt(params.feeStructure.variableRate),
-      };
+    if (params.feeAmount !== undefined) {
+      value.feeAmount = BigInt(params.feeAmount);
     }
 
     return value;
@@ -173,7 +169,8 @@ export const buildWithdrawAuthFields = (
     amounts: string[];
     recipient: string;
     feeToken?: string;
-    feeStructure?: { feeToken: string; flatFee: string; variableRate: string };
+    feeAmount?: string;
+    ref?: string;
   },
 ) =>
   signEnclaveTypedData(sessionId, signer, "Withdraw", params.chainId, (nonce) => {
@@ -185,12 +182,11 @@ export const buildWithdrawAuthFields = (
     if (params.feeToken) {
       value.feeToken = ethers.getAddress(params.feeToken);
     }
-    if (params.feeStructure) {
-      value.feeStructure = {
-        feeToken: ethers.getAddress(params.feeStructure.feeToken),
-        flatFee: BigInt(params.feeStructure.flatFee),
-        variableRate: BigInt(params.feeStructure.variableRate),
-      };
+    if (params.feeAmount !== undefined) {
+      value.feeAmount = BigInt(params.feeAmount);
+    }
+    if (params.ref !== undefined) {
+      value.ref = params.ref;
     }
 
     return value;
@@ -219,6 +215,54 @@ export const buildWithdrawStuckUtxosAuthFields = (
     }),
   );
 
+export const buildRecoverStuckBridgeBalanceAuthFields = (
+  sessionId: string,
+  signer: ethers.Signer,
+  params: {
+    chainId: number;
+    tokenAddress: string;
+    recipientAddress: string;
+  },
+) =>
+  signEnclaveTypedData(
+    sessionId,
+    signer,
+    "RecoverStuckBridgeBalance",
+    params.chainId,
+    (nonce) => ({
+      nonce,
+      sessionId,
+      chainId: BigInt(params.chainId),
+      tokenAddress: ethers.getAddress(params.tokenAddress),
+      recipient: ethers.getAddress(params.recipientAddress),
+    }),
+  );
+
+export const buildReceiveVaultRecoverAuthFields = (
+  sessionId: string,
+  signer: ethers.Signer,
+  params: {
+    chainId: number;
+    vaultAddress: string;
+    tokenAddress: string;
+    recipientAddress: string;
+  },
+) =>
+  signEnclaveTypedData(
+    sessionId,
+    signer,
+    "ReceiveVaultRecover",
+    params.chainId,
+    (nonce) => ({
+      nonce,
+      sessionId,
+      chainId: BigInt(params.chainId),
+      vaultAddress: params.vaultAddress,
+      tokenAddress: params.tokenAddress,
+      recipient: ethers.getAddress(params.recipientAddress),
+    }),
+  );
+
 export const buildSwapAuthFields = (
   sessionId: string,
   signer: ethers.Signer,
@@ -229,7 +273,7 @@ export const buildSwapAuthFields = (
     externalActionId: string;
     swapData: string;
     feeToken?: string;
-    feeStructure?: { feeToken: string; flatFee: string; variableRate: string };
+    feeAmount?: string;
   },
 ) =>
   signEnclaveTypedData(sessionId, signer, "Swap", params.chainId, (nonce) => {
@@ -242,12 +286,8 @@ export const buildSwapAuthFields = (
     if (params.feeToken) {
       value.feeToken = ethers.getAddress(params.feeToken);
     }
-    if (params.feeStructure) {
-      value.feeStructure = {
-        feeToken: ethers.getAddress(params.feeStructure.feeToken),
-        flatFee: BigInt(params.feeStructure.flatFee),
-        variableRate: BigInt(params.feeStructure.variableRate),
-      };
+    if (params.feeAmount !== undefined) {
+      value.feeAmount = BigInt(params.feeAmount);
     }
 
     return value;
@@ -262,6 +302,7 @@ export const buildDepositAndWithdrawAuthFields = (
     recipients: Recipient[];
     feeToken?: string;
     txCompletionTime?: number;
+    ref?: string;
   },
 ) =>
   signEnclaveTypedData(
@@ -291,9 +332,61 @@ export const buildDepositAndWithdrawAuthFields = (
       if (params.txCompletionTime !== undefined) {
         value.txCompletionTime = BigInt(params.txCompletionTime);
       }
+      if (params.ref !== undefined) {
+        value.ref = params.ref;
+      }
 
       return value;
     },
+  );
+
+// Bridge recipients are signed as plain strings (they can be non-EVM addresses): exactly as sent,
+// sorted the same way as the server's sortRecipientsByAddress.
+export const toBridgeRecipientValues = (recipients: Recipient[]) =>
+  [...recipients]
+    .sort((a, b) => a.address.localeCompare(b.address))
+    .map(({ address, amount }) => ({
+      recipient: address,
+      amount: BigInt(amount),
+    }));
+
+export type PrivateSendBridgeAuthParams = {
+  chainId: number;
+  tokenAddress: string;
+  destinationChainId: number;
+  destinationTokenAddress: string;
+  recipients: Recipient[];
+  quote: string;
+};
+
+export const buildPrivateSendBridgeValue = (
+  nonce: string,
+  sessionId: string,
+  params: PrivateSendBridgeAuthParams,
+  normalizeTokenAddress: (address: string) => string,
+): Record<string, unknown> => ({
+  nonce,
+  sessionId,
+  chainId: BigInt(params.chainId),
+  tokenAddress: normalizeTokenAddress(params.tokenAddress),
+  destinationChainId: BigInt(params.destinationChainId),
+  destinationTokenAddress: params.destinationTokenAddress,
+  recipients: toBridgeRecipientValues(params.recipients),
+  quote: params.quote,
+});
+
+export const buildPrivateSendBridgeAuthFields = (
+  sessionId: string,
+  signer: ethers.Signer,
+  params: PrivateSendBridgeAuthParams,
+) =>
+  signEnclaveTypedData(
+    sessionId,
+    signer,
+    "PrivateSendBridge",
+    params.chainId,
+    (nonce) =>
+      buildPrivateSendBridgeValue(nonce, sessionId, params, ethers.getAddress),
   );
 
 type QueryParamValue = string | string[];

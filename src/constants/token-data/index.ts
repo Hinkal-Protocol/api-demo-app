@@ -1,3 +1,4 @@
+import arcMainnetRegistryJson from './arcMainnetRegistry.json';
 import arcTestnetRegistryJson from './arcTestnetRegistry.json';
 import tronNileRegistryJson from './tronNileRegistry.json';
 import tronMainnetRegistryJson from './tronMainnetRegistry.json';
@@ -18,6 +19,7 @@ const polygonRegistry = polygonRegistryJson.networkRegistry;
 const baseRegistry = baseRegistryJson.networkRegistry;
 const bnbMainnetRegistry = bnbMainnetRegistryJson.networkRegistry;
 
+const arcMainnetRegistry = arcMainnetRegistryJson.networkRegistry;
 const arcTestnetRegistry = arcTestnetRegistryJson.networkRegistry;
 const tronNileRegistry = tronNileRegistryJson.networkRegistry;
 const tronMainnetRegistry = tronMainnetRegistryJson.networkRegistry;
@@ -30,6 +32,7 @@ export {
   polygonRegistry,
   baseRegistry,
   bnbMainnetRegistry,
+  arcMainnetRegistry,
   arcTestnetRegistry,
   tronNileRegistry,
   tronMainnetRegistry,

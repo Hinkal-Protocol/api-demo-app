@@ -49,7 +49,6 @@ the app surfaces the missing key at the point of use.
 
 | Variable                            | Used by         | Required for                              |
 | ----------------------------------- | --------------- | ----------------------------------------- |
-| `VITE_ALCHEMY_API_KEY`              | RPC (all EVM)   | All EVM RPC calls. Warns once at startup if missing. |
 | `VITE_DYNAMIC_ENVIRONMENT_ID`       | Dynamic         | "Continue with Dynamic"                   |
 | `VITE_TURNKEY_ORGANIZATION_ID`      | Turnkey         | "Continue with Turnkey"                   |
 | `VITE_TURNKEY_AUTH_PROXY_CONFIG_ID` | Turnkey         | "Continue with Turnkey"                   |
@@ -60,9 +59,6 @@ the app surfaces the missing key at the point of use.
 
 > Notes
 >
-> - **Alchemy** powers RPC for every EVM chain, so a missing key affects the
->   whole app rather than a single wallet — it is reported with a one-time
->   startup toast.
 > - **Dynamic** is only mounted (and only fails) when its environment id is set;
 >   otherwise the button toasts that it is not configured.
 > - **DFNS** builds its WebAuthn signer lazily, so a missing DFNS config does

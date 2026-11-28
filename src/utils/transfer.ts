@@ -1,6 +1,5 @@
 import { buildAuthPost } from "./enclave-auth";
 import { enclaveFetch } from "./enclaveApi";
-import { FeeStructure } from "./fees";
 import { isValidPrivateAddress } from "./recipientAddress";
 import { resolveTransferAuth } from "./resolve-tx-auth";
 import type { TxSessionAuth, TxWallet } from "./types";
@@ -32,7 +31,7 @@ export const transfer = async (
   amounts: string[],
   recipientAddress: string,
   feeToken?: string,
-  feeStructure?: FeeStructure,
+  feeAmount?: string,
 ): Promise<string> => {
   const isPrivate = isValidPrivateAddress(recipientAddress);
   const normalizedRecipient = isPrivate ? normalizeRecipientForSigning(recipientAddress) : recipientAddress;
@@ -41,7 +40,7 @@ export const transfer = async (
     amounts,
     recipientAddress: normalizedRecipient,
     feeToken,
-    feeStructure,
+    feeAmount,
   };
   const { bodyJson, headers, requestNonce } = await buildAuthPost(
     session,
@@ -57,7 +56,7 @@ export const transfer = async (
         amounts,
         normalizedRecipient,
         feeToken,
-        feeStructure,
+        feeAmount,
       ),
   );
 

@@ -2,12 +2,10 @@ import { ERC20Token } from "../types";
 import { buildAuthGet } from "./enclave-auth";
 import { buildAuthPost } from "./enclave-auth";
 import { enclaveFetch } from "./enclaveApi";
-import { ExternalActionId, getFeeStructure } from "./fees";
+import { ExternalActionId, getFee } from "./fees";
 import { resolveSwapAuth } from "./resolve-tx-auth";
 import { isSolanaChain } from "./solana-wallet";
 import { Auth, TxSessionAuth, TxWallet } from "./types";
-
-export const HINKAL_SWAP_VARIABLE_RATE = 35n;
 
 export type SwapData = {
   swapData: string;
@@ -22,14 +20,18 @@ export const getSwapData = async (
   amount: string,
   slippagePercentage?: number,
 ): Promise<SwapData> => {
-  const { queryString, headers, requestNonce } = await buildAuthGet(auth, "/get-swap-data", {
-    inputTokenAddress,
-    outputTokenAddress,
-    amount,
-    ...(slippagePercentage !== undefined
-      ? { slippagePercentage: String(slippagePercentage) }
-      : {}),
-  });
+  const { queryString, headers, requestNonce } = await buildAuthGet(
+    auth,
+    "/get-swap-data",
+    {
+      inputTokenAddress,
+      outputTokenAddress,
+      amount,
+      ...(slippagePercentage !== undefined
+        ? { slippagePercentage: String(slippagePercentage) }
+        : {}),
+    },
+  );
 
   const { res, data } = await enclaveFetch<
     (SwapData & { success: true }) | { error?: string }
@@ -62,25 +64,22 @@ export const executeSwap = async (
     Math.floor(parseFloat(inAmount) * 10 ** inToken.decimals),
   );
   const outAmountWei = BigInt(quotedData.outSwapAmount);
-  const outAdjusted =
-    (outAmountWei * (10000n - HINKAL_SWAP_VARIABLE_RATE)) / 10000n;
 
   const tokenAddresses = [
     inToken.erc20TokenAddress,
     outToken.erc20TokenAddress,
   ];
-  const amounts = [(-inAmountWei).toString(), outAdjusted.toString()];
+  const amounts = [(-inAmountWei).toString(), outAmountWei.toString()];
 
   const feeToken = isSolana
     ? outToken.erc20TokenAddress
     : inToken.erc20TokenAddress;
 
-  const feeStructure = await getFeeStructure(
+  const feeAmount = await getFee(
     getterAuth,
     feeToken,
     tokenAddresses,
     quotedData.externalActionId,
-    HINKAL_SWAP_VARIABLE_RATE.toString(),
     isSolana ? [inAmountWei, -BigInt(quotedData.outSwapAmount)] : undefined,
     isSolana ? inToken.erc20TokenAddress : undefined,
   );
@@ -90,7 +89,7 @@ export const executeSwap = async (
     amounts,
     externalActionId: quotedData.externalActionId,
     swapData: quotedData.swapData,
-    ...(isSolana ? { feeStructure } : { feeToken, feeStructure }),
+    ...(isSolana ? { feeAmount } : { feeToken, feeAmount }),
   };
 
   const { bodyJson, headers, requestNonce } = await buildAuthPost(
@@ -107,8 +106,8 @@ export const executeSwap = async (
         amounts,
         quotedData.externalActionId,
         quotedData.swapData,
-        isSolana ? undefined : feeToken,
-        feeStructure,
+        feeToken,
+        feeAmount,
       ),
   );
 

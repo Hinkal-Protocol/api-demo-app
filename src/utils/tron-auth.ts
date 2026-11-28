@@ -3,10 +3,13 @@ import {
   getEnclaveTypedDataDomain,
   getTypesForPrimary,
 } from "../constants/enclave.constants";
-import type { FeeStructure } from "./fees";
 import { getTronWeb, tronBase58ToHex } from "./tron-wallet";
 import type { EnclaveTxAuthFields } from "./types";
 import type { Recipient } from "./multiSend";
+import {
+  buildPrivateSendBridgeValue,
+  type PrivateSendBridgeAuthParams,
+} from "./enclave-auth";
 
 // eslint-disable-next-line @typescript-eslint/no-explicit-any
 const serializeBigInts = (obj: any): any => {
@@ -76,7 +79,7 @@ export const buildTronTransferAuthFields = (
   amounts: string[],
   recipient: string,
   feeToken?: string,
-  feeStructure?: FeeStructure,
+  feeAmount?: string,
 ): Promise<EnclaveTxAuthFields> =>
   signTypedData(sessionId, "Transfer", chainId, (nonce) => {
     const value: Record<string, unknown> = {
@@ -93,12 +96,8 @@ export const buildTronTransferAuthFields = (
     if (feeToken) {
       value.feeToken = ethers.getAddress(feeToken);
     }
-    if (feeStructure) {
-      value.feeStructure = {
-        feeToken: ethers.getAddress(feeStructure.feeToken),
-        flatFee: BigInt(feeStructure.flatFee),
-        variableRate: BigInt(feeStructure.variableRate),
-      };
+    if (feeAmount !== undefined) {
+      value.feeAmount = BigInt(feeAmount);
     }
 
     return value;
@@ -111,7 +110,8 @@ export const buildTronWithdrawAuthFields = (
   amounts: string[],
   recipient: string,
   feeToken?: string,
-  feeStructure?: FeeStructure,
+  feeAmount?: string,
+  ref?: string,
 ): Promise<EnclaveTxAuthFields> =>
   signTypedData(sessionId, "Withdraw", chainId, (nonce) => {
     const value: Record<string, unknown> = {
@@ -128,12 +128,11 @@ export const buildTronWithdrawAuthFields = (
     if (feeToken) {
       value.feeToken = ethers.getAddress(feeToken);
     }
-    if (feeStructure) {
-      value.feeStructure = {
-        feeToken: ethers.getAddress(feeStructure.feeToken),
-        flatFee: BigInt(feeStructure.flatFee),
-        variableRate: BigInt(feeStructure.variableRate),
-      };
+    if (feeAmount !== undefined) {
+      value.feeAmount = BigInt(feeAmount);
+    }
+    if (ref !== undefined) {
+      value.ref = ref;
     }
 
     return value;
@@ -146,6 +145,7 @@ export const buildTronPrivateSendAuthFields = (
   recipients: Recipient[],
   feeToken?: string,
   txCompletionTime?: number,
+  ref?: string,
 ): Promise<EnclaveTxAuthFields> =>
   signTypedData(sessionId, "PrivateSend", chainId, (nonce) => {
     const value: Record<string, unknown> = {
@@ -167,9 +167,22 @@ export const buildTronPrivateSendAuthFields = (
     if (txCompletionTime !== undefined) {
       value.txCompletionTime = BigInt(txCompletionTime);
     }
+    if (ref !== undefined) {
+      value.ref = ref;
+    }
 
     return value;
   });
+
+export const buildTronPrivateSendBridgeAuthFields = (
+  sessionId: string,
+  params: PrivateSendBridgeAuthParams,
+): Promise<EnclaveTxAuthFields> =>
+  signTypedData(sessionId, "PrivateSendBridge", params.chainId, (nonce) =>
+    buildPrivateSendBridgeValue(nonce, sessionId, params, (address) =>
+      ethers.getAddress(tronBase58ToHex(address)),
+    ),
+  );
 
 export const buildTronWithdrawStuckUtxosAuthFields = (
   sessionId: string,
@@ -183,4 +196,34 @@ export const buildTronWithdrawStuckUtxosAuthFields = (
     chainId: BigInt(chainId),
     tokenAddress: ethers.getAddress(tokenAddress),
     recipient: ethers.getAddress(recipientAddress),
+  }));
+
+export const buildTronRecoverStuckBridgeBalanceAuthFields = (
+  sessionId: string,
+  chainId: number,
+  tokenAddress: string,
+  recipientAddress: string,
+): Promise<EnclaveTxAuthFields> =>
+  signTypedData(sessionId, "RecoverStuckBridgeBalance", chainId, (nonce) => ({
+    nonce,
+    sessionId,
+    chainId: BigInt(chainId),
+    tokenAddress: ethers.getAddress(tokenAddress),
+    recipient: ethers.getAddress(recipientAddress),
+  }));
+
+export const buildTronReceiveVaultRecoverAuthFields = (
+  sessionId: string,
+  chainId: number,
+  vaultAddress: string,
+  tokenAddress: string,
+  recipientAddress: string,
+): Promise<EnclaveTxAuthFields> =>
+  signTypedData(sessionId, "ReceiveVaultRecover", chainId, (nonce) => ({
+    nonce,
+    sessionId,
+    chainId: BigInt(chainId),
+    vaultAddress,
+    tokenAddress,
+    recipient: recipientAddress,
   }));

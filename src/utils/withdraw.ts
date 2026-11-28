@@ -1,9 +1,9 @@
 import { buildAuthPost } from "./enclave-auth";
 import { enclaveFetch } from "./enclaveApi";
-import { FeeStructure } from "./fees";
 import {
   resolveWithdrawAuth,
   resolveWithdrawStuckUtxosAuth,
+  resolveRecoverStuckBridgeBalanceAuth,
 } from "./resolve-tx-auth";
 import type { TxSessionAuth, TxWallet } from "./types";
 
@@ -15,14 +15,16 @@ export const withdraw = async (
   amounts: string[],
   recipientAddress: string,
   feeToken?: string,
-  feeStructure?: FeeStructure,
+  feeAmount?: string,
+  ref?: string,
 ): Promise<string> => {
   const txParams = {
     tokenAddresses,
     amounts,
     recipientAddress,
     feeToken,
-    feeStructure,
+    feeAmount,
+    ref,
   };
   const { bodyJson, headers, requestNonce } = await buildAuthPost(
     session,
@@ -38,7 +40,8 @@ export const withdraw = async (
         amounts,
         recipientAddress,
         feeToken,
-        feeStructure,
+        feeAmount,
+        ref,
       ),
   );
 
@@ -95,4 +98,42 @@ export const withdrawStuckUtxos = async (
   }
 
   return data.txHashes;
+};
+
+export const recoverStuckBridgeBalance = async (
+  wallet: TxWallet,
+  session: TxSessionAuth,
+  chainId: number,
+  tokenAddress: string,
+  recipientAddress: string,
+): Promise<number> => {
+  const txParams = { tokenAddress, recipientAddress };
+  const { bodyJson, headers, requestNonce } = await buildAuthPost(
+    session,
+    chainId,
+    "/recover-stuck-bridge-balance",
+    txParams,
+    () =>
+      resolveRecoverStuckBridgeBalanceAuth(
+        wallet,
+        session.sessionId,
+        chainId,
+        tokenAddress,
+        recipientAddress,
+      ),
+  );
+
+  const { res, data } = await enclaveFetch<
+    { success: true; recoveredCount: number } | { error?: string }
+  >("/recover-stuck-bridge-balance", requestNonce, {
+    method: "POST",
+    headers,
+    body: bodyJson,
+  });
+
+  if (!res.ok || !("success" in data && data.success)) {
+    throw new Error((data as { error?: string }).error ?? "Recover failed");
+  }
+
+  return data.recoveredCount;
 };
