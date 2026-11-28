@@ -4,7 +4,8 @@ import { getWallets } from "@wallet-standard/app";
 
 export const SOLANA_MAINNET_CHAIN_ID = 501;
 export const SOLANA_NATIVE_ADDRESS = "11111111111111111111111111111111";
-const SOLANA_RPC = "https://solana-rpc.publicnode.com";
+// Through the Vite dev proxy (vite.config.ts): publicnode blocks direct browser calls.
+const SOLANA_RPC = `${window.location.origin}/solana-rpc`;
 
 // LOCAL TEST ONLY: solanaLocalnet (102) and the local validator; mainnet is 501 / publicnode.
 // export const SOLANA_MAINNET_CHAIN_ID = 102;

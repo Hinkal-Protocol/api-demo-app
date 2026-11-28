@@ -23,6 +23,19 @@ export default defineConfig({
   server: {
     port: 4240,
     host: "localhost",
+    // publicnode blocks browser calls to its Solana RPC; the dev server forwards them like a backend would.
+    proxy: {
+      "/solana-rpc": {
+        target: "https://solana-rpc.publicnode.com",
+        changeOrigin: true,
+        rewrite: (path) => path.replace(/^\/solana-rpc/, ""),
+        configure: (proxy) =>
+          proxy.on("proxyReq", (request) => {
+            request.removeHeader("origin");
+            request.removeHeader("referer");
+          }),
+      },
+    },
     fs: {
       strict: false,
     },

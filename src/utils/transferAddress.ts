@@ -5,7 +5,7 @@ import { requestSignaturePostHeader, sessionBodyParams } from "./request-signatu
 import { resolveTransferAddressAuth } from "./resolve-tx-auth";
 import { recoverStuckBalance } from "./withdraw";
 import { broadcastSolanaTransaction, isSolanaChain, signSolanaMessage } from "./solana-wallet";
-import { getTronWeb, isTronChain } from "./tron-wallet";
+import { broadcastRawTronTx, getTronWeb, isTronChain } from "./tron-wallet";
 import { getEnclaveTypedDataDomain, getTypesForPrimary } from "../constants/enclave.constants";
 import type { Auth, ReceiveVaultNetwork, TransferBridgeParams, TxSessionAuth, TxWallet } from "./types";
 
@@ -165,7 +165,7 @@ const sendRecoverTxData = async (wallet: TxWallet, chainId: number, txData: unkn
     if (!wallet.solanaProvider) throw new Error("Solana provider not set");
     return broadcastSolanaTransaction(wallet.solanaProvider, txData as string);
   }
-  if (isTronChain(chainId)) throw new Error("Tron recover broadcast is not wired in the demo app");
+  if (isTronChain(chainId)) return broadcastRawTronTx(txData);
   const { to, data: callData } = txData as { to: string; data: string };
   const tx = await requireEvmSigner(wallet.signer).sendTransaction({ to, data: callData });
   return tx.hash;
