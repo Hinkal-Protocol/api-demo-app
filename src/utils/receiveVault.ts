@@ -11,7 +11,6 @@ import {
 import { resolveReceiveVaultRecoverAuth } from "./resolve-tx-auth";
 import type { Auth, TxSessionAuth, TxWallet } from "./types";
 
-// EVM: transaction request, Tron: unsigned TronWeb transaction, Solana: base64 serialized transaction.
 export type ReceiveVaultRecoverTxData = TxData | Record<string, unknown> | string;
 
 export const createReceiveAddress = async (
@@ -60,7 +59,6 @@ export const checkReceiveVaultAddress = async (
   return !!data.isReceiveVault;
 };
 
-// The account spans every network, but a fund can only be recovered on its own chain.
 export const fetchReceiveVaultBlockedFunds = async (
   auth: Auth,
 ): Promise<ReceiveVaultBlockedFund[]> => {

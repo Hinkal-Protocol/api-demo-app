@@ -257,7 +257,6 @@ export const buildReceiveVaultRecoverAuthFields = (
       nonce,
       sessionId,
       chainId: BigInt(params.chainId),
-      // String fields: the server verifies vaultAddress and tokenAddress exactly as sent.
       vaultAddress: params.vaultAddress,
       tokenAddress: params.tokenAddress,
       recipient: ethers.getAddress(params.recipientAddress),

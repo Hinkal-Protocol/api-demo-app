@@ -274,7 +274,6 @@ export const AppContextProvider: FC<AppContextProps> = ({
         privateKey,
         chainId,
       });
-      // A newer refresh (e.g. after a chain switch) owns the state.
       if (requestId !== receiveVaultBlockedFundsRequestRef.current) return;
       setReceiveVaultBlockedFunds(funds);
     } catch (error) {

@@ -29,6 +29,7 @@ import {
   waitForTronConfirmation,
 } from "../../utils/tron-wallet";
 import type { TxData } from "../../utils/deposit";
+import { getAmountInToken } from "../../utils/amount.utils";
 import {
   recoverStuckBridgeBalance,
   withdrawStuckUtxos,
@@ -42,12 +43,6 @@ const filterNonZeroTokenBalances = (tokenBalances: TokenBalance[]) =>
 
 const blockedFundKey = ({ record, token }: ReceiveVaultBlockedFund) =>
   `${record.vaultAddress}:${token.erc20TokenAddress}`;
-
-const BLOCKED_REASON_LABELS: Record<string, string> = {
-  expired: "expired",
-  notShieldable: "token not shieldable",
-  riskySender: "sender flagged",
-};
 
 export const WalletInfoDropDown = () => {
   const {
@@ -302,9 +297,6 @@ export const WalletInfoDropDown = () => {
     ],
   );
 
-  const isRecovering =
-    recoveringTokenAddress !== null || recoveringBlockedFundKey !== null;
-
   return (
     <div className="absolute top-20 md:top-2 right-0 left-auto w-60 max-w-[90vw] bg-hinkal-blue-900 rounded-xl shadow-metamask font-generalSans p-4 items-center">
       {visibleStuckUtxoBalances.length > 0 && (
@@ -354,10 +346,7 @@ export const WalletInfoDropDown = () => {
           <button
             type="button"
             disabled={isStuckBridgeBalancesLoading}
-            onClick={() => {
-              refreshStuckBridgeBalances();
-              refreshReceiveVaultBlockedFunds();
-            }}
+            onClick={refreshStuckBridgeBalances}
             className="text-[12px] text-primary hover:text-hinkal-purple-200 transition-all duration-300 disabled:cursor-not-allowed disabled:opacity-50"
           >
             {isStuckBridgeBalancesLoading ? <Spinner /> : "Refresh"}
@@ -378,7 +367,7 @@ export const WalletInfoDropDown = () => {
               <WalletInfoBalance tokenBalance={tokenBalance} />
               <button
                 type="button"
-                disabled={isRecovering}
+                disabled={recoveringTokenAddress !== null}
                 onClick={() =>
                   handleRecoverStuckBridgeBalance(tokenBalance.tokenAddress)
                 }
@@ -398,35 +387,42 @@ export const WalletInfoDropDown = () => {
             const key = blockedFundKey(fund);
 
             return (
-              <div className="flex flex-col gap-1" key={`blocked-${key}`}>
-                <div className="flex items-center justify-between gap-3">
-                  <WalletInfoBalance
-                    tokenBalance={{
-                      chainId: fund.token.chainId,
-                      tokenAddress: fund.token.erc20TokenAddress,
-                      balance: fund.amount,
-                    }}
-                    token={fund.token}
+              <div
+                className="flex items-center justify-between gap-3"
+                key={`receive-vault-${key}`}
+              >
+                <div className="flex items-center space-x-4">
+                  <img
+                    src={fund.token.logoURI}
+                    alt="tokenIcon"
+                    className="w-[26px]"
                   />
-                  <button
-                    type="button"
-                    disabled={isRecovering}
-                    onClick={() => handleRecoverBlockedFund(fund)}
-                    className="rounded-md bg-primary px-3 py-1 text-[12px] font-semibold text-white hover:bg-hinkal-purple-200 transition-all duration-300 disabled:cursor-not-allowed disabled:opacity-50"
-                  >
-                    {recoveringBlockedFundKey === key ? (
-                      <span className="flex items-center gap-x-1">
-                        Recover <Spinner />
-                      </span>
-                    ) : (
-                      "Recover"
-                    )}
-                  </button>
+                  <div>
+                    <p className="text-white text-[18px] font-semibold">
+                      {Number(getAmountInToken(fund.token, fund.amount)).toFixed(
+                        4,
+                      )}{" "}
+                      {fund.token.symbol}
+                    </p>
+                    <p className="text-hinkal-white-300 text-[12px]">
+                      Receive address ({fund.reason})
+                    </p>
+                  </div>
                 </div>
-                <p className="text-hinkal-gray-200 text-[11px] text-left">
-                  Deposit address:{" "}
-                  {BLOCKED_REASON_LABELS[fund.reason] ?? fund.reason}
-                </p>
+                <button
+                  type="button"
+                  disabled={recoveringBlockedFundKey !== null}
+                  onClick={() => handleRecoverBlockedFund(fund)}
+                  className="rounded-md bg-primary px-3 py-1 text-[12px] font-semibold text-white hover:bg-hinkal-purple-200 transition-all duration-300 disabled:cursor-not-allowed disabled:opacity-50"
+                >
+                  {recoveringBlockedFundKey === key ? (
+                    <span className="flex items-center gap-x-1">
+                      Recover <Spinner />
+                    </span>
+                  ) : (
+                    "Recover"
+                  )}
+                </button>
               </div>
             );
           })}
