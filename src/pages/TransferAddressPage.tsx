@@ -373,14 +373,18 @@ export const TransferAddressPage = () => {
   }, [stuckRefundTo]);
 
   const handleRecoverRefundToStuck = useCallback(
-    async (tokenAddress: string, kind: string) => {
+    async (fundsChainId: number, tokenAddress: string, kind: string) => {
       try {
-        if (!chainId) return;
+        // The wallet signs for, and sends any vault tx on, the chain the funds are on.
+        if (fundsChainId !== chainId) {
+          toast.error(`Switch your wallet to chain ${fundsChainId} first`);
+          return;
+        }
         setRecoveringStuck(`${tokenAddress}:${kind}`);
         const { results, sentTxHashes } = await recoverRefundToStuck(
           await getWallet(),
           stuckRefundTo.trim(),
-          chainId,
+          fundsChainId,
           tokenAddress,
           kind,
         );
@@ -724,7 +728,7 @@ export const TransferAddressPage = () => {
                           className="text-white underline disabled:text-hinkal-gray-200 disabled:no-underline"
                           // TEMP test: wallet/chain match check off, the server rejects a wrong signer anyway
                           disabled={!!recoveringStuck}
-                          onClick={() => void handleRecoverRefundToStuck(tokenAddress, kind)}
+                          onClick={() => void handleRecoverRefundToStuck(id, tokenAddress, kind)}
                         >
                           {recoveringStuck === `${tokenAddress}:${kind}` ? "Recovering…" : "Recover"}
                         </button>
