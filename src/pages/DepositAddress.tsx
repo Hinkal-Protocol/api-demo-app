@@ -6,16 +6,18 @@ import { ReceiveVaultRecord } from "../types";
 import { copyToClipboard } from "../utils/copyToClipboard";
 import { getFriendlyErrorMessage } from "../utils/errors";
 import { createReceiveAddress } from "../utils/receiveVault";
+import { networkRegistry } from "../constants/chain.constants";
+import { BRIDGE_DESTINATION_CHAIN_IDS } from "../constants/bridge.constants";
 
-export const Receive = () => {
-  const {
-    chainId,
-    sessionId,
-    privateKey,
-    walletAddress,
-    refreshReceiveVaultAccount,
-  } = useAppContext();
+const getChainName = (chainId: number): string =>
+  networkRegistry[chainId]?.name ?? String(chainId);
 
+export const DepositAddress = () => {
+  const { sessionId, privateKey, walletAddress } = useAppContext();
+
+  const [selectedChainId, setSelectedChainId] = useState<number>(
+    BRIDGE_DESTINATION_CHAIN_IDS[0],
+  );
   const [record, setRecord] = useState<ReceiveVaultRecord | undefined>(
     undefined,
   );
@@ -30,7 +32,7 @@ export const Receive = () => {
       requestIdRef.current += 1;
       const requestId = requestIdRef.current;
 
-      if (!chainId || !sessionId || !privateKey) {
+      if (!sessionId || !privateKey) {
         setRecord(undefined);
         setError(undefined);
         return;
@@ -42,12 +44,11 @@ export const Receive = () => {
       try {
         const claimed = await createReceiveAddress(
           { sessionId, privateKey },
-          chainId,
+          selectedChainId,
           forceFresh,
         );
         if (requestIdRef.current !== requestId) return;
         setRecord(claimed);
-        refreshReceiveVaultAccount();
       } catch (err) {
         if (requestIdRef.current !== requestId) return;
         setRecord(undefined);
@@ -58,37 +59,66 @@ export const Receive = () => {
         if (requestIdRef.current === requestId) setIsLoading(false);
       }
     },
-    [chainId, sessionId, privateKey, refreshReceiveVaultAccount],
+    [sessionId, privateKey, selectedChainId],
   );
 
+  // A deposit address belongs to one network, so drop it on chain change.
   useEffect(() => {
+    requestIdRef.current += 1;
     setRecord(undefined);
-    handOutAddress(false);
-  }, [handOutAddress]);
+    setError(undefined);
+    setIsLoading(false);
+  }, [selectedChainId]);
 
-  const handleCopyAddress = useCallback(() => {
+  const handlePrimaryClick = useCallback(async () => {
     try {
-      if (!record) return;
-      copyToClipboard(record.vaultAddress);
+      if (!record) {
+        handOutAddress(false);
+        return;
+      }
+      // Await so a rejected clipboard write lands in the catch, not a success toast.
+      await copyToClipboard(record.vaultAddress);
       toast.success("Deposit address copied to clipboard");
     } catch (err) {
       toast.error(getFriendlyErrorMessage(err, "Failed to copy the address"));
     }
-  }, [record]);
+  }, [record, handOutAddress]);
 
-  const isDisabled = !walletAddress || !record || isLoading;
+  const isDisabled = !walletAddress || !sessionId || isLoading;
 
   return (
     <div className="text-white">
       <div className="w-[96%] mx-auto mb-4">
         <label
-          htmlFor="receiveAddress"
+          htmlFor="depositAddressChain"
+          className="text-white text-[14px] font-[300]"
+        >
+          Chain
+        </label>
+        <select
+          id="depositAddressChain"
+          className="bg-hinkal-blue-900 h-10 w-full rounded-lg px-3 text-[14px] outline-none text-white mt-1"
+          value={selectedChainId}
+          disabled={isLoading}
+          onChange={(e) => setSelectedChainId(Number(e.target.value))}
+        >
+          {BRIDGE_DESTINATION_CHAIN_IDS.map((id) => (
+            <option key={id} value={id}>
+              {getChainName(id)}
+            </option>
+          ))}
+        </select>
+      </div>
+
+      <div className="w-[96%] mx-auto mb-4">
+        <label
+          htmlFor="depositAddress"
           className="text-white text-[14px] font-[300]"
         >
           Deposit address
         </label>
         <input
-          id="receiveAddress"
+          id="depositAddress"
           type="text"
           readOnly
           placeholder={isLoading ? "Creating address…" : "No deposit address"}
@@ -102,10 +132,9 @@ export const Receive = () => {
 
       <div className="w-[96%] mx-auto mb-4 text-[12px] text-hinkal-gray-100">
         <p>
-          Send any supported token to this address on any supported chain, the
-          way you would to any other wallet: what arrives is shielded into your
-          private balance. Anything else sent here can only be recovered to a
-          wallet you choose, from Stuck Balances.
+          Use it as the recipient of a private bridge to{" "}
+          {getChainName(selectedChainId)}: what arrives is shielded into this
+          account's private balance there. EVM chains share one address.
         </p>
       </div>
 
@@ -114,7 +143,7 @@ export const Receive = () => {
         <button
           type="button"
           disabled={isDisabled}
-          onClick={handleCopyAddress}
+          onClick={handlePrimaryClick}
           className={`w-[90%] mb-3 mx-[5%] rounded-lg h-10 text-sm font-semibold outline-none ${
             !isDisabled
               ? "bg-primary text-white hover:bg-hinkal-purple-200 transition-all duration-300"
@@ -126,12 +155,12 @@ export const Receive = () => {
               <span>Creating address</span> <Spinner />
             </div>
           ) : (
-            <span>Copy address</span>
+            <span>{record ? "Copy address" : "Generate deposit address"}</span>
           )}
         </button>
         <button
           type="button"
-          disabled={!walletAddress || isLoading}
+          disabled={isDisabled}
           onClick={() => handOutAddress(true)}
           className="w-[90%] mb-3 mx-[5%] rounded-lg h-10 text-sm font-semibold outline-none border border-hinkal-blue-900 text-white hover:bg-hinkal-blue-900 transition-all duration-300 disabled:cursor-not-allowed disabled:text-hinkal-gray-200"
         >

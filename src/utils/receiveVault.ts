@@ -1,16 +1,11 @@
-import { ReceiveVaultAccount, ReceiveVaultRecord } from "../types";
-import type { TxData } from "./deposit";
-import { buildAuthGet, buildAuthPost } from "./enclave-auth";
+import { ReceiveVaultRecord } from "../types";
+import { ENCLAVE_SERVER_BASE_URL } from "../constants/server.constants";
 import { enclaveFetch } from "./enclaveApi";
 import {
   type Session,
   requestSignaturePostHeader,
   sessionBodyParams,
 } from "./request-signature";
-import { resolveReceiveVaultRecoverAuth } from "./resolve-tx-auth";
-import type { Auth, TxSessionAuth, TxWallet } from "./types";
-
-export type RecoverTxData = TxData | Record<string, unknown> | string;
 
 export const createReceiveAddress = async (
   session: Session,
@@ -39,66 +34,21 @@ export const createReceiveAddress = async (
   return data.record;
 };
 
-export const fetchReceiveVaultAccount = async (
-  auth: Auth,
-  signal?: AbortSignal,
-): Promise<ReceiveVaultAccount> => {
-  const { queryString, headers, requestNonce } = await buildAuthGet(
-    auth,
-    "/receive-vault-account",
-  );
-
-  const { res, data } = await enclaveFetch<
-    (ReceiveVaultAccount & { success: true }) | { error?: string }
-  >(`/receive-vault-account?${queryString}`, requestNonce, { signal, headers });
-
-  if (!res.ok || !("success" in data && data.success)) {
-    throw new Error(
-      (data as { error?: string }).error ?? "Receive vault account fetch failed",
-    );
-  }
-
-  return { entries: data.entries, blockedFunds: data.blockedFunds };
-};
-
-export const recoverReceiveVault = async (
-  wallet: TxWallet,
-  session: TxSessionAuth,
-  chainId: number,
+export const checkReceiveVaultAddress = async (
   vaultAddress: string,
-  tokenAddress: string,
-  recipientAddress: string,
-): Promise<RecoverTxData> => {
-  const txParams = { vaultAddress, tokenAddress, recipientAddress };
-  const { bodyJson, headers, requestNonce } = await buildAuthPost(
-    session,
-    chainId,
-    "/receive-vault-recover",
-    txParams,
-    () =>
-      resolveReceiveVaultRecoverAuth(
-        wallet,
-        session.sessionId,
-        chainId,
-        vaultAddress,
-        tokenAddress,
-        recipientAddress,
-      ),
-  );
-
-  const { res, data } = await enclaveFetch<
-    { success: true; txData: RecoverTxData } | { error?: string }
-  >("/receive-vault-recover", requestNonce, {
+): Promise<boolean> => {
+  const res = await fetch(`${ENCLAVE_SERVER_BASE_URL}/receive-vault/check`, {
     method: "POST",
-    headers,
-    body: bodyJson,
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify({ vaultAddress }),
   });
+  const data: { isReceiveVault?: boolean; detail?: string } = await res
+    .json()
+    .catch(() => ({}));
 
-  if (!res.ok || !("success" in data && data.success)) {
-    throw new Error(
-      (data as { error?: string }).error ?? "Receive address recovery failed",
-    );
+  if (!res.ok) {
+    throw new Error(data.detail ?? "Deposit address check failed");
   }
 
-  return data.txData;
+  return !!data.isReceiveVault;
 };

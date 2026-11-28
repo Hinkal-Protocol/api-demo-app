@@ -133,6 +133,7 @@ export const buildSolanaPrivateSendAuthFields = async (
   recipients: Recipient[],
   feeToken?: string,
   txCompletionTime?: number,
+  ref?: string,
 ): Promise<EnclaveTxAuthFields> => {
   const nonce = crypto.randomUUID();
   const message =
@@ -140,7 +141,29 @@ export const buildSolanaPrivateSendAuthFields = async (
     `\nToken Address: ${tokenAddress}` +
     `\nRecipients:\n${renderRecipients(recipients)}` +
     `\nFee Token: ${feeToken ?? ""}` +
-    `\nTx Completion Time: ${txCompletionTime ?? 0}`;
+    `\nTx Completion Time: ${txCompletionTime ?? 0}` +
+    `${ref !== undefined ? `\nRef: ${ref}` : ""}`;
+  return sign(sessionId, provider, message, nonce);
+};
+
+export const buildSolanaPrivateSendBridgeAuthFields = async (
+  sessionId: string,
+  provider: SolanaWalletProvider,
+  chainId: number,
+  tokenAddress: string,
+  destinationChainId: number,
+  destinationTokenAddress: string,
+  recipients: Recipient[],
+  quote: string,
+): Promise<EnclaveTxAuthFields> => {
+  const nonce = crypto.randomUUID();
+  const message =
+    `${buildHeader("PrivateSendBridge", nonce, sessionId, chainId)}` +
+    `\nToken Address: ${tokenAddress}` +
+    `\nDestination Chain ID: ${destinationChainId}` +
+    `\nDestination Token Address: ${destinationTokenAddress}` +
+    `\nRecipients:\n${renderRecipients(recipients)}` +
+    `\nQuote: ${quote}`;
   return sign(sessionId, provider, message, nonce);
 };
 
@@ -179,18 +202,16 @@ export const buildSolanaWithdrawStuckUtxosAuthFields = async (
   return sign(sessionId, provider, message, nonce);
 };
 
-export const buildSolanaReceiveVaultRecoverAuthFields = async (
+export const buildSolanaRecoverStuckBridgeBalanceAuthFields = async (
   sessionId: string,
   provider: SolanaWalletProvider,
   chainId: number,
-  vaultAddress: string,
   tokenAddress: string,
   recipientAddress: string,
 ): Promise<EnclaveTxAuthFields> => {
   const nonce = crypto.randomUUID();
   const message =
-    `${buildHeader("ReceiveVaultRecover", nonce, sessionId, chainId)}` +
-    `\nVault Address: ${vaultAddress}` +
+    `${buildHeader("RecoverStuckBridgeBalance", nonce, sessionId, chainId)}` +
     `\nToken Address: ${tokenAddress}` +
     `\nRecipient: ${recipientAddress}`;
   return sign(sessionId, provider, message, nonce);

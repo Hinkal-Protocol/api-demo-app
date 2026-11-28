@@ -13,8 +13,11 @@ import {
 } from "react";
 import toast from "react-hot-toast";
 import { networkRegistry } from "./constants/chain.constants";
-import { fetchBalances, fetchStuckUtxoBalances } from "./utils/balance";
-import { fetchReceiveVaultAccount } from "./utils/receiveVault";
+import {
+  fetchBalances,
+  fetchStuckBridgeBalances,
+  fetchStuckUtxoBalances,
+} from "./utils/balance";
 import { getPublicBalances } from "./utils/public-balances";
 import { createEnclaveSession } from "./utils/session";
 import { getFriendlyErrorMessage } from "./utils/errors";
@@ -23,8 +26,7 @@ import { EnclaveSessionAuthMode } from "./utils/auth";
 import type { SolanaWalletProvider } from "./utils/solana-wallet";
 import { getERC20Registry } from "./constants/token-data";
 import { getEthersSigner } from "./utils/ethers-wallet";
-import { ERC20Token, ReceiveVaultBlockedFund, TokenBalance } from "./types";
-export type WalletType = "evm" | "tron" | "solana";
+import { ERC20Token, TokenBalance, WalletType } from "./types";
 
 type AppContextArgumnets = {
   sessionId: string | null;
@@ -52,8 +54,9 @@ type AppContextArgumnets = {
   erc20List: ERC20Token[];
   balances: TokenBalance[];
   stuckUtxoBalances: TokenBalance[];
-  receiveVaultBlockedFunds: ReceiveVaultBlockedFund[];
-  refreshReceiveVaultAccount: () => Promise<void>;
+  stuckBridgeBalances: TokenBalance[];
+  isStuckBridgeBalancesLoading: boolean;
+  refreshStuckBridgeBalances: () => Promise<void>;
   refreshBalances: () => Promise<void>;
   refreshBalancesSoon: (delaysMs?: number[]) => Promise<void>;
   isBalancesRefreshing: boolean;
@@ -63,7 +66,7 @@ type AppContextArgumnets = {
 };
 
 const BALANCE_REFRESH_INTERVAL = 100000;
-const WALLET_BALANCES_REFRESH_INTERVAL = 7000;
+const WALLET_BALANCES_REFRESH_INTERVAL = 20000;
 
 const AppContext = createContext<AppContextArgumnets>({
   sessionId: null,
@@ -91,8 +94,9 @@ const AppContext = createContext<AppContextArgumnets>({
   erc20List: [],
   balances: [],
   stuckUtxoBalances: [],
-  receiveVaultBlockedFunds: [],
-  refreshReceiveVaultAccount: async () => {},
+  stuckBridgeBalances: [],
+  isStuckBridgeBalancesLoading: false,
+  refreshStuckBridgeBalances: async () => {},
   refreshBalances: async () => {},
   refreshBalancesSoon: async () => {},
   isBalancesRefreshing: false,
@@ -123,9 +127,11 @@ export const AppContextProvider: FC<AppContextProps> = ({
   const [stuckUtxoBalances, setStuckUtxoBalances] = useState<TokenBalance[]>(
     [],
   );
-  const [receiveVaultBlockedFunds, setReceiveVaultBlockedFunds] = useState<
-    ReceiveVaultBlockedFund[]
+  const [stuckBridgeBalances, setStuckBridgeBalances] = useState<
+    TokenBalance[]
   >([]);
+  const [isStuckBridgeBalancesLoading, setIsStuckBridgeBalancesLoading] =
+    useState(false);
   const [walletBalances, setWalletBalances] = useState<Record<string, bigint>>(
     {},
   );
@@ -135,9 +141,13 @@ export const AppContextProvider: FC<AppContextProps> = ({
   const balancesRef = useRef<TokenBalance[]>([]);
   const abortControllerRef = useRef<AbortController | null>(null);
   const prevChainIdRef = useRef<number | undefined>();
+  const walletBalancesRequestRef = useRef(0);
 
-  const isTron = useMemo(() => walletType === "tron", [walletType]);
-  const isSolana = useMemo(() => walletType === "solana", [walletType]);
+  const isTron = useMemo(() => walletType === WalletType.Tron, [walletType]);
+  const isSolana = useMemo(
+    () => walletType === WalletType.Solana,
+    [walletType],
+  );
 
   const erc20List = useMemo<ERC20Token[]>(
     () => (chainId ? getERC20Registry(chainId) : []),
@@ -177,7 +187,8 @@ export const AppContextProvider: FC<AppContextProps> = ({
     if (!walletAddress || !dataLoaded) return;
     if (prevChainId === undefined || prevChainId === chainId) return;
     // Tron users don't switch chains via wagmi; skip EVM re-auth for them
-    if (walletType === "tron" || walletType === "solana") return;
+    if (walletType === WalletType.Tron || walletType === WalletType.Solana)
+      return;
 
     let cancelled = false;
     setSessionId(null);
@@ -224,14 +235,23 @@ export const AppContextProvider: FC<AppContextProps> = ({
     walletType,
   ]);
 
+  const refreshStuckBridgeBalances = useCallback(async () => {
+    if (!dataLoaded || !chainId || !sessionId || !privateKey) return;
+
+    setIsStuckBridgeBalancesLoading(true);
+    try {
+      setStuckBridgeBalances(
+        await fetchStuckBridgeBalances({ sessionId, privateKey, chainId }),
+      );
+    } catch (error) {
+      console.error("Error fetching stuck bridge balances:", error);
+    } finally {
+      setIsStuckBridgeBalancesLoading(false);
+    }
+  }, [dataLoaded, chainId, sessionId, privateKey]);
+
   const refreshBalances = useCallback(async () => {
-    if (
-      !dataLoaded ||
-      !chainId ||
-      !walletAddress ||
-      !sessionId ||
-      !privateKey
-    )
+    if (!dataLoaded || !chainId || !walletAddress || !sessionId || !privateKey)
       return;
 
     abortControllerRef.current?.abort();
@@ -244,6 +264,7 @@ export const AppContextProvider: FC<AppContextProps> = ({
         privateKey,
         chainId,
       };
+      refreshStuckBridgeBalances();
       const [bals, stuckBals] = await Promise.all([
         fetchBalances(auth, controller.signal),
         fetchStuckUtxoBalances(auth, controller.signal),
@@ -258,7 +279,14 @@ export const AppContextProvider: FC<AppContextProps> = ({
         console.error("Error refreshing balances:", error);
       }
     }
-  }, [dataLoaded, chainId, walletAddress, sessionId, privateKey]);
+  }, [
+    dataLoaded,
+    chainId,
+    walletAddress,
+    sessionId,
+    privateKey,
+    refreshStuckBridgeBalances,
+  ]);
 
   // After a tx the new balance may not be indexed yet, so a single immediate
   // refresh returns stale data. Re-poll a few times spaced out to catch it
@@ -287,45 +315,22 @@ export const AppContextProvider: FC<AppContextProps> = ({
     [refreshBalances],
   );
 
-  // Receive addresses only exist on some chains, so a failure here must not take the
-  // balance refresh down with it.
-  const refreshReceiveVaultAccount = useCallback(async () => {
-    if (!dataLoaded || !chainId || !walletAddress || !sessionId || !privateKey) {
-      return;
-    }
-
-    try {
-      const { blockedFunds } = await fetchReceiveVaultAccount({
-        sessionId,
-        privateKey,
-        chainId,
-      });
-      setReceiveVaultBlockedFunds(blockedFunds);
-    } catch (error) {
-      console.error("Error refreshing receive vault account:", error);
-      setReceiveVaultBlockedFunds([]);
-    }
-  }, [dataLoaded, chainId, walletAddress, sessionId, privateKey]);
-
   useEffect(() => {
     if (!dataLoaded || !chainId) return;
     setBalances([]);
     setStuckUtxoBalances([]);
-    setReceiveVaultBlockedFunds([]);
+    setStuckBridgeBalances([]);
     refreshBalances();
-    refreshReceiveVaultAccount();
-    const interval = setInterval(() => {
-      refreshBalances();
-      refreshReceiveVaultAccount();
-    }, BALANCE_REFRESH_INTERVAL);
+    const interval = setInterval(refreshBalances, BALANCE_REFRESH_INTERVAL);
     return () => {
       clearInterval(interval);
       abortControllerRef.current?.abort();
     };
-  }, [dataLoaded, chainId, refreshBalances, refreshReceiveVaultAccount]);
+  }, [dataLoaded, chainId, refreshBalances]);
 
   const refreshWalletBalances = useCallback(
     async (silent = false) => {
+      const requestId = ++walletBalancesRequestRef.current;
       if (!walletAddress || !chainId || !walletType || erc20List.length === 0) {
         setWalletBalances({});
         return;
@@ -338,6 +343,8 @@ export const AppContextProvider: FC<AppContextProps> = ({
           chainId,
           walletType,
         );
+        // A newer refresh (e.g. after a wallet/chain switch) owns the state.
+        if (requestId !== walletBalancesRequestRef.current) return;
         setWalletBalances(
           Object.fromEntries(
             balances.map((b) => [
@@ -346,24 +353,34 @@ export const AppContextProvider: FC<AppContextProps> = ({
             ]),
           ),
         );
-      } finally {
-        if (!silent) setIsWalletBalancesLoading(false);
+        setIsWalletBalancesLoading(false);
+      } catch (error) {
+        console.error("Error refreshing wallet balances:", error);
       }
     },
     [walletAddress, chainId, walletType, erc20List],
   );
 
   useEffect(() => {
+    setWalletBalances({});
     if (!walletAddress || !chainId || !walletType || erc20List.length === 0) {
-      setWalletBalances({});
+      walletBalancesRequestRef.current++;
+      setIsWalletBalancesLoading(false);
       return;
     }
-    refreshWalletBalances();
-    const interval = setInterval(
-      () => refreshWalletBalances(true),
-      WALLET_BALANCES_REFRESH_INTERVAL,
-    );
-    return () => clearInterval(interval);
+    let stopped = false;
+    let timer: ReturnType<typeof setTimeout> | undefined;
+    const poll = async (silent: boolean) => {
+      if (!silent || !document.hidden) await refreshWalletBalances(silent);
+      if (!stopped) {
+        timer = setTimeout(() => poll(true), WALLET_BALANCES_REFRESH_INTERVAL);
+      }
+    };
+    poll(false);
+    return () => {
+      stopped = true;
+      clearTimeout(timer);
+    };
   }, [walletAddress, chainId, walletType, erc20List, refreshWalletBalances]);
 
   return (
@@ -388,8 +405,9 @@ export const AppContextProvider: FC<AppContextProps> = ({
         erc20List,
         balances,
         stuckUtxoBalances,
-        receiveVaultBlockedFunds,
-        refreshReceiveVaultAccount,
+        stuckBridgeBalances,
+        isStuckBridgeBalancesLoading,
+        refreshStuckBridgeBalances,
         refreshBalances,
         refreshBalancesSoon,
         isBalancesRefreshing,

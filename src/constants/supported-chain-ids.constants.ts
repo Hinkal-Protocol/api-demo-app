@@ -8,7 +8,20 @@ import {
   tempoMainnet,
 } from "wagmi/chains";
 import { defineChain } from "viem";
-import { ALCHEMY_API_KEY } from "./chain.constants";
+
+export const arcMainnet = defineChain({
+  id: 5042,
+  name: "Arc",
+  nativeCurrency: { name: "USD Coin", symbol: "USDC", decimals: 18 },
+  rpcUrls: {
+    default: {
+      http: ["https://rpc.mainnet.arc.io"],
+    },
+  },
+  blockExplorers: {
+    default: { name: "ArcScan", url: "https://explorer.arc.io" },
+  },
+});
 
 export const arcTestnet = defineChain({
   id: 5042002,
@@ -16,7 +29,7 @@ export const arcTestnet = defineChain({
   nativeCurrency: { name: "USD Coin", symbol: "USDC", decimals: 18 },
   rpcUrls: {
     default: {
-      http: [`https://arc-testnet.g.alchemy.com/v2/${ALCHEMY_API_KEY}`],
+      http: ["https://rpc.testnet.arc.network"],
     },
   },
 });
@@ -28,6 +41,7 @@ export const SUPPORTED_CHAINS = [
   optimism, // 10
   base, // 8453
   tempoMainnet, // 4217
+  arcMainnet, // 5042
   arcTestnet, // 5042002
   sepolia, // 11155111
 ] as const;
