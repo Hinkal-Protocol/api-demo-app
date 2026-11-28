@@ -215,6 +215,29 @@ export const buildWithdrawStuckUtxosAuthFields = (
     }),
   );
 
+export const buildRecoverStuckBridgeBalanceAuthFields = (
+  sessionId: string,
+  signer: ethers.Signer,
+  params: {
+    chainId: number;
+    tokenAddress: string;
+    recipientAddress: string;
+  },
+) =>
+  signEnclaveTypedData(
+    sessionId,
+    signer,
+    "RecoverStuckBridgeBalance",
+    params.chainId,
+    (nonce) => ({
+      nonce,
+      sessionId,
+      chainId: BigInt(params.chainId),
+      tokenAddress: ethers.getAddress(params.tokenAddress),
+      recipient: ethers.getAddress(params.recipientAddress),
+    }),
+  );
+
 export const buildSwapAuthFields = (
   sessionId: string,
   signer: ethers.Signer,
@@ -290,6 +313,55 @@ export const buildDepositAndWithdrawAuthFields = (
 
       return value;
     },
+  );
+
+// Bridge recipients are signed as plain strings (they can be non-EVM addresses): exactly as sent,
+// sorted the same way as the server's sortRecipientsByAddress.
+export const toBridgeRecipientValues = (recipients: Recipient[]) =>
+  [...recipients]
+    .sort((a, b) => a.address.localeCompare(b.address))
+    .map(({ address, amount }) => ({
+      recipient: address,
+      amount: BigInt(amount),
+    }));
+
+export type PrivateSendBridgeAuthParams = {
+  chainId: number;
+  tokenAddress: string;
+  destinationChainId: number;
+  destinationTokenAddress: string;
+  recipients: Recipient[];
+  quote: string;
+};
+
+export const buildPrivateSendBridgeValue = (
+  nonce: string,
+  sessionId: string,
+  params: PrivateSendBridgeAuthParams,
+  normalizeTokenAddress: (address: string) => string,
+): Record<string, unknown> => ({
+  nonce,
+  sessionId,
+  chainId: BigInt(params.chainId),
+  tokenAddress: normalizeTokenAddress(params.tokenAddress),
+  destinationChainId: BigInt(params.destinationChainId),
+  destinationTokenAddress: params.destinationTokenAddress,
+  recipients: toBridgeRecipientValues(params.recipients),
+  quote: params.quote,
+});
+
+export const buildPrivateSendBridgeAuthFields = (
+  sessionId: string,
+  signer: ethers.Signer,
+  params: PrivateSendBridgeAuthParams,
+) =>
+  signEnclaveTypedData(
+    sessionId,
+    signer,
+    "PrivateSendBridge",
+    params.chainId,
+    (nonce) =>
+      buildPrivateSendBridgeValue(nonce, sessionId, params, ethers.getAddress),
   );
 
 type QueryParamValue = string | string[];

@@ -13,7 +13,11 @@ import {
 } from "react";
 import toast from "react-hot-toast";
 import { networkRegistry } from "./constants/chain.constants";
-import { fetchBalances, fetchStuckUtxoBalances } from "./utils/balance";
+import {
+  fetchBalances,
+  fetchStuckBridgeBalances,
+  fetchStuckUtxoBalances,
+} from "./utils/balance";
 import { getPublicBalances } from "./utils/public-balances";
 import { createEnclaveSession } from "./utils/session";
 import { getFriendlyErrorMessage } from "./utils/errors";
@@ -50,6 +54,9 @@ type AppContextArgumnets = {
   erc20List: ERC20Token[];
   balances: TokenBalance[];
   stuckUtxoBalances: TokenBalance[];
+  stuckBridgeBalances: TokenBalance[];
+  isStuckBridgeBalancesLoading: boolean;
+  refreshStuckBridgeBalances: () => Promise<void>;
   refreshBalances: () => Promise<void>;
   refreshBalancesSoon: (delaysMs?: number[]) => Promise<void>;
   isBalancesRefreshing: boolean;
@@ -87,6 +94,9 @@ const AppContext = createContext<AppContextArgumnets>({
   erc20List: [],
   balances: [],
   stuckUtxoBalances: [],
+  stuckBridgeBalances: [],
+  isStuckBridgeBalancesLoading: false,
+  refreshStuckBridgeBalances: async () => {},
   refreshBalances: async () => {},
   refreshBalancesSoon: async () => {},
   isBalancesRefreshing: false,
@@ -117,6 +127,11 @@ export const AppContextProvider: FC<AppContextProps> = ({
   const [stuckUtxoBalances, setStuckUtxoBalances] = useState<TokenBalance[]>(
     [],
   );
+  const [stuckBridgeBalances, setStuckBridgeBalances] = useState<
+    TokenBalance[]
+  >([]);
+  const [isStuckBridgeBalancesLoading, setIsStuckBridgeBalancesLoading] =
+    useState(false);
   const [walletBalances, setWalletBalances] = useState<Record<string, bigint>>(
     {},
   );
@@ -220,6 +235,21 @@ export const AppContextProvider: FC<AppContextProps> = ({
     walletType,
   ]);
 
+  const refreshStuckBridgeBalances = useCallback(async () => {
+    if (!dataLoaded || !chainId || !sessionId || !privateKey) return;
+
+    setIsStuckBridgeBalancesLoading(true);
+    try {
+      setStuckBridgeBalances(
+        await fetchStuckBridgeBalances({ sessionId, privateKey, chainId }),
+      );
+    } catch (error) {
+      console.error("Error fetching stuck bridge balances:", error);
+    } finally {
+      setIsStuckBridgeBalancesLoading(false);
+    }
+  }, [dataLoaded, chainId, sessionId, privateKey]);
+
   const refreshBalances = useCallback(async () => {
     if (!dataLoaded || !chainId || !walletAddress || !sessionId || !privateKey)
       return;
@@ -234,6 +264,7 @@ export const AppContextProvider: FC<AppContextProps> = ({
         privateKey,
         chainId,
       };
+      refreshStuckBridgeBalances();
       const [bals, stuckBals] = await Promise.all([
         fetchBalances(auth, controller.signal),
         fetchStuckUtxoBalances(auth, controller.signal),
@@ -248,7 +279,14 @@ export const AppContextProvider: FC<AppContextProps> = ({
         console.error("Error refreshing balances:", error);
       }
     }
-  }, [dataLoaded, chainId, walletAddress, sessionId, privateKey]);
+  }, [
+    dataLoaded,
+    chainId,
+    walletAddress,
+    sessionId,
+    privateKey,
+    refreshStuckBridgeBalances,
+  ]);
 
   // After a tx the new balance may not be indexed yet, so a single immediate
   // refresh returns stale data. Re-poll a few times spaced out to catch it
@@ -281,6 +319,7 @@ export const AppContextProvider: FC<AppContextProps> = ({
     if (!dataLoaded || !chainId) return;
     setBalances([]);
     setStuckUtxoBalances([]);
+    setStuckBridgeBalances([]);
     refreshBalances();
     const interval = setInterval(refreshBalances, BALANCE_REFRESH_INTERVAL);
     return () => {
@@ -366,6 +405,9 @@ export const AppContextProvider: FC<AppContextProps> = ({
         erc20List,
         balances,
         stuckUtxoBalances,
+        stuckBridgeBalances,
+        isStuckBridgeBalancesLoading,
+        refreshStuckBridgeBalances,
         refreshBalances,
         refreshBalancesSoon,
         isBalancesRefreshing,

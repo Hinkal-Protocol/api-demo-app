@@ -6,6 +6,10 @@ import {
 import { getTronWeb, tronBase58ToHex } from "./tron-wallet";
 import type { EnclaveTxAuthFields } from "./types";
 import type { Recipient } from "./multiSend";
+import {
+  buildPrivateSendBridgeValue,
+  type PrivateSendBridgeAuthParams,
+} from "./enclave-auth";
 
 // eslint-disable-next-line @typescript-eslint/no-explicit-any
 const serializeBigInts = (obj: any): any => {
@@ -170,6 +174,16 @@ export const buildTronPrivateSendAuthFields = (
     return value;
   });
 
+export const buildTronPrivateSendBridgeAuthFields = (
+  sessionId: string,
+  params: PrivateSendBridgeAuthParams,
+): Promise<EnclaveTxAuthFields> =>
+  signTypedData(sessionId, "PrivateSendBridge", params.chainId, (nonce) =>
+    buildPrivateSendBridgeValue(nonce, sessionId, params, (address) =>
+      ethers.getAddress(tronBase58ToHex(address)),
+    ),
+  );
+
 export const buildTronWithdrawStuckUtxosAuthFields = (
   sessionId: string,
   chainId: number,
@@ -177,6 +191,20 @@ export const buildTronWithdrawStuckUtxosAuthFields = (
   recipientAddress: string,
 ): Promise<EnclaveTxAuthFields> =>
   signTypedData(sessionId, "WithdrawStuckUtxos", chainId, (nonce) => ({
+    nonce,
+    sessionId,
+    chainId: BigInt(chainId),
+    tokenAddress: ethers.getAddress(tokenAddress),
+    recipient: ethers.getAddress(recipientAddress),
+  }));
+
+export const buildTronRecoverStuckBridgeBalanceAuthFields = (
+  sessionId: string,
+  chainId: number,
+  tokenAddress: string,
+  recipientAddress: string,
+): Promise<EnclaveTxAuthFields> =>
+  signTypedData(sessionId, "RecoverStuckBridgeBalance", chainId, (nonce) => ({
     nonce,
     sessionId,
     chainId: BigInt(chainId),

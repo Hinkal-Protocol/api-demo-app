@@ -4,6 +4,8 @@ export enum AppTab {
   Withdraw,
   Swap,
   MultiSend,
+  PrivateBridge,
+  DepositAddress,
 }
 
 export enum WalletType {
@@ -77,3 +79,10 @@ export enum ScheduleDelayOption {
 export type SVGIconType = React.FunctionComponent<
   React.SVGAttributes<SVGElement>
 >;
+
+export type ReceiveVaultRecord = {
+  index: number;
+  network: string;
+  version: string;
+  vaultAddress: string;
+};
