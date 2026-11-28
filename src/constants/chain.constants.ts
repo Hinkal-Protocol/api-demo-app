@@ -4,12 +4,11 @@ export const chainIds = {
   polygon: 137,
   arbMainnet: 42161,
   ethMainnet: 1,
-  optimism: 10,
   base: 8453,
+  bnbMainnet: 56,
   tempo: 4217,
   arcMainnet: 5042,
   arcTestnet: 5042002,
-  sepolia: 11155111,
   tronNile: 3448148188,
   tronLocalnet: 103,
   tronMainnet: 728126428,
@@ -31,11 +30,6 @@ export const networkRegistry: Record<number, Network> = {
     chainId: chainIds.arbMainnet,
     fetchRpcUrl: "https://arb1.arbitrum.io/rpc",
   },
-  [chainIds.optimism]: {
-    name: "Optimism",
-    chainId: chainIds.optimism,
-    fetchRpcUrl: "https://mainnet.optimism.io",
-  },
   [chainIds.polygon]: {
     name: "Polygon",
     chainId: chainIds.polygon,
@@ -46,6 +40,11 @@ export const networkRegistry: Record<number, Network> = {
     chainId: chainIds.base,
     fetchRpcUrl: "https://mainnet.base.org",
     balanceRpcUrl: "https://base-rpc.publicnode.com",
+  },
+  [chainIds.bnbMainnet]: {
+    name: "BNB",
+    chainId: chainIds.bnbMainnet,
+    fetchRpcUrl: "https://bsc-rpc.publicnode.com",
   },
   [chainIds.tempo]: {
     name: "Tempo",
@@ -61,11 +60,6 @@ export const networkRegistry: Record<number, Network> = {
     name: "Arc Testnet",
     chainId: chainIds.arcTestnet,
     fetchRpcUrl: "https://rpc.testnet.arc.network",
-  },
-  [chainIds.sepolia]: {
-    name: "Sepolia",
-    chainId: chainIds.sepolia,
-    fetchRpcUrl: "https://ethereum-sepolia-rpc.publicnode.com",
   },
   [chainIds.tronNile]: {
     name: "Tron Nile",
