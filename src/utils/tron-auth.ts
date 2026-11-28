@@ -16,9 +16,7 @@ const serializeBigInts = (obj: any): any => {
   if (typeof obj === "bigint") return obj.toString();
   if (Array.isArray(obj)) return obj.map(serializeBigInts);
   if (obj !== null && typeof obj === "object")
-    return Object.fromEntries(
-      Object.entries(obj).map(([k, v]) => [k, serializeBigInts(v)])
-    );
+    return Object.fromEntries(Object.entries(obj).map(([k, v]) => [k, serializeBigInts(v)]));
   return obj;
 };
 
@@ -26,7 +24,7 @@ const signTypedData = async (
   sessionId: string,
   primaryType: Parameters<typeof getTypesForPrimary>[0],
   chainId: number,
-  buildValue: (nonce: string) => Record<string, unknown>
+  buildValue: (nonce: string) => Record<string, unknown>,
 ): Promise<EnclaveTxAuthFields> => {
   const nonce = crypto.randomUUID();
   const value = buildValue(nonce);
@@ -36,11 +34,7 @@ const signTypedData = async (
   const tw = getTronWeb();
   const serializedDomain = serializeBigInts(domain);
   const serializedMessage = serializeBigInts(value);
-  const signature = await tw.trx._signTypedData(
-    serializedDomain,
-    types,
-    serializedMessage
-  );
+  const signature = await tw.trx._signTypedData(serializedDomain, types, serializedMessage);
   return { sessionId, signature, nonce, timestamp: Date.now() };
 };
 
@@ -48,18 +42,16 @@ export const buildTronDepositAuthFields = (
   sessionId: string,
   chainId: number,
   tokenAddresses: string[],
-  amounts: string[]
+  amounts: string[],
 ): Promise<EnclaveTxAuthFields> =>
   signTypedData(sessionId, "Deposit", chainId, (nonce) => ({
     nonce,
     sessionId,
     chainId: BigInt(chainId),
-    tokenAmounts: tokenAddresses
-      .map((token, i) => ({
-        token: ethers.getAddress(token),
-        amount: BigInt(amounts[i]),
-      }))
-      .sort((a, b) => a.token.localeCompare(b.token)),
+    tokenAmounts: tokenAddresses.map((token, i) => ({
+      token: ethers.getAddress(token),
+      amount: BigInt(amounts[i]),
+    })).sort((a, b) => a.token.localeCompare(b.token)),
   }));
 
 export const buildTronDepositForOtherAuthFields = (
@@ -67,18 +59,16 @@ export const buildTronDepositForOtherAuthFields = (
   chainId: number,
   tokenAddresses: string[],
   amounts: string[],
-  recipient: string
+  recipient: string,
 ): Promise<EnclaveTxAuthFields> =>
   signTypedData(sessionId, "DepositForOther", chainId, (nonce) => ({
     nonce,
     sessionId,
     chainId: BigInt(chainId),
-    tokenAmounts: tokenAddresses
-      .map((token, i) => ({
-        token: ethers.getAddress(token),
-        amount: BigInt(amounts[i]),
-      }))
-      .sort((a, b) => a.token.localeCompare(b.token)),
+    tokenAmounts: tokenAddresses.map((token, i) => ({
+      token: ethers.getAddress(token),
+      amount: BigInt(amounts[i]),
+    })).sort((a, b) => a.token.localeCompare(b.token)),
     recipientInfo: recipient,
   }));
 
@@ -89,19 +79,17 @@ export const buildTronTransferAuthFields = (
   amounts: string[],
   recipient: string,
   feeToken?: string,
-  feeAmount?: string
+  feeAmount?: string,
 ): Promise<EnclaveTxAuthFields> =>
   signTypedData(sessionId, "Transfer", chainId, (nonce) => {
     const value: Record<string, unknown> = {
       nonce,
       sessionId,
       chainId: BigInt(chainId),
-      tokenAmounts: tokenAddresses
-        .map((token, i) => ({
-          token: ethers.getAddress(token),
-          amount: BigInt(amounts[i]),
-        }))
-        .sort((a, b) => a.token.localeCompare(b.token)),
+      tokenAmounts: tokenAddresses.map((token, i) => ({
+        token: ethers.getAddress(token),
+        amount: BigInt(amounts[i]),
+      })).sort((a, b) => a.token.localeCompare(b.token)),
       recipient,
     };
 
@@ -123,19 +111,17 @@ export const buildTronWithdrawAuthFields = (
   recipient: string,
   feeToken?: string,
   feeAmount?: string,
-  ref?: string
+  ref?: string,
 ): Promise<EnclaveTxAuthFields> =>
   signTypedData(sessionId, "Withdraw", chainId, (nonce) => {
     const value: Record<string, unknown> = {
       nonce,
       sessionId,
       chainId: BigInt(chainId),
-      tokenAmounts: tokenAddresses
-        .map((token, i) => ({
-          token: ethers.getAddress(token),
-          amount: BigInt(amounts[i]),
-        }))
-        .sort((a, b) => a.token.localeCompare(b.token)),
+      tokenAmounts: tokenAddresses.map((token, i) => ({
+        token: ethers.getAddress(token),
+        amount: BigInt(amounts[i]),
+      })).sort((a, b) => a.token.localeCompare(b.token)),
       recipient,
     };
 
@@ -159,7 +145,7 @@ export const buildTronPrivateSendAuthFields = (
   recipients: Recipient[],
   feeToken?: string,
   txCompletionTime?: number,
-  ref?: string
+  ref?: string,
 ): Promise<EnclaveTxAuthFields> =>
   signTypedData(sessionId, "PrivateSend", chainId, (nonce) => {
     const value: Record<string, unknown> = {
@@ -190,19 +176,19 @@ export const buildTronPrivateSendAuthFields = (
 
 export const buildTronPrivateSendBridgeAuthFields = (
   sessionId: string,
-  params: PrivateSendBridgeAuthParams
+  params: PrivateSendBridgeAuthParams,
 ): Promise<EnclaveTxAuthFields> =>
   signTypedData(sessionId, "PrivateSendBridge", params.chainId, (nonce) =>
     buildPrivateSendBridgeValue(nonce, sessionId, params, (address) =>
-      ethers.getAddress(tronBase58ToHex(address))
-    )
+      ethers.getAddress(tronBase58ToHex(address)),
+    ),
   );
 
 export const buildTronWithdrawStuckUtxosAuthFields = (
   sessionId: string,
   chainId: number,
   tokenAddress: string,
-  recipientAddress: string
+  recipientAddress: string,
 ): Promise<EnclaveTxAuthFields> =>
   signTypedData(sessionId, "WithdrawStuckUtxos", chainId, (nonce) => ({
     nonce,
@@ -216,7 +202,7 @@ export const buildTronRecoverStuckBridgeBalanceAuthFields = (
   sessionId: string,
   chainId: number,
   tokenAddress: string,
-  recipientAddress: string
+  recipientAddress: string,
 ): Promise<EnclaveTxAuthFields> =>
   signTypedData(sessionId, "RecoverStuckBridgeBalance", chainId, (nonce) => ({
     nonce,

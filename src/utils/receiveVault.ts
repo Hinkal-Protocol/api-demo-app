@@ -9,7 +9,7 @@ import {
 export const createReceiveAddress = async (
   session: Session,
   chainId: number,
-  forceFresh = false
+  forceFresh = false,
 ): Promise<ReceiveVaultRecord> => {
   const body = { ...sessionBodyParams(session, chainId), forceFresh };
 
@@ -26,7 +26,7 @@ export const createReceiveAddress = async (
 
   if (!res.ok || !("success" in data && data.success)) {
     throw new Error(
-      (data as { error?: string }).error ?? "Receive address creation failed"
+      (data as { error?: string }).error ?? "Receive address creation failed",
     );
   }
 

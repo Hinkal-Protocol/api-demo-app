@@ -58,7 +58,7 @@ export const WalletInfoDropDown = () => {
   const { signOut: openfortSignOut } = useSignOut();
   const visibleStuckUtxoBalances = useMemo(
     () => filterNonZeroTokenBalances(stuckUtxoBalances),
-    [stuckUtxoBalances]
+    [stuckUtxoBalances],
   );
   const [withdrawingStuckTokenAddress, setWithdrawingStuckTokenAddress] =
     useState<string | null>(null);
@@ -122,7 +122,7 @@ export const WalletInfoDropDown = () => {
       toast.success("Wallet address copied to clipboard");
     } catch (err: any) {
       toast.error(
-        getFriendlyErrorMessage(err, "Failed to copy wallet address")
+        getFriendlyErrorMessage(err, "Failed to copy wallet address"),
       );
     }
   };
@@ -143,7 +143,7 @@ export const WalletInfoDropDown = () => {
       toast.success("Private address copied to clipboard");
     } catch (err: any) {
       toast.error(
-        getFriendlyErrorMessage(err, "Failed to copy private address")
+        getFriendlyErrorMessage(err, "Failed to copy private address"),
       );
     } finally {
       setIsCopyingPrivate(false);
@@ -166,14 +166,14 @@ export const WalletInfoDropDown = () => {
           session,
           chainId,
           tokenAddress,
-          walletAddress
+          walletAddress,
         );
 
         toast.success(`Withdraw sent (${txHashes.length} txs)`);
         await refreshBalances();
       } catch (err) {
         toast.error(
-          getFriendlyErrorMessage(err, "Withdraw stuck UTXOs failed")
+          getFriendlyErrorMessage(err, "Withdraw stuck UTXOs failed"),
         );
       } finally {
         setWithdrawingStuckTokenAddress(null);
@@ -189,7 +189,7 @@ export const WalletInfoDropDown = () => {
       isSolana,
       isTron,
       solanaProvider,
-    ]
+    ],
   );
 
   const handleRecoverStuckBridgeBalance = useCallback(
@@ -208,7 +208,7 @@ export const WalletInfoDropDown = () => {
           session,
           chainId,
           tokenAddress,
-          walletAddress
+          walletAddress,
         );
 
         toast.success(`Recovered (${recoveredCount})`);
@@ -219,17 +219,7 @@ export const WalletInfoDropDown = () => {
         setRecoveringTokenAddress(null);
       }
     },
-    [
-      walletAddress,
-      chainId,
-      sessionId,
-      privateKey,
-      authMode,
-      refreshBalances,
-      isSolana,
-      isTron,
-      solanaProvider,
-    ]
+    [walletAddress, chainId, sessionId, privateKey, authMode, refreshBalances, isSolana, isTron, solanaProvider],
   );
 
   return (

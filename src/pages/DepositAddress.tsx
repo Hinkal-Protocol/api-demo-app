@@ -70,13 +70,14 @@ export const DepositAddress = () => {
     setIsLoading(false);
   }, [selectedChainId]);
 
-  const handlePrimaryClick = useCallback(() => {
+  const handlePrimaryClick = useCallback(async () => {
     try {
       if (!record) {
         handOutAddress(false);
         return;
       }
-      copyToClipboard(record.vaultAddress);
+      // Await so a rejected clipboard write lands in the catch, not a success toast.
+      await copyToClipboard(record.vaultAddress);
       toast.success("Deposit address copied to clipboard");
     } catch (err) {
       toast.error(getFriendlyErrorMessage(err, "Failed to copy the address"));

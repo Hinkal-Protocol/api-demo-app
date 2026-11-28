@@ -26,7 +26,7 @@ export const getPrivateSendBridgeQuote = async (
   outputTokenAddress: string,
   recipients: Recipient[],
   slippagePercentage?: number,
-  txCompletionTime?: number
+  txCompletionTime?: number,
 ): Promise<PrivateSendBridgeQuote> => {
   const { queryString, headers, requestNonce } = await buildAuthGet(
     auth,
@@ -43,7 +43,7 @@ export const getPrivateSendBridgeQuote = async (
       ...(txCompletionTime !== undefined && {
         txCompletionTime: String(txCompletionTime),
       }),
-    }
+    },
   );
 
   const { res, data } = await enclaveFetch<
@@ -52,7 +52,7 @@ export const getPrivateSendBridgeQuote = async (
 
   if (!res.ok || !("success" in data && data.success)) {
     throw new Error(
-      (data as { error?: string }).error ?? "Bridge quote fetch failed"
+      (data as { error?: string }).error ?? "Bridge quote fetch failed",
     );
   }
 
@@ -67,7 +67,7 @@ export const privateSendBridge = async (
   destinationChainId: number,
   destinationTokenAddress: string,
   recipients: Recipient[],
-  quote: string
+  quote: string,
 ): Promise<DepositAndWithdrawOrder> => {
   const txParams = {
     tokenAddress,
@@ -85,7 +85,7 @@ export const privateSendBridge = async (
       resolvePrivateSendBridgeAuth(wallet, session.sessionId, {
         chainId,
         ...txParams,
-      })
+      }),
   );
 
   const { res, data } = await enclaveFetch<
@@ -98,7 +98,7 @@ export const privateSendBridge = async (
 
   if (!res.ok || !("success" in data && data.success)) {
     throw new Error(
-      (data as { error?: string }).error ?? "privateSendBridge failed"
+      (data as { error?: string }).error ?? "privateSendBridge failed",
     );
   }
 
@@ -114,11 +114,11 @@ export const privateSendBridge = async (
 
 export const getBridgeOrderStatus = async (
   auth: Auth,
-  orderId: string
+  orderId: string,
 ): Promise<OrderStatusResponse> => {
   const { queryString, headers, requestNonce } = await buildAuthGet(
     auth,
-    "/private-send-bridge/:orderId"
+    "/private-send-bridge/:orderId",
   );
 
   const { res, data } = await enclaveFetch<

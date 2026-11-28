@@ -114,7 +114,7 @@ export const AppContextProvider: FC<AppContextProps> = ({
   const [sessionId, setSessionId] = useState<string | null>(null);
   const [privateKey, setPrivateKey] = useState<Uint8Array | null>(null);
   const [authMode, setAuthMode] = useState<EnclaveSessionAuthMode>(
-    EnclaveSessionAuthMode.Normal
+    EnclaveSessionAuthMode.Normal,
   );
   const [sessionExpiresAt, setSessionExpiresAt] = useState<string | null>(null);
   const [requestedUseEIP712, setRequestedUseEIP712] = useState(false);
@@ -126,7 +126,7 @@ export const AppContextProvider: FC<AppContextProps> = ({
   const [dataLoaded, setDataLoaded] = useState<boolean>(false);
   const [balances, setBalances] = useState<TokenBalance[]>([]);
   const [stuckUtxoBalances, setStuckUtxoBalances] = useState<TokenBalance[]>(
-    []
+    [],
   );
   const [stuckBridgeBalances, setStuckBridgeBalances] = useState<
     TokenBalance[]
@@ -134,7 +134,7 @@ export const AppContextProvider: FC<AppContextProps> = ({
   const [isStuckBridgeBalancesLoading, setIsStuckBridgeBalancesLoading] =
     useState(false);
   const [walletBalances, setWalletBalances] = useState<Record<string, bigint>>(
-    {}
+    {},
   );
   const [isWalletBalancesLoading, setIsWalletBalancesLoading] = useState(false);
   const [isBalancesRefreshing, setIsBalancesRefreshing] = useState(false);
@@ -148,12 +148,12 @@ export const AppContextProvider: FC<AppContextProps> = ({
 
   const erc20List = useMemo<ERC20Token[]>(
     () => (chainId ? getERC20Registry(chainId) : []),
-    [chainId]
+    [chainId],
   );
 
   const selectedNetwork = useMemo(
     () => (chainId ? networkRegistry[chainId] : undefined),
-    [chainId]
+    [chainId],
   );
 
   const applyEnclaveSession = useCallback((session: EnclaveSession) => {
@@ -198,7 +198,7 @@ export const AppContextProvider: FC<AppContextProps> = ({
         const session = await createEnclaveSession(
           signer,
           walletAddress,
-          requestedUseEIP712
+          requestedUseEIP712,
         );
         if (!cancelled) {
           applyEnclaveSession(session);
@@ -207,10 +207,13 @@ export const AppContextProvider: FC<AppContextProps> = ({
         if (!cancelled) {
           console.error(
             "Failed to refresh enclave auth after chain switch:",
-            error
+            error,
           );
           toast.error(
-            getFriendlyErrorMessage(error, "Failed to authorize on new network")
+            getFriendlyErrorMessage(
+              error,
+              "Failed to authorize on new network",
+            ),
           );
         }
       }
@@ -234,7 +237,7 @@ export const AppContextProvider: FC<AppContextProps> = ({
     setIsStuckBridgeBalancesLoading(true);
     try {
       setStuckBridgeBalances(
-        await fetchStuckBridgeBalances({ sessionId, privateKey, chainId })
+        await fetchStuckBridgeBalances({ sessionId, privateKey, chainId }),
       );
     } catch (error) {
       console.error("Error fetching stuck bridge balances:", error);
@@ -244,7 +247,13 @@ export const AppContextProvider: FC<AppContextProps> = ({
   }, [dataLoaded, chainId, sessionId, privateKey]);
 
   const refreshBalances = useCallback(async () => {
-    if (!dataLoaded || !chainId || !walletAddress || !sessionId || !privateKey)
+    if (
+      !dataLoaded ||
+      !chainId ||
+      !walletAddress ||
+      !sessionId ||
+      !privateKey
+    )
       return;
 
     abortControllerRef.current?.abort();
@@ -305,7 +314,7 @@ export const AppContextProvider: FC<AppContextProps> = ({
         setIsBalancesRefreshing(false);
       }
     },
-    [refreshBalances]
+    [refreshBalances],
   );
 
   useEffect(() => {
@@ -333,21 +342,21 @@ export const AppContextProvider: FC<AppContextProps> = ({
           erc20List,
           walletAddress,
           chainId,
-          walletType
+          walletType,
         );
         setWalletBalances(
           Object.fromEntries(
             balances.map((b) => [
               b.token.erc20TokenAddress.toLowerCase(),
               b.balance,
-            ])
-          )
+            ]),
+          ),
         );
       } finally {
         if (!silent) setIsWalletBalancesLoading(false);
       }
     },
-    [walletAddress, chainId, walletType, erc20List]
+    [walletAddress, chainId, walletType, erc20List],
   );
 
   useEffect(() => {
@@ -358,7 +367,7 @@ export const AppContextProvider: FC<AppContextProps> = ({
     refreshWalletBalances();
     const interval = setInterval(
       () => refreshWalletBalances(true),
-      WALLET_BALANCES_REFRESH_INTERVAL
+      WALLET_BALANCES_REFRESH_INTERVAL,
     );
     return () => clearInterval(interval);
   }, [walletAddress, chainId, walletType, erc20List, refreshWalletBalances]);

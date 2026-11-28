@@ -60,8 +60,8 @@ export const getFriendlyErrorMessage = (
     (error instanceof Error
       ? error.message
       : typeof error === "string"
-      ? error
-      : "");
+        ? error
+        : "");
 
   const message = best ? firstMeaningfulLine(String(best)) : "";
   return message || fallback;

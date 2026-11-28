@@ -68,11 +68,11 @@ export const PrivateBridge = () => {
   } = useAppContext();
 
   const [selectedToken, setSelectedToken] = useState<ERC20Token | undefined>(
-    undefined
+    undefined,
   );
   const [bridgeAmount, setBridgeAmount] = useState<string>("");
   const [destinationChainId, setDestinationChainId] = useState<number>(
-    BRIDGE_DESTINATION_CHAIN_IDS[0]
+    BRIDGE_DESTINATION_CHAIN_IDS[0],
   );
   const [destinationTokenAddress, setDestinationTokenAddress] = useState("");
   const [recipientAddress, setRecipientAddress] = useState<string>("");
@@ -87,16 +87,16 @@ export const PrivateBridge = () => {
 
   const destinationTokens = useMemo(
     () => getERC20Registry(destinationChainId) ?? [],
-    [destinationChainId]
+    [destinationChainId],
   );
   const destinationToken = useMemo(
     () =>
       destinationTokens.find(
         (t) =>
           t.erc20TokenAddress.toLowerCase() ===
-          destinationTokenAddress.toLowerCase()
+          destinationTokenAddress.toLowerCase(),
       ),
-    [destinationTokens, destinationTokenAddress]
+    [destinationTokens, destinationTokenAddress],
   );
 
   const amountWei = useMemo(() => {
@@ -155,7 +155,7 @@ export const PrivateBridge = () => {
         (
           await createReceiveAddress(
             { sessionId, privateKey },
-            destinationToken.chainId
+            destinationToken.chainId,
           )
         ).vaultAddress;
       const recipients = [{ address: recipient, amount: amountWei.toString() }];
@@ -166,7 +166,7 @@ export const PrivateBridge = () => {
         destinationToken.chainId,
         destinationToken.erc20TokenAddress,
         recipients,
-        slippage ? Number(slippage) : undefined
+        slippage ? Number(slippage) : undefined,
       );
       setQuote({ ...result, recipients });
     } catch (err) {
@@ -214,7 +214,7 @@ export const PrivateBridge = () => {
         destinationToken.chainId,
         destinationToken.erc20TokenAddress,
         quote.recipients,
-        quote.quote
+        quote.quote,
       );
       setOutcome({
         orderId: order.orderId,
@@ -234,7 +234,7 @@ export const PrivateBridge = () => {
           isNative ? null : order.approvalAddress,
           BigInt(order.amountIn),
           selectedToken.erc20TokenAddress,
-          walletAddress
+          walletAddress,
         );
       } else {
         const signer = requireEvmSigner(wallet.signer);
@@ -243,7 +243,7 @@ export const PrivateBridge = () => {
             signer,
             selectedToken.erc20TokenAddress,
             order.approvalAddress,
-            BigInt(order.amountIn)
+            BigInt(order.amountIn),
           );
         }
         await broadcastDepositTx(signer, order.serializedTx);
@@ -252,7 +252,7 @@ export const PrivateBridge = () => {
       await waitForScheduledTxsComplete(
         { sessionId, privateKey, chainId },
         order.orderId,
-        setScheduledStatuses
+        setScheduledStatuses,
       );
 
       toast.success("Bridge completed");
@@ -344,7 +344,7 @@ export const PrivateBridge = () => {
           id="bridgeRecipientAddress"
           type="text"
           placeholder={`Deposit address on ${getChainName(
-            destinationChainId
+            destinationChainId,
           )}, empty = your own`}
           className="bg-hinkal-blue-900 h-10 w-[90%] rounded-lg ml-[5%] text-[16px] pl-2 outline-none placeholder:text-[13.5px] mt-1 text-white"
           disabled={isBusy}
@@ -380,7 +380,7 @@ export const PrivateBridge = () => {
             Recipient {outcome.recipientAddress} receives ~
             {getAmountInToken(
               outcome.destinationToken,
-              BigInt(outcome.expectedAmount)
+              BigInt(outcome.expectedAmount),
             )}{" "}
             {outcome.destinationToken.symbol} on{" "}
             {getChainName(outcome.destinationToken.chainId)}
@@ -402,7 +402,7 @@ export const PrivateBridge = () => {
             {quote.recipients[0].address} receives ~
             {getAmountInToken(
               destinationToken,
-              BigInt(quote.expectedAmounts[0])
+              BigInt(quote.expectedAmounts[0]),
             )}{" "}
             {destinationToken.symbol}
           </p>

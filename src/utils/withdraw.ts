@@ -16,7 +16,7 @@ export const withdraw = async (
   recipientAddress: string,
   feeToken?: string,
   feeAmount?: string,
-  ref?: string
+  ref?: string,
 ): Promise<string> => {
   const txParams = {
     tokenAddresses,
@@ -41,8 +41,8 @@ export const withdraw = async (
         recipientAddress,
         feeToken,
         feeAmount,
-        ref
-      )
+        ref,
+      ),
   );
 
   const { res, data } = await enclaveFetch<
@@ -65,7 +65,7 @@ export const withdrawStuckUtxos = async (
   session: TxSessionAuth,
   chainId: number,
   tokenAddress: string,
-  recipientAddress: string
+  recipientAddress: string,
 ): Promise<string[]> => {
   const txParams = { tokenAddress, recipientAddress };
   const { bodyJson, headers, requestNonce } = await buildAuthPost(
@@ -79,8 +79,8 @@ export const withdrawStuckUtxos = async (
         session.sessionId,
         chainId,
         tokenAddress,
-        recipientAddress
-      )
+        recipientAddress,
+      ),
   );
 
   const { res, data } = await enclaveFetch<
@@ -93,7 +93,7 @@ export const withdrawStuckUtxos = async (
 
   if (!res.ok || !("success" in data && data.success)) {
     throw new Error(
-      (data as { error?: string }).error ?? "Withdraw stuck UTXOs failed"
+      (data as { error?: string }).error ?? "Withdraw stuck UTXOs failed",
     );
   }
 
@@ -105,7 +105,7 @@ export const recoverStuckBridgeBalance = async (
   session: TxSessionAuth,
   chainId: number,
   tokenAddress: string,
-  recipientAddress: string
+  recipientAddress: string,
 ): Promise<number> => {
   const txParams = { tokenAddress, recipientAddress };
   const { bodyJson, headers, requestNonce } = await buildAuthPost(
@@ -119,8 +119,8 @@ export const recoverStuckBridgeBalance = async (
         session.sessionId,
         chainId,
         tokenAddress,
-        recipientAddress
-      )
+        recipientAddress,
+      ),
   );
 
   const { res, data } = await enclaveFetch<

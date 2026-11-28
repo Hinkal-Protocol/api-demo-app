@@ -5,12 +5,7 @@ import {
   getTypesForPrimary,
 } from "../constants/enclave.constants";
 import { EnclaveSessionAuthMode } from "./auth";
-import {
-  requestSignatureGetHeader,
-  requestSignaturePostHeader,
-  sessionBodyParams,
-  sessionQueryParams,
-} from "./request-signature";
+import { requestSignatureGetHeader, requestSignaturePostHeader, sessionBodyParams, sessionQueryParams } from "./request-signature";
 import type { Auth, EnclaveTxAuthFields, TxSessionAuth } from "./types";
 import { Recipient } from "./multiSend";
 
@@ -18,7 +13,7 @@ type TokenAmountPair = { token: string; amount: string };
 
 const normalizeTokenAmountPairs = (
   tokenAddresses: string[],
-  amounts: string[]
+  amounts: string[],
 ): TokenAmountPair[] => {
   if (tokenAddresses.length !== amounts.length) {
     throw new Error("tokenAddresses and amounts must have the same length");
@@ -40,14 +35,12 @@ const toTokenAmountValues = (pairs: TokenAmountPair[]) =>
 const buildTokenAmountsBase = (
   nonce: string,
   sessionId: string,
-  params: { chainId: number; tokenAddresses: string[]; amounts: string[] }
+  params: { chainId: number; tokenAddresses: string[]; amounts: string[] },
 ) => ({
   nonce,
   sessionId,
   chainId: BigInt(params.chainId),
-  tokenAmounts: toTokenAmountValues(
-    normalizeTokenAmountPairs(params.tokenAddresses, params.amounts)
-  ),
+  tokenAmounts: toTokenAmountValues(normalizeTokenAmountPairs(params.tokenAddresses, params.amounts)),
 });
 
 export const buildAuthPost = async (
@@ -55,7 +48,7 @@ export const buildAuthPost = async (
   chainId: number,
   routePath: string,
   txData: Record<string, unknown>,
-  buildTypedDataAuth: () => Promise<EnclaveTxAuthFields>
+  buildTypedDataAuth: () => Promise<EnclaveTxAuthFields>,
 ): Promise<{
   body: Record<string, unknown>;
   bodyJson: string;
@@ -92,14 +85,14 @@ const signEnclaveTypedData = async (
   signer: ethers.Signer,
   primaryType: EnclaveTypedDataPrimaryType,
   chainId: number,
-  buildMessage: (nonce: string) => Record<string, unknown>
+  buildMessage: (nonce: string) => Record<string, unknown>,
 ): Promise<EnclaveTxAuthFields> => {
   const nonce = crypto.randomUUID();
   const value = buildMessage(nonce);
   const signature = await signer.signTypedData(
     getEnclaveTypedDataDomain(chainId),
     getTypesForPrimary(primaryType, value),
-    value
+    value,
   );
   return {
     sessionId,
@@ -113,25 +106,20 @@ export const buildDepositAuthFields = (
   sessionId: string,
   signer: ethers.Signer,
   primaryType: "Deposit" | "ProoflessDeposit",
-  params: { chainId: number; tokenAddresses: string[]; amounts: string[] }
+  params: { chainId: number; tokenAddresses: string[]; amounts: string[] },
 ) =>
   signEnclaveTypedData(
     sessionId,
     signer,
     primaryType,
     params.chainId,
-    (nonce) => buildTokenAmountsBase(nonce, sessionId, params)
+    (nonce) => buildTokenAmountsBase(nonce, sessionId, params),
   );
 
 export const buildDepositForOtherAuthFields = (
   sessionId: string,
   signer: ethers.Signer,
-  params: {
-    chainId: number;
-    tokenAddresses: string[];
-    amounts: string[];
-    recipient: string;
-  }
+  params: { chainId: number; tokenAddresses: string[]; amounts: string[]; recipient: string },
 ) =>
   signEnclaveTypedData(
     sessionId,
@@ -141,7 +129,7 @@ export const buildDepositForOtherAuthFields = (
     (nonce) => ({
       ...buildTokenAmountsBase(nonce, sessionId, params),
       recipientInfo: params.recipient,
-    })
+    }),
   );
 
 export const buildTransferAuthFields = (
@@ -154,29 +142,23 @@ export const buildTransferAuthFields = (
     recipient: string;
     feeToken?: string;
     feeAmount?: string;
-  }
+  },
 ) =>
-  signEnclaveTypedData(
-    sessionId,
-    signer,
-    "Transfer",
-    params.chainId,
-    (nonce) => {
-      const value: Record<string, unknown> = {
-        ...buildTokenAmountsBase(nonce, sessionId, params),
-        recipient: params.recipient,
-      };
+  signEnclaveTypedData(sessionId, signer, "Transfer", params.chainId, (nonce) => {
+    const value: Record<string, unknown> = {
+      ...buildTokenAmountsBase(nonce, sessionId, params),
+      recipient: params.recipient,
+    };
 
-      if (params.feeToken) {
-        value.feeToken = ethers.getAddress(params.feeToken);
-      }
-      if (params.feeAmount !== undefined) {
-        value.feeAmount = BigInt(params.feeAmount);
-      }
-
-      return value;
+    if (params.feeToken) {
+      value.feeToken = ethers.getAddress(params.feeToken);
     }
-  );
+    if (params.feeAmount !== undefined) {
+      value.feeAmount = BigInt(params.feeAmount);
+    }
+
+    return value;
+  });
 
 export const buildWithdrawAuthFields = (
   sessionId: string,
@@ -189,32 +171,26 @@ export const buildWithdrawAuthFields = (
     feeToken?: string;
     feeAmount?: string;
     ref?: string;
-  }
+  },
 ) =>
-  signEnclaveTypedData(
-    sessionId,
-    signer,
-    "Withdraw",
-    params.chainId,
-    (nonce) => {
-      const value: Record<string, unknown> = {
-        ...buildTokenAmountsBase(nonce, sessionId, params),
-        recipient: params.recipient,
-      };
+  signEnclaveTypedData(sessionId, signer, "Withdraw", params.chainId, (nonce) => {
+    const value: Record<string, unknown> = {
+      ...buildTokenAmountsBase(nonce, sessionId, params),
+      recipient: params.recipient,
+    };
 
-      if (params.feeToken) {
-        value.feeToken = ethers.getAddress(params.feeToken);
-      }
-      if (params.feeAmount !== undefined) {
-        value.feeAmount = BigInt(params.feeAmount);
-      }
-      if (params.ref !== undefined) {
-        value.ref = params.ref;
-      }
-
-      return value;
+    if (params.feeToken) {
+      value.feeToken = ethers.getAddress(params.feeToken);
     }
-  );
+    if (params.feeAmount !== undefined) {
+      value.feeAmount = BigInt(params.feeAmount);
+    }
+    if (params.ref !== undefined) {
+      value.ref = params.ref;
+    }
+
+    return value;
+  });
 
 export const buildWithdrawStuckUtxosAuthFields = (
   sessionId: string,
@@ -223,7 +199,7 @@ export const buildWithdrawStuckUtxosAuthFields = (
     chainId: number;
     tokenAddress: string;
     recipientAddress: string;
-  }
+  },
 ) =>
   signEnclaveTypedData(
     sessionId,
@@ -236,7 +212,7 @@ export const buildWithdrawStuckUtxosAuthFields = (
       chainId: BigInt(params.chainId),
       tokenAddress: ethers.getAddress(params.tokenAddress),
       recipient: ethers.getAddress(params.recipientAddress),
-    })
+    }),
   );
 
 export const buildRecoverStuckBridgeBalanceAuthFields = (
@@ -246,7 +222,7 @@ export const buildRecoverStuckBridgeBalanceAuthFields = (
     chainId: number;
     tokenAddress: string;
     recipientAddress: string;
-  }
+  },
 ) =>
   signEnclaveTypedData(
     sessionId,
@@ -259,7 +235,7 @@ export const buildRecoverStuckBridgeBalanceAuthFields = (
       chainId: BigInt(params.chainId),
       tokenAddress: ethers.getAddress(params.tokenAddress),
       recipient: ethers.getAddress(params.recipientAddress),
-    })
+    }),
   );
 
 export const buildSwapAuthFields = (
@@ -273,7 +249,7 @@ export const buildSwapAuthFields = (
     swapData: string;
     feeToken?: string;
     feeAmount?: string;
-  }
+  },
 ) =>
   signEnclaveTypedData(sessionId, signer, "Swap", params.chainId, (nonce) => {
     const value: Record<string, unknown> = {
@@ -302,7 +278,7 @@ export const buildDepositAndWithdrawAuthFields = (
     feeToken?: string;
     txCompletionTime?: number;
     ref?: string;
-  }
+  },
 ) =>
   signEnclaveTypedData(
     sessionId,
@@ -336,7 +312,7 @@ export const buildDepositAndWithdrawAuthFields = (
       }
 
       return value;
-    }
+    },
   );
 
 // Bridge recipients are signed as plain strings (they can be non-EVM addresses): exactly as sent,
@@ -362,7 +338,7 @@ export const buildPrivateSendBridgeValue = (
   nonce: string,
   sessionId: string,
   params: PrivateSendBridgeAuthParams,
-  normalizeTokenAddress: (address: string) => string
+  normalizeTokenAddress: (address: string) => string,
 ): Record<string, unknown> => ({
   nonce,
   sessionId,
@@ -377,7 +353,7 @@ export const buildPrivateSendBridgeValue = (
 export const buildPrivateSendBridgeAuthFields = (
   sessionId: string,
   signer: ethers.Signer,
-  params: PrivateSendBridgeAuthParams
+  params: PrivateSendBridgeAuthParams,
 ) =>
   signEnclaveTypedData(
     sessionId,
@@ -385,14 +361,14 @@ export const buildPrivateSendBridgeAuthFields = (
     "PrivateSendBridge",
     params.chainId,
     (nonce) =>
-      buildPrivateSendBridgeValue(nonce, sessionId, params, ethers.getAddress)
+      buildPrivateSendBridgeValue(nonce, sessionId, params, ethers.getAddress),
   );
 
 type QueryParamValue = string | string[];
 
 const appendQueryParams = (
   search: URLSearchParams,
-  params: Record<string, QueryParamValue>
+  params: Record<string, QueryParamValue>,
 ): void => {
   for (const [key, value] of Object.entries(params)) {
     if (Array.isArray(value)) {
@@ -406,7 +382,7 @@ const appendQueryParams = (
 export const buildAuthGet = async (
   auth: Auth,
   routePath: string,
-  params: Record<string, QueryParamValue> = {}
+  params: Record<string, QueryParamValue> = {},
 ): Promise<{
   queryString: string;
   headers: Record<string, string>;

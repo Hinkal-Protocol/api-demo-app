@@ -1,4 +1,10 @@
-import { SyntheticEvent, useCallback, useEffect, useMemo, useState } from "react";
+import {
+  SyntheticEvent,
+  useCallback,
+  useEffect,
+  useMemo,
+  useState,
+} from "react";
 import { ethers } from "ethers";
 import toast from "react-hot-toast";
 import { Spinner } from "../components/Spinner";
@@ -57,12 +63,7 @@ const DESTINATION_CHAIN_IDS = [
 ];
 
 const getChainName = (chainId: number): string =>
-  networkRegistry[chainId]?.name ??
-  (chainId === chainIds.solanaMainnet
-    ? "Solana"
-    : chainId === chainIds.tronMainnet
-    ? "Tron"
-    : String(chainId));
+  networkRegistry[chainId]?.name ?? String(chainId);
 
 const emptyRecipient = (): Recipient => ({ address: "", amount: "" });
 
@@ -390,7 +391,9 @@ export const Bridge = () => {
             key={index}
             addressValue={recipient.address}
             amountValue={recipient.amount}
-            addressPlaceholder={`Recipient on ${getChainName(destinationChainId)}`}
+            addressPlaceholder={`Recipient on ${getChainName(
+              destinationChainId,
+            )}`}
             onAddressChange={(e) =>
               updateRecipient(index, "address", e.target.value)
             }

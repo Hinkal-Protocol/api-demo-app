@@ -1,5 +1,8 @@
 import { ethers } from "ethers";
-import { buildEnclaveSignMessage, resolveSessionAuthMode } from "./auth";
+import {
+  buildEnclaveSignMessage,
+  resolveSessionAuthMode,
+} from "./auth";
 import { enclaveFetch } from "./enclaveApi";
 import { generateClientKeyPair, signPayload } from "./request-signature";
 import type { EnclaveSession } from "./types";
@@ -13,7 +16,7 @@ type CreateSessionResponse =
 
 const postCreateSession = async (
   privateKey: Uint8Array,
-  body: Record<string, unknown>
+  body: Record<string, unknown>,
 ): Promise<EnclaveSession> => {
   const bodyJson = JSON.stringify(body);
   const requestNonce = body.nonce as string;
@@ -28,20 +31,16 @@ const postCreateSession = async (
         "x-hinkal-request-signature": await signPayload(privateKey, bodyJson),
       },
       body: bodyJson,
-    }
+    },
   );
 
   if (!res.ok || !data.success) {
-    throw new Error(
-      ("error" in data && data.error) || "Session was not created"
-    );
+    throw new Error(("error" in data && data.error) || "Session was not created");
   }
 
   return {
     sessionId: body.sessionId as string,
-    authMode: resolveSessionAuthMode(
-      (body.useEIP712 as boolean | undefined) ?? false
-    ),
+    authMode: resolveSessionAuthMode((body.useEIP712 as boolean | undefined) ?? false),
     expiresAt: data.expiresAt,
     privateKey,
   };
@@ -80,13 +79,13 @@ export const registerEnclaveSession = async ({
 export const createEnclaveSession = async (
   signer: ethers.Signer,
   address: string,
-  useEIP712: boolean
+  useEIP712: boolean,
 ): Promise<EnclaveSession> => {
   const { privateKey, clientPublicKey } = generateClientKeyPair();
   const sessionId = crypto.randomUUID();
   const authMode = resolveSessionAuthMode(useEIP712);
   const signature = await signer.signMessage(
-    buildEnclaveSignMessage(sessionId, clientPublicKey, authMode)
+    buildEnclaveSignMessage(sessionId, clientPublicKey, authMode),
   );
   const body = {
     signature,
